@@ -12,4 +12,4 @@ export MASTER_ADDR=192.168.0.66 #Store the master node’s IP address in the MAS
 export MASTER_PORT=34567
  
 echo "starting training..."
-time python3.10 pytorch-modelpar-pipelined-rpc.py --batch_size=512 --num_workers=0
+time python3.10 pytorch-modelpar-pipelined-rpc.py --init_method tcp://$MASTER_ADDR:3456 --world_size $((SLURM_NTASKS_PER_NODE * SLURM_JOB_NUM_NODES))

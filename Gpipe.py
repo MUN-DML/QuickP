@@ -3,23 +3,14 @@ import datetime
 import os
 import time
 
-import torchvision
-from torchvision import transforms
-
-from PyUtil import getStdModelForCifar10, getStdCifar10DataLoader, saveModelState, retrieve_existing_model, testPYModel
+from util.PyUtil import getStdModelForCifar10, getStdCifar10DataLoader, saveModelState, retrieve_existing_model, testPYModel
 
 # This guide can only be run with the torch backend. must write when using both keras and pytorch
 # sudo apt install python3-packaging
 os.environ["KERAS_BACKEND"] = "torch"
 
 import torch
-import keras
-import numpy as np
 from torchgpipe import GPipe
-import torch.nn as nn
-from torch.utils.data import DataLoader
-import torch.distributed as dist
-import torch.nn.functional as F
 
 # Store argument values
 parser = argparse.ArgumentParser(description='cifar10 classification models, distributed data parallel test')

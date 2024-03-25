@@ -10,7 +10,7 @@
 # the environment file is etc/environment-modules/modulespath; /usr/share/Modules/modulefiles
 #source /etc/profile.d/modules.sh
 
-# use sbatch pytorch-ddp-test.sh to execute
+# use sbatch PyTorchDP.sh to execute
 export TORCH_NCCL_BLOCKING_WAIT=1  #Set this environment variable if you wish to use the NCCL backend for inter-GPU communication.
 export MASTER_ADDR=192.168.0.66 #Store the master node’s IP address in the MASTER_ADDR environment variable.
 
