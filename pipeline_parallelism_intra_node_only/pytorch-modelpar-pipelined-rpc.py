@@ -5,12 +5,11 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributed.pipeline.sync import Pipe
 
-import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets import CIFAR10
 from torch.utils.data import DataLoader
 
-from util.PyUtil import getArgs
+from PyUtil import getArgs
 
 '''
 parser = argparse.ArgumentParser(description='cifar10 classification models, single node model parallelism test')
