@@ -67,7 +67,10 @@ def main():
     part2 = MLPPart().to('cuda:1')  # Load part2 on the second GPU
 
     net = nn.Sequential(part1, part2)  # Pipe requires all modules be wrapped with nn.Sequential()
-
+    '''https://pytorch.org/docs/stable/pipeline.html. Pipe only supports intra-node pipelining currently, but will be 
+    expanded to support inter-node pipelining in the future. The forward function returns an RRef to allow for 
+    inter-node pipelining in the future, where the output might be on a remote host. For intra-node pipelining you 
+    can use local_value() to retrieve the output locally.'''
     net = Pipe(net, chunks=32)  # Wrap with Pipe to perform Pipeline Parallelism
 
     criterion = nn.CrossEntropyLoss().to('cuda:1')  # Load the loss function on the last GPU
