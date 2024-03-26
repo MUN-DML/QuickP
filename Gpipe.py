@@ -11,6 +11,7 @@ os.environ["KERAS_BACKEND"] = "torch"
 
 import torch
 from torchgpipe import GPipe
+import torch.distributed as dist
 
 # Store argument values
 parser = argparse.ArgumentParser(description='cifar10 classification models, distributed data parallel test')
@@ -26,7 +27,18 @@ parser.add_argument('--dist-backend', default='nccl', type=str, help='')
 parser.add_argument('--world_size', default=1, type=int, help='')
 args = parser.parse_args()
 # Update world size
+print(args.world_size)
 args.world_size = args.gpus * args.num_workers
+print(args.world_size)
+
+ngpus_per_node = torch.cuda.device_count()
+print("num of gpus per node: ", ngpus_per_node)
+local_rank = int(os.environ.get("SLURM_LOCALID"))
+rank = int(os.environ.get("SLURM_NODEID")) * ngpus_per_node + local_rank
+print("rank: ", rank)
+current_device = local_rank
+torch.cuda.set_device(current_device)
+dist.init_process_group(backend=args.dist_backend, init_method=args.init_method, world_size=args.world_size, rank=rank)
 
 model = getStdModelForCifar10()
 model.cuda()
@@ -56,6 +68,7 @@ out_device = model.devices[-1]
 If Use keras dataset instead of torchvision 
 https://keras.io/guides/writing_a_custom_training_loop_in_torch/ 
 '''
+
 train_dataloader = getStdCifar10DataLoader(batch_size, 1)
 # start training
 epochs = 3
