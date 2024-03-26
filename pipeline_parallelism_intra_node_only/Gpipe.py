@@ -1,8 +1,10 @@
 import argparse
 import datetime
 import os
+import sys
 import time
 
+sys.path.append("../")
 from PyUtil import getStdModelForCifar10, getStdCifar10DataLoader, saveModelState, retrieve_existing_model, testPYModel
 
 # This guide can only be run with the torch backend. must write when using both keras and pytorch
