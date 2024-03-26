@@ -12,6 +12,9 @@ from torch.utils.data import DataLoader
 
 import argparse
 
+from util.PyUtil import getArgs
+
+'''
 parser = argparse.ArgumentParser(description='cifar10 classification models, single node model parallelism test')
 parser.add_argument('--lr', default=0.1, help='')
 parser.add_argument('--batch_size', type=int, default=512, help='')
@@ -21,8 +24,11 @@ parser.add_argument('--init_method', default='tcp://192.168.0.66:3456', type=str
 parser.add_argument('--dist-backend', default='nccl', type=str, help='')
 args = parser.parse_args()
 print('World Size:', args.world_size)
+'''
+
 
 def main():
+    args = getArgs()
 
     # Convolutional + pooling part of the model
     class ConvPart(nn.Module):
@@ -61,7 +67,8 @@ def main():
             return x
 
     # by default
-    torch.distributed.rpc.init_rpc('worker', rank=0, world_size=args.world_size)  # initializing RPC is required by Pipe we use below
+    torch.distributed.rpc.init_rpc('worker', rank=0,
+                                   world_size=args.world_size)  # initializing RPC is required by Pipe we use below
 
     part1 = ConvPart().to('cuda:0')  # Load part1 on the first GPU
     part2 = MLPPart().to('cuda:1')  # Load part2 on the second GPU

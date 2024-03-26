@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import keras
@@ -69,6 +70,27 @@ def testPYModel(model, test_loader):
             correct += (predicted == targets).sum().item()
 
     print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
+
+
+def getArgs():
+    parser = argparse.ArgumentParser(description='cifar10 classification models, single node model parallelism test')
+    parser.add_argument('--lr', default=0.1, help='')
+    parser.add_argument('--batch_size', type=int, default=512, help='')
+    parser.add_argument('--max_epochs', type=int, default=2, help='')
+    parser.add_argument('--num_workers', type=int, default=2, help='')
+    parser.add_argument('--world_size', default=1, type=int, help='')
+    parser.add_argument('--init_method', default='tcp://192.168.0.66:3456', type=str, help='')
+    parser.add_argument('--dist-backend', default='nccl', type=str, help='')
+    parser.add_argument('--distributed', action='store_true', help='')
+    args = parser.parse_args()
+    print('World Size:', args.world_size)
+    return args
+
+
+# prerequisite to use torchrun command
+def setup(rank, world_size):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
 
 
 def retrieve_existing_model(obj, modelName):
