@@ -1,7 +1,6 @@
 import argparse
 import os
 
-import keras
 import torchvision
 from torchvision import transforms
 
