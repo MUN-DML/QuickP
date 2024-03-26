@@ -86,10 +86,10 @@ def getArgs():
     return args
 
 
-# prerequisite to use torchrun command
+# set the env variables of rank and world_size
 def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+    os.environ["RANK"] = rank
+    os.environ["WORLD_SIZE"] = world_size
 
 
 def retrieve_existing_model(obj, modelName):
