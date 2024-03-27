@@ -81,7 +81,7 @@ def getArgs():
     parser.add_argument('--init_method', default='tcp://192.168.0.66:3456', type=str, help='')
     parser.add_argument('--dist-backend', default='nccl', type=str, help='')
     parser.add_argument('--distributed', action='store_true', help='')
-    parser.add_argument('--master_addr', type=str, default=os.getenv('MASTER_ADDR', 'localhost'))
+    parser.add_argument('--master_addr', type=str, default=os.getenv('MASTER_ADDR', '192.168.0.66'))
     parser.add_argument('--master_port', type=str, default=os.getenv('MASTER_PORT', '3456'))
     args = parser.parse_args()
     print('World Size:', args.world_size)
