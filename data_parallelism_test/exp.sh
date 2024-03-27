@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=8G
+#SBATCH --mem=8gb
 #SBATCH --output=%N-%j.out
 
 ### change 5-digit MASTER_PORT as you wish, slurm will raise Error if duplicated with others

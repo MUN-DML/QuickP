@@ -88,10 +88,6 @@ def main(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
     criterion = nn.CrossEntropyLoss().cuda()
 
-    ### resume training if necessary ###
-    if args.resume:
-        pass
-
     ### data ###
     transform_train = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
