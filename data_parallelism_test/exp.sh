@@ -7,7 +7,7 @@
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=12    #accelerate Pytorch data loader
 #SBATCH --mem=8gb
 #SBATCH --output=%N-%j.out
 

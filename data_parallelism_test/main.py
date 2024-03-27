@@ -21,7 +21,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--net', default='resnet18', type=str)
     parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
-    parser.add_argument('--batch_size', default=16, type=int, help='batch size per GPU')
+    parser.add_argument('--batch_size', default=768, type=int, help='batch size per GPU')
     parser.add_argument('--gpu', default=None, type=int)
     parser.add_argument('--start_epoch', default=0, type=int,
                         help='start epoch number (useful on restarts)')
@@ -96,13 +96,13 @@ def main(args):
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
+        num_workers=int(os.environ["SLURM_CPUS_PER_TASK"]), pin_memory=True, sampler=train_sampler, drop_last=True)
 
     val_dataset = dataset_train = CIFAR10(root='../data', train=False, download=True, transform=transform_train)
     val_sampler = None
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=(val_sampler is None),
-        num_workers=args.num_workers, pin_memory=True, sampler=val_sampler, drop_last=True)
+        num_workers=int(os.environ["SLURM_CPUS_PER_TASK"]), pin_memory=True, sampler=val_sampler, drop_last=True)
 
     torch.backends.cudnn.benchmark = True
 
