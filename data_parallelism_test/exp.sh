@@ -20,7 +20,7 @@ export WORLD_SIZE=2
 export MASTER_ADDR=192.168.0.66 #Store the master node’s IP address in the MASTER_ADDR environment variable.
 ### get the first node name as master address - customized for vgg slurm
 ### e.g. master(gnodee[2-5],gnoded1) == gnodee2
-# echo "NODELIST="${SLURM_NODELIST}
+echo "NODELIST="${SLURM_NODELIST}
 
 echo "MASTER_ADDR="$MASTER_ADDR
 
