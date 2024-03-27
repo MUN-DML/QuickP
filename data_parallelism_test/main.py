@@ -44,8 +44,9 @@ def parse_args():
 
 def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
-    print("NodeID: ", nodeID, "World size: ", args.world_size)
+    print("NodeID: ", nodeID)
     # DDP setting
+    # update world size, rank, and if distributed in the args
     if "WORLD_SIZE" in os.environ:
         args.world_size = int(os.environ["WORLD_SIZE"])
     args.distributed = args.world_size > 1
@@ -60,7 +61,8 @@ def main(args):
             args.gpu = args.rank % torch.cuda.device_count()
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
-    print("Rank", args.rank)
+
+    print("Rank", args.rank, "World size: ", args.world_size)
 
     # suppress printing if not on master gpu
     if args.rank != 0:
