@@ -77,14 +77,39 @@ def getArgs():
     parser.add_argument('--batch_size', type=int, default=512, help='')
     parser.add_argument('--max_epochs', type=int, default=2, help='')
     parser.add_argument('--num_workers', type=int, default=2, help='')
-    parser.add_argument('--world_size', default=1, type=int, help='')
+    parser.add_argument('--world_size', default=-1, type=int, help='')
     parser.add_argument('--init_method', default='tcp://192.168.0.66:3456', type=str, help='')
     parser.add_argument('--dist-backend', default='nccl', type=str, help='')
     parser.add_argument('--distributed', action='store_true', help='')
     parser.add_argument('--master_addr', type=str, default=os.getenv('MASTER_ADDR', '192.168.0.66'))
     parser.add_argument('--master_port', type=str, default=os.getenv('MASTER_PORT', '3456'))
     args = parser.parse_args()
-    print('World Size:', args.world_size)
+    nodeID = int(os.environ.get("SLURM_NODEID"))
+    print("NodeID: ", nodeID)
+    # DDP setting
+    # update world size, rank, and if distributed in the args
+    if "WORLD_SIZE" in os.environ:
+        args.world_size = int(os.environ["WORLD_SIZE"])
+    else: # for slurm scheduler
+        # for homo platform where each node has the same number of GPU
+        args.world_size = int(os.environ["SLURM_NTASKS_PER_NODE"]) * int(os.environ["SLURM_JOB_NUM_NODES"])
+    args.distributed = args.world_size > 1
+
+    if args.distributed:
+        if 'SLURM_PROCID' in os.environ:  # for slurm scheduler
+            args.rank = int(os.environ['SLURM_PROCID'])
+            args.gpu = args.rank % torch.cuda.device_count()
+        elif torch.cuda.device_count() == 1: # when there is only one node
+            args.rank = int(os.environ['SLURM_NODEID'])
+        else:
+            ngpus_per_node = torch.cuda.device_count()
+            local_rank = int(os.environ.get("SLURM_LOCALID"))
+            args.rank = int(os.environ.get("SLURM_NODEID")) * ngpus_per_node + local_rank
+
+    if 'SLURM_CPUS_PER_TASK' in os.environ:
+        args.num_workers = int(os.environ['SLURM_CPUS_PER_TASK'])
+
+    print("distributed mode: ", args.distributed, "from rank: ", args.rank, "world_size: ", args.world_size, "num_workers: ", args.num_workers)
     return args
 
 
