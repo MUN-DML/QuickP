@@ -16,7 +16,7 @@ import torch.nn as nn
 sys.path.append("../")
 from PyUtil import getStdModelForCifar10
 
-
+# https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--net', default='resnet18', type=str)
