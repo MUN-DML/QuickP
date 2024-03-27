@@ -25,8 +25,9 @@ def parse_args():
     parser.add_argument('--gpu', default=None, type=int)
     parser.add_argument('--start_epoch', default=0, type=int,
                         help='start epoch number (useful on restarts)')
-    parser.add_argument('--epochs', default=10, type=int, help='number of total epochs to run')
+    parser.add_argument('--epochs', default=2, type=int, help='number of total epochs to run')
     # DDP configs:
+    parser.add_argument('--num_workers', type=int, default=2, help='')
     parser.add_argument('--world-size', default=-1, type=int,
                         help='number of nodes for distributed training')
     parser.add_argument('--rank', default=-1, type=int,
@@ -95,13 +96,13 @@ def main(args):
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True)
+        num_workers=args.num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
 
     val_dataset = dataset_train = CIFAR10(root='../data', train=False, download=True, transform=transform_train)
     val_sampler = None
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=(val_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=val_sampler, drop_last=True)
+        num_workers=args.num_workers, pin_memory=True, sampler=val_sampler, drop_last=True)
 
     torch.backends.cudnn.benchmark = True
 
