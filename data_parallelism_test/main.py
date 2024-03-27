@@ -16,6 +16,7 @@ import torch.nn as nn
 sys.path.append("../")
 from PyUtil import getStdModelForCifar10
 
+
 # https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -121,9 +122,9 @@ def main(args):
         # adjust lr if needed #
 
         train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID)
-        if args.rank == 0:  # only val and save on master node
-            validate(val_loader, model, criterion, epoch, args)
-            # save checkpoint if needed #
+        # if args.rank == 0:  # only val and save on master node
+        #    validate(val_loader, model, criterion, epoch, args)
+        # save checkpoint if needed #
 
 
 def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
@@ -160,9 +161,11 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
         elapse_time = datetime.timedelta(seconds=elapse_time)
         print("From Node: {}, Training time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
 
+
+'''
 def validate(val_loader, model, criterion, epoch, args):
     pass
-
+'''
 
 if __name__ == '__main__':
     args = parse_args()
