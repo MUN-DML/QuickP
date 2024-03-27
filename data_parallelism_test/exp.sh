@@ -7,9 +7,8 @@
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH --constraint=p40&gmem24G
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64gb
+#SBATCH --mem=8G
 #SBATCH --output=%N-%j.out
 
 ### change 5-digit MASTER_PORT as you wish, slurm will raise Error if duplicated with others
@@ -26,4 +25,4 @@ export MASTER_ADDR=192.168.0.66 #Store the master node’s IP address in the MAS
 echo "MASTER_ADDR="$MASTER_ADDR
 
 ### the command to run
-srun python main.py --net resnet18 --lr 1e-3 --epochs 2
+srun python3.10 main.py --net resnet18 --lr 1e-3 --epochs 2
