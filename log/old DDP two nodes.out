@@ -1,0 +1,34 @@
+r0 master: /home/hola/Desktop/DNN/data_parallelism
+r0 Launching python script
+SLURM_NTASKS_PER_NODE: 1
+SLURM_JOB_NUM_NODES: 2
+Starting...
+The World Size is 2, From Rank: 0, ==> Initializing Process Group...
+process group ready!
+From Rank: 0, ==> Making model..
+From Rank: 0, ==> Preparing data..
+Files already downloaded and verified
+Starting...
+The World Size is 2, From Rank: 1, ==> Initializing Process Group...
+process group ready!
+From Rank: 1, ==> Making model..
+From Rank: 1, ==> Preparing data..
+Files already downloaded and verified
+From Rank: 1, Training time 0:00:00.816964, epoch 0, steps 0
+From Rank: 1, Training time 0:00:02.579916, epoch 0, steps 30
+From Rank: 1, Training time 0:00:04.276773, epoch 0, steps 60
+From Rank: 1, Training time 0:00:05.887848, epoch 0, steps 90
+From Rank: 0, Training time 0:00:00.979224, epoch 0, steps 0
+From Rank: 0, Training time 0:00:02.748111, epoch 0, steps 30
+From Rank: 0, Training time 0:00:04.444164, epoch 0, steps 60
+From Rank: 0, Training time 0:00:06.050300, epoch 0, steps 90
+From Rank: 0, Training time 0:00:00.452679, epoch 1, steps 0
+From Rank: 0, Training time 0:00:01.940912, epoch 1, steps 30
+From Rank: 0, Training time 0:00:03.446098, epoch 1, steps 60
+From Rank: 0, Training time 0:00:04.847622, epoch 1, steps 90
+From Rank: 0, starting time2024-03-27 18:18:43.990266, ending time 2024-03-27 18:18:55.632987, taking time11.642720937728882
+From Rank: 1, Training time 0:00:00.463338, epoch 1, steps 0
+From Rank: 1, Training time 0:00:01.951028, epoch 1, steps 30
+From Rank: 1, Training time 0:00:03.450358, epoch 1, steps 60
+From Rank: 1, Training time 0:00:04.848459, epoch 1, steps 90
+From Rank: 1, starting time2024-03-27 18:18:44.142198, ending time 2024-03-27 18:18:55.626859, taking time11.484660863876343
