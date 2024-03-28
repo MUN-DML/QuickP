@@ -1,0 +1,63 @@
+r0 master: /home/hola/Desktop/DNN/pipeline_intel_node
+r0 Launching python script
+SLURM_NTASKS_PER_NODE: 1
+SLURM_JOB_NUM_NODES: 2
+NODELIST=hola-Legion-T7-34IAZ7,hola-Precision-3660
+nodeID:  0  distributed mode:  True  from rank:  0  world_size:  2  num_workers:  12  local_rank(always 0):  0
+************************************* pipe *************************************
+GraphModule(
+  (submod_0): GraphModule(
+    (L__self___layer0_lin): Linear(in_features=512, out_features=512, bias=True)
+  )
+  (submod_1): GraphModule(
+    (L__self___layer1_lin): Linear(in_features=512, out_features=1024, bias=True)
+    (L__self___layer2_lin): Linear(in_features=1024, out_features=256, bias=True)
+    (L__self___output_proj): Linear(in_features=256, out_features=10, bias=True)
+  )
+)
+
+
+
+def forward(self, arg0):
+    submod_0 = self.submod_0(arg0);  arg0 = None
+    submod_1 = self.submod_1(submod_0);  submod_0 = None
+    return [submod_1]
+    
+# To see more debug info, please use `graph_module.print_readable()`
+*********************************** stage 0 ************************************
+GraphModule(
+  (L__self___layer0_lin): Linear(in_features=512, out_features=512, bias=True)
+)
+
+
+
+nodeID:  1  distributed mode:  True  from rank:  1  world_size:  2  num_workers:  12  local_rank(always 0):  0
+Rank 1  Beginning time  2024-03-28 16:50:29.283207  Ending time  2024-03-28 16:50:29.602864  Elapsed time  0:00:00.319657
+****************** Pipeline parallel model ran successfully! *******************
+ Beginning time  2024-03-28 16:50:29.283207  Ending time  2024-03-28 16:50:29.602864  Elapsed time  0.3196570873260498
+def forward(self, x):
+    l_x_, = fx_pytree.tree_flatten_spec(([x], {}), self._in_spec)
+    l__self___layer0_lin = self.L__self___layer0_lin(l_x_);  l_x_ = None
+    relu = torch.relu(l__self___layer0_lin);  l__self___layer0_lin = None
+    return relu
+    
+# To see more debug info, please use `graph_module.print_readable()`
+*********************************** stage 1 ************************************
+GraphModule(
+  (L__self___layer1_lin): Linear(in_features=512, out_features=1024, bias=True)
+  (L__self___layer2_lin): Linear(in_features=1024, out_features=256, bias=True)
+  (L__self___output_proj): Linear(in_features=256, out_features=10, bias=True)
+)
+
+
+
+def forward(self, x_2):
+    l__self___layer1_lin = self.L__self___layer1_lin(x_2);  x_2 = None
+    relu = torch.relu(l__self___layer1_lin);  l__self___layer1_lin = None
+    l__self___layer2_lin = self.L__self___layer2_lin(relu);  relu = None
+    relu_1 = torch.relu(l__self___layer2_lin);  l__self___layer2_lin = None
+    l__self___output_proj = self.L__self___output_proj(relu_1);  relu_1 = None
+    return l__self___output_proj
+    
+# To see more debug info, please use `graph_module.print_readable()`
+Rank 0  Beginning time  2024-03-28 16:50:29.331330  Ending time  2024-03-28 16:50:29.600160  Elapsed time  0:00:00.268830
