@@ -91,7 +91,7 @@ def getArgs():
     # update world size, rank, and if distributed in the args
     if "WORLD_SIZE" in os.environ:
         args.world_size = int(os.environ["WORLD_SIZE"])
-    else: # for slurm scheduler
+    else:  # for slurm scheduler
         # for homo platform where each node has the same number of GPU
         args.world_size = int(os.environ["SLURM_NTASKS_PER_NODE"]) * int(os.environ["SLURM_JOB_NUM_NODES"])
     args.distributed = args.world_size > 1
@@ -113,7 +113,8 @@ def getArgs():
         args.num_workers = int(os.environ['SLURM_CPUS_PER_TASK'])
 
     print("nodeID: ", nodeID, " distributed mode: ", args.distributed, " from rank: ", args.rank,
-          " world_size: ", args.world_size, " num_workers: ", args.num_workers, " local_rank(always 0): ", args.local_rank)
+          " world_size: ", args.world_size, " num_workers: ", args.num_workers, " local_rank(always 0): ",
+          args.local_rank)
     return args
 
 
@@ -132,3 +133,12 @@ def retrieve_existing_model(obj, modelName):
     obj.load_state_dict(torch.load(filepath))
     obj.eval()
     return obj
+
+
+def printPipelineSplitInfo(rank, pipe):
+    if rank == 0:
+        print(" pipe ".center(80, "*"))
+        print(pipe)
+        for i in range(0, pipe.num_stages):
+            print(" stage {} ".format(i).center(80, "*"))
+            print(pipe.split_gm.children()[i])
