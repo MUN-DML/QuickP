@@ -85,7 +85,6 @@ def getArgs():
     parser.add_argument('--master_port', type=str, default=os.getenv('MASTER_PORT', '3456'))
     args = parser.parse_args()
     nodeID = int(os.environ.get("SLURM_NODEID"))
-    print("NodeID: ", nodeID)
     # DDP setting
     # update world size, rank, and if distributed in the args
     if "WORLD_SIZE" in os.environ:
@@ -109,7 +108,8 @@ def getArgs():
     if 'SLURM_CPUS_PER_TASK' in os.environ:
         args.num_workers = int(os.environ['SLURM_CPUS_PER_TASK'])
 
-    print("distributed mode: ", args.distributed, "from rank: ", args.rank, "world_size: ", args.world_size, "num_workers: ", args.num_workers)
+    print("nodeID: ", nodeID, " distributed mode: ", args.distributed, " from rank: ", args.rank,
+          " world_size: ", args.world_size, " num_workers: ", args.num_workers)
     return args
 
 
