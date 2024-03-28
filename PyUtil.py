@@ -96,22 +96,21 @@ def getArgs():
         args.world_size = int(os.environ["SLURM_NTASKS_PER_NODE"]) * int(os.environ["SLURM_JOB_NUM_NODES"])
     args.distributed = args.world_size > 1
 
+    if 'SLURM_LOCALID' in os.environ:
+        args.local_rank = int(os.environ.get("SLURM_LOCALID"))
+
     if args.distributed:
         if 'SLURM_PROCID' in os.environ:  # for slurm scheduler
             args.rank = int(os.environ['SLURM_PROCID'])
             args.gpu = args.rank % torch.cuda.device_count()
-        elif torch.cuda.device_count() == 1: # when there is only one node
-            args.rank = int(os.environ['SLURM_NODEID'])
         else:
             ngpus_per_node = torch.cuda.device_count()
-            local_rank = int(os.environ.get("SLURM_LOCALID"))
-            args.rank = int(os.environ.get("SLURM_NODEID")) * ngpus_per_node + local_rank
+            args.rank = int(os.environ.get("SLURM_NODEID")) * ngpus_per_node + args.local_rank
+    else:
+        args.rank = args.local_rank
 
     if 'SLURM_CPUS_PER_TASK' in os.environ:
         args.num_workers = int(os.environ['SLURM_CPUS_PER_TASK'])
-
-    if 'SLURM_CPUS_PER_TASK' in os.environ:
-        args.local_rank = int(os.environ.get("SLURM_LOCALID"))
 
     print("nodeID: ", nodeID, " distributed mode: ", args.distributed, " from rank: ", args.rank,
           " world_size: ", args.world_size, " num_workers: ", args.num_workers, " local_rank(always 0): ", args.local_rank)
