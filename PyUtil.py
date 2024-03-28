@@ -73,7 +73,7 @@ def testPYModel(model, test_loader):
 
 def getArgs():
     parser = argparse.ArgumentParser(description='cifar10 classification models, single node model parallelism test')
-    parser.add_argument('--lr', default=0.1, help='')
+    parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--batch_size', type=int, default=512, help='')
     parser.add_argument('--epochs', type=int, default=2, help='')
     parser.add_argument('--gpu', default=None, type=int)

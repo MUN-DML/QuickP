@@ -25,4 +25,4 @@ echo "NODELIST="${SLURM_NODELIST}
 echo "MASTER_ADDR="$MASTER_ADDR
 
 ### the command to run
-srun python3.10 main.py --lr 1e-3 --epochs 2
+srun python3.10 main.py --epochs 2
