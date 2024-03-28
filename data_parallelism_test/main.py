@@ -65,13 +65,6 @@ def main(args):
 
     print("Rank", args.rank, "World size: ", args.world_size)
 
-    # suppress printing if not on master gpu
-    if args.rank != 0:
-        def print_pass(*args):
-            pass
-
-        builtins.print = print_pass
-
     ### model ###
     model = getStdModelForCifar10()
     if args.distributed:
