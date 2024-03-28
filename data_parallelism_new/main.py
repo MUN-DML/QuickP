@@ -16,6 +16,9 @@ import torch.nn as nn
 sys.path.append("../")
 from PyUtil import getStdModelForCifar10, getArgs
 
+beginning_time = None
+ending_time = None
+
 
 # https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
 
@@ -23,7 +26,7 @@ def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
     if args.distributed:
         dist.init_process_group(backend=args.dist_backend, init_method=args.init_method,
-                            world_size=args.world_size, rank=args.rank)
+                                world_size=args.world_size, rank=args.rank)
     ### model ###
     model = getStdModelForCifar10()
     if args.distributed:
@@ -34,11 +37,9 @@ def main(args):
             torch.cuda.set_device(args.gpu)
             model.cuda(args.gpu)
             model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-            model_without_ddp = model.module
         else:
             model.cuda()
             model = torch.nn.parallel.DistributedDataParallel(model)
-            model_without_ddp = model.module
     else:
         raise NotImplementedError("Only DistributedDataParallel is supported.")
 
@@ -54,12 +55,6 @@ def main(args):
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=int(os.environ["SLURM_CPUS_PER_TASK"]), pin_memory=True, sampler=train_sampler, drop_last=True)
-
-    val_dataset = dataset_train = CIFAR10(root='../data', train=False, download=True, transform=transform_train)
-    val_sampler = None
-    val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=args.batch_size, shuffle=(val_sampler is None),
-        num_workers=int(os.environ["SLURM_CPUS_PER_TASK"]), pin_memory=True, sampler=val_sampler, drop_last=True)
 
     torch.backends.cudnn.benchmark = True
 
@@ -77,17 +72,19 @@ def main(args):
         # if args.rank == 0:  # only val and save on master node
         #    validate(val_loader, model, criterion, epoch, args)
         # save checkpoint if needed #
-
+    print('From Rank: {}, starting time{}, ending time {}, taking time{}'.format(args.rank, beginning_time, ending_time,
+                                                                                 ending_time.timestamp() - beginning_time.timestamp()))
 
 def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
-    pass
+    global beginning_time, ending_time
     # only one gpu is visible here, so you can send cpu data to gpu by
     # input_data = input_data.cuda() as normal
     train_loss = 0
     correct = 0
     total = 0
-
-    epoch_start = time.time()
+    epoch_start = datetime.datetime.now()
+    if epoch == 0:
+        beginning_time = epoch_start
 
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         start = time.time()
@@ -109,10 +106,13 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
 
         batch_time = time.time() - start
 
-        elapse_time = time.time() - epoch_start
+        elapse_time = datetime.datetime.now().timestamp() - epoch_start.timestamp()
         elapse_time = datetime.timedelta(seconds=elapse_time)
-        print("From Node: {}, Training time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
+        if batch_idx % 30 == 0:
+            print("From Node: {}, Training time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
 
+    if epoch == (args.epochs - 1):
+        ending_time = datetime.datetime.now()
 
 '''
 def validate(val_loader, model, criterion, epoch, args):
