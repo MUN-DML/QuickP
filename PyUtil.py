@@ -77,6 +77,7 @@ def getArgs():
     parser.add_argument('--batch_size', type=int, default=512, help='')
     parser.add_argument('--epochs', type=int, default=2, help='')
     parser.add_argument('--gpu', default=None, type=int)
+    parser.add_argument('--local_rank', default=-1, type=int, help='local rank for distributed training')
     parser.add_argument('--num_workers', type=int, default=-1, help='')
     parser.add_argument('--world_size', default=-1, type=int, help='')
     parser.add_argument('--init_method', default='tcp://192.168.0.66:3456', type=str, help='')
@@ -109,8 +110,11 @@ def getArgs():
     if 'SLURM_CPUS_PER_TASK' in os.environ:
         args.num_workers = int(os.environ['SLURM_CPUS_PER_TASK'])
 
+    if 'SLURM_CPUS_PER_TASK' in os.environ:
+        args.local_rank = int(os.environ.get("SLURM_LOCALID"))
+
     print("nodeID: ", nodeID, " distributed mode: ", args.distributed, " from rank: ", args.rank,
-          " world_size: ", args.world_size, " num_workers: ", args.num_workers)
+          " world_size: ", args.world_size, " num_workers: ", args.num_workers, " local_rank(always 0): ", args.local_rank)
     return args
 
 

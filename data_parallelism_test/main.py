@@ -21,6 +21,9 @@ from PyUtil import getStdModelForCifar10, getArgs
 
 def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
+    if args.distributed:
+        dist.init_process_group(backend=args.dist_backend, init_method=args.init_method,
+                            world_size=args.world_size, rank=args.rank)
     ### model ###
     model = getStdModelForCifar10()
     if args.distributed:
