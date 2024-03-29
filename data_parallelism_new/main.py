@@ -40,7 +40,7 @@ def main(args):
         torch.cuda.set_device(args.local_rank)
         model.features.cuda()
         model.features = torch.nn.parallel.DistributedDataParallel(model.features, device_ids=[args.local_rank])
-
+        model.classifier.cuda()
     else:
         raise NotImplementedError("Only DistributedDataParallel is supported.")
 
