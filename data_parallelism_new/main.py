@@ -37,13 +37,8 @@ def main(args):
         # For multiprocessing distributed, DistributedDataParallel constructor
         # should always set the single device scope, otherwise,
         # DistributedDataParallel will use all available devices.
-        if args.gpu is not None:
-            torch.cuda.set_device(args.gpu)
-            model.features = torch.nn.parallel.DistributedDataParallel(model.features, device_ids=[args.gpu])
-            model.cuda(args.gpu)
-        else:
-            model.features = torch.nn.parallel.DistributedDataParallel(model.features)
-            model.cuda()
+        model.features = torch.nn.parallel.DistributedDataParallel(model.features, device_ids=[args.gpu])
+        model.cuda()
     else:
         raise NotImplementedError("Only DistributedDataParallel is supported.")
 
