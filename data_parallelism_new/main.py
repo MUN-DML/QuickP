@@ -27,8 +27,8 @@ def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
 
     ### model ###
-    model = vgg11()
-    # model = getStdModelForCifar10()
+    #model = vgg11()
+    model = getStdModelForCifar10()
 
     ### init group
     if args.distributed:
@@ -37,10 +37,13 @@ def main(args):
         # For multiprocessing distributed, DistributedDataParallel constructor
         # should always set the single device scope, otherwise,
         # DistributedDataParallel will use all available devices.
-        torch.cuda.set_device(args.local_rank)
-        model.cuda()
-        model.features = torch.nn.parallel.DistributedDataParallel(model.features, device_ids=[args.local_rank])
-
+        if args.gpu is not None:
+            torch.cuda.set_device(args.gpu)
+            model.cuda(args.gpu)
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        else:
+            model.cuda()
+            model = torch.nn.parallel.DistributedDataParallel(model)
     else:
         raise NotImplementedError("Only DistributedDataParallel is supported.")
 
