@@ -13,10 +13,9 @@ from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 import torch.nn as nn
 
-from VGGParaCifar import vgg16
-
 sys.path.append("../")
 from PyUtil import getStdModelForCifar10, getArgs
+from VGGParaCifar import vgg16
 
 beginning_time = None
 ending_time = None
