@@ -38,8 +38,8 @@ def main(args):
         # should always set the single device scope, otherwise,
         # DistributedDataParallel will use all available devices.
         if args.gpu is not None:
-            model.features = torch.nn.parallel.DistributedDataParallel(model.features, device_ids=[args.gpu])
             torch.cuda.set_device(args.gpu)
+            model.features = torch.nn.parallel.DistributedDataParallel(model.features, device_ids=[args.gpu])
             model.cuda(args.gpu)
         else:
             model.features = torch.nn.parallel.DistributedDataParallel(model.features)
