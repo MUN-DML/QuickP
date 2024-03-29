@@ -40,10 +40,10 @@ def main(args):
         if args.gpu is not None:
             torch.cuda.set_device(args.gpu)
             model.cuda(args.gpu)
-            model.feature = torch.nn.parallel.DistributedDataParallel(model.feature, device_ids=[args.gpu])
+            model.features = torch.nn.parallel.DistributedDataParallel(model.features, device_ids=[args.gpu])
         else:
             model.cuda()
-            model.feature = torch.nn.parallel.DistributedDataParallel(model.feature)
+            model.features = torch.nn.parallel.DistributedDataParallel(model.features)
     else:
         raise NotImplementedError("Only DistributedDataParallel is supported.")
 
