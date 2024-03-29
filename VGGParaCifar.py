@@ -22,11 +22,6 @@ class VGGParaCifar(nn.Module):
         self.features = features
         self.classifier = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(512, 512),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(512, 512),
-            nn.ReLU(True),
             nn.Linear(512, 10),
         )
          # Initialize weights
