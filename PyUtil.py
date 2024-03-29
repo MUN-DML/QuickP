@@ -104,19 +104,19 @@ def getArgs():
     if args.distributed:
         if 'SLURM_PROCID' in os.environ:  # for slurm scheduler
             args.rank = int(os.environ['SLURM_PROCID'])
-            args.gpu = args.rank % torch.cuda.device_count()
+            # args.gpu = args.rank % torch.cuda.device_count()
         else:
             ngpus_per_node = torch.cuda.device_count()
             args.rank = int(os.environ.get("SLURM_NODEID")) * ngpus_per_node + args.local_rank
-    else:
-        args.rank = args.local_rank
+
+    args.gpu = args.local_rank
 
     if 'SLURM_CPUS_PER_TASK' in os.environ:
         args.num_workers = int(os.environ['SLURM_CPUS_PER_TASK'])
 
     print("nodeID: ", nodeID, " distributed mode: ", args.distributed, " from rank: ", args.rank,
           " world_size: ", args.world_size, " num_workers: ", args.num_workers, " local_rank(always 0): ",
-          args.local_rank)
+          args.local_rank, " gpu(always 0): ", args.gpu)
     return args
 
 
