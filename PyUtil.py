@@ -1,5 +1,4 @@
 import argparse
-import datetime
 import os
 
 import torchvision
@@ -149,25 +148,3 @@ def printPipelineSplitInfo(rank, pipe):
 def init_distributed_group(args):
     dist.init_process_group(backend=args.dist_backend, init_method=args.init_method, rank=args.rank,
                             world_size=args.world_size)
-
-
-def ExePipeStep(args, schedule, input):
-    # rank == 0 => the first node
-    if args.rank == 0:
-        beginning_time = datetime.datetime.now()
-        schedule.step(input)
-        ending_time = datetime.datetime.now()
-        print("Rank", args.rank, " Beginning time ", beginning_time, " Ending time ", ending_time,
-              " Elapsed time ", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
-    # the last node
-    elif args.rank == args.world_size - 1:
-        beginning_time = datetime.datetime.now()
-        output = schedule.step()
-        ending_time = datetime.datetime.now()
-        print("Rank", args.rank, " Beginning time ", beginning_time, " Ending time ", ending_time,
-              " Elapsed time ", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
-    # intermediate nodes
-    else:
-        schedule.step()
-
-    return output
