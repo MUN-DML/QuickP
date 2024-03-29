@@ -15,7 +15,7 @@ import torch.nn as nn
 
 sys.path.append("../")
 from PyUtil import getStdModelForCifar10, getArgs
-from VGGParaCifar import vgg16
+from VGGParaCifar import vgg16, vgg11
 
 beginning_time = None
 ending_time = None
@@ -27,7 +27,7 @@ def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
 
     ### model ###
-    model = getStdModelForCifar10()
+    model = vgg11()
 
     ### init group
     if args.distributed:
