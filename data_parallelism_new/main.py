@@ -13,6 +13,8 @@ from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 import torch.nn as nn
 
+from VGGParaCifar import vgg16
+
 sys.path.append("../")
 from PyUtil import getStdModelForCifar10, getArgs
 
@@ -24,12 +26,14 @@ ending_time = None
 
 def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
+
+    ### model ###
+    model = vgg16()
+
+    ### init group
     if args.distributed:
         dist.init_process_group(backend=args.dist_backend, init_method=args.init_method,
                                 world_size=args.world_size, rank=args.rank)
-    ### model ###
-    model = getStdModelForCifar10()
-    if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
         # should always set the single device scope, otherwise,
         # DistributedDataParallel will use all available devices.
@@ -45,6 +49,7 @@ def main(args):
 
     ### optimizer, criterion ###
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
+    ### only one GPU per node, so we can directly use cuda() instead of .to()
     criterion = nn.CrossEntropyLoss().cuda()
 
     ### data ###
@@ -74,6 +79,7 @@ def main(args):
         # save checkpoint if needed #
     print('From Rank: {}, starting time{}, ending time {}, taking time{}'.format(args.rank, beginning_time, ending_time,
                                                                                  ending_time.timestamp() - beginning_time.timestamp()))
+
 
 def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
     global beginning_time, ending_time
@@ -113,6 +119,7 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
 
     if epoch == (args.epochs - 1):
         ending_time = datetime.datetime.now()
+
 
 '''
 def validate(val_loader, model, criterion, epoch, args):
