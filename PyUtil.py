@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 import torch.distributed as dist
 from torch.utils.data import DataLoader
+from transformers import GPT2ForSequenceClassification, GPT2Config
 
 
 # our module must be nn.Sequential as GPipe will automatically split the module into partitions with consecutive layers
@@ -148,3 +149,18 @@ def printPipelineSplitInfo(rank, pipe):
 def init_distributed_group(args):
     dist.init_process_group(backend=args.dist_backend, init_method=args.init_method, rank=args.rank,
                             world_size=args.world_size)
+
+
+def getGPT2Model(args):
+    config = GPT2Config()
+    config.n_embd = args.n_embd or config.n_embd
+    config.n_layer = args.n_layer or config.n_layer
+    config.n_head = args.n_head or config.n_head
+    print("Using device:", args.device)
+
+    # Create model
+    model_class = GPT2ForSequenceClassification
+    model_name = "GPT2ForSequenceClassification"
+    gpt2 = model_class(config)
+    gpt2.to(args.device)
+    gpt2.eval()
