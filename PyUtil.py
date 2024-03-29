@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import os
 
 import torchvision
@@ -10,6 +11,7 @@ os.environ["KERAS_BACKEND"] = "torch"
 
 import torch
 import torch.nn as nn
+import torch.distributed as dist
 from torch.utils.data import DataLoader
 
 
@@ -139,6 +141,33 @@ def printPipelineSplitInfo(rank, pipe):
     if rank == 0:
         print(" pipe ".center(80, "*"))
         print(pipe)
-        for i in range(0, pipe.num_stages):
+        for i, sm in enumerate(pipe.split_gm.children()):
             print(" stage {} ".format(i).center(80, "*"))
-            print(pipe.split_gm.children()[i])
+            print(sm)
+
+
+def init_distributed_group(args):
+    dist.init_process_group(backend=args.dist_backend, init_method=args.init_method, rank=args.rank,
+                            world_size=args.world_size)
+
+
+def ExePipeStep(args, schedule, input):
+    # rank == 0 => the first node
+    if args.rank == 0:
+        beginning_time = datetime.datetime.now()
+        schedule.step(input)
+        ending_time = datetime.datetime.now()
+        print("Rank", args.rank, " Beginning time ", beginning_time, " Ending time ", ending_time,
+              " Elapsed time ", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
+    # the last node
+    elif args.rank == args.world_size - 1:
+        beginning_time = datetime.datetime.now()
+        output = schedule.step()
+        ending_time = datetime.datetime.now()
+        print("Rank", args.rank, " Beginning time ", beginning_time, " Ending time ", ending_time,
+              " Elapsed time ", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
+    # intermediate nodes
+    else:
+        schedule.step()
+
+    return output
