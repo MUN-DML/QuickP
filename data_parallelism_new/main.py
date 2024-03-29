@@ -27,7 +27,7 @@ def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
 
     ### model ###
-    model = vgg16()
+    model = getStdModelForCifar10()
 
     ### init group
     if args.distributed:
