@@ -82,8 +82,10 @@ def main(args):
         # if args.rank == 0:  # only val and save on master node
         #    validate(val_loader, model, criterion, epoch, args)
         # save checkpoint if needed #
+    total_time = datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp())
+    c_time = datetime.timedelta(seconds=computing_time)
     print('From Rank: {}, starting time{}, ending time {}, taking time{}, computing time{}'.format(args.rank, beginning_time, ending_time,
-                                                                                 ending_time.timestamp() - beginning_time.timestamp(), computing_time))
+                                                                                 total_time, c_time))
     # Tear down the process group
     dist.destroy_process_group()
 
@@ -117,7 +119,7 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
         correct += predicted.eq(targets).sum().item()
         acc = 100 * correct / total
 
-        computing_time += datetime.timedelta(seconds=datetime.datetime.now().timestamp() - start)
+        computing_time += datetime.datetime.now().timestamp() - start
 
         elapse_time = datetime.datetime.now().timestamp() - epoch_start.timestamp()
         elapse_time = datetime.timedelta(seconds=elapse_time)
