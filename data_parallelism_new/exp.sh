@@ -8,7 +8,6 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=12    #accelerate Pytorch data loader
-#SBATCH --mem=8gb
 #SBATCH --output=%N-%j.out
 
 ### change 5-digit MASTER_PORT as you wish, slurm will raise Error if duplicated with others
@@ -25,4 +24,4 @@ echo "NODELIST="${SLURM_NODELIST}
 echo "MASTER_ADDR="$MASTER_ADDR
 
 ### the command to run
-srun python3.10 main.py --epochs 2
+srun python3.10 main.py --epochs 4
