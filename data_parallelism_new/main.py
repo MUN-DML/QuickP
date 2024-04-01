@@ -12,19 +12,21 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 
 sys.path.append("../")
-from PyUtil import getStdModelForCifar10, getArgs
+from PyUtil import getStdModelForCifar10, getArgs, initTrainingLog
 from VGGParaCifar import vgg16, vgg11
 from resnet import ResNet18
 
 beginning_time = None
 ending_time = None
 computing_time = 0
-
-
+log_dict = initTrainingLog()
 # https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
 
 def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
+
+    #init log
+    log_dict["rank"] = args.rank
 
     ### model ###
     #model = vgg11()
@@ -82,16 +84,18 @@ def main(args):
         # if args.rank == 0:  # only val and save on master node
         #    validate(val_loader, model, criterion, epoch, args)
         # save checkpoint if needed #
-    total_time = datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp())
-    c_time = datetime.timedelta(seconds=computing_time)
-    print('From Rank: {}, starting time{}, ending time {}, taking time{}, computing time{}'.format(args.rank, beginning_time, ending_time,
-                                                                                 total_time, c_time))
+
+    log_dict['starting time'] = beginning_time
+    log_dict['ending time'] = ending_time
+    log_dict['elapsed time'] = datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp())
+    log_dict['training time'] = datetime.timedelta(seconds=computing_time)
+    print(log_dict)
     # Tear down the process group
     dist.destroy_process_group()
 
 
 def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
-    global beginning_time, ending_time, computing_time
+    global beginning_time, ending_time, computing_time, log_dict
     # only one gpu is visible here, so you can send cpu data to gpu by
     # input_data = input_data.cuda() as normal
     train_loss = 0
@@ -123,8 +127,8 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
 
         elapse_time = datetime.datetime.now().timestamp() - epoch_start.timestamp()
         elapse_time = datetime.timedelta(seconds=elapse_time)
-        if batch_idx % 45 == 0:
-            print("From Node: {}, epoch time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
+        if batch_idx % 30 == 0:
+            log_dict['log'].append("From Node: {}, epoch time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
     if epoch == (args.epochs - 1):
         ending_time = datetime.datetime.now()
 
@@ -135,6 +139,5 @@ def validate(val_loader, model, criterion, epoch, args):
 '''
 
 if __name__ == '__main__':
-
     args = getArgs()
     main(args)

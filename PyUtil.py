@@ -173,10 +173,8 @@ def initTrainingLog():
             'ending time': -1,
             'training time': -1,
             'elapsed time': -1,
-            'communication time': -1,
-            'train_loss_per_batch': [],
-            'train_acc_per_epoch': [],
-            'train_loss_per_epoch': []}
+            'log': []}
+
 
 def compute_accuracy(model, data_loader, device):
     model.eval()
@@ -193,7 +191,7 @@ def compute_accuracy(model, data_loader, device):
             _, predicted_labels = torch.max(logits, 1)
             num_examples += targets.size(0)
             correct_pred += (predicted_labels == targets).sum()
-    return correct_pred.float()/num_examples * 100
+    return correct_pred.float() / num_examples * 100
 
 
 def compute_epoch_loss(model, data_loader, device):
