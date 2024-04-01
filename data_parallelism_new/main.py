@@ -16,6 +16,7 @@ import torch.nn as nn
 sys.path.append("../")
 from PyUtil import getStdModelForCifar10, getArgs
 from VGGParaCifar import vgg16, vgg11
+from resnet import ResNet18
 
 beginning_time = None
 ending_time = None
@@ -28,7 +29,8 @@ def main(args):
 
     ### model ###
     #model = vgg11()
-    model = getStdModelForCifar10()
+    #model = getStdModelForCifar10()
+    model = ResNet18()
 
     ### init group
     if args.distributed:
@@ -53,8 +55,12 @@ def main(args):
     criterion = nn.CrossEntropyLoss().cuda()
 
     ### data ###
-    transform_train = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
     train_dataset = CIFAR10(root='../data', train=True, download=True, transform=transform_train)
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
