@@ -20,7 +20,7 @@ from alexnet import AlexNet
 beginning_time = None
 ending_time = None
 computing_time = 0
-
+device = torch.device("cuda:0")
 
 # https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
 
@@ -29,9 +29,9 @@ def main(args):
 
     ### model ###
     # model = vgg11()
-    # model = getStdModelForCifar10()
+    model = getStdModelForCifar10()
     # model = ResNet18()
-    model = AlexNet(10)
+    # model = AlexNet(10)
 
     ### init group
     if args.distributed:
@@ -40,7 +40,7 @@ def main(args):
         # For multiprocessing distributed, DistributedDataParallel constructor
         # should always set the single device scope, otherwise,
         # DistributedDataParallel will use all available devices.
-        device = torch.device("cuda:0")
+
         model = model.to(device)
         if args.gpu is not None:
             # torch.cuda.set_device(args.gpu)
@@ -55,7 +55,7 @@ def main(args):
     ### optimizer, criterion ###
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
     ### only one GPU per node, so we can directly use cuda() instead of .to()
-    criterion = nn.CrossEntropyLoss().cuda()
+    criterion = nn.CrossEntropyLoss().to(device)
 
     ### data ###
     transform_train = transforms.Compose([
@@ -110,8 +110,9 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         start = datetime.datetime.now().timestamp()
 
-        inputs = inputs.cuda()
-        targets = targets.cuda()
+        inputs = inputs.to(device)
+        targets = targets.to(device)
+
         outputs = model(inputs)
         loss = criterion(outputs, targets)
 
