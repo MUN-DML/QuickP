@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=your-job-name
-#SBATCH --time=0-03:00
+#SBATCH --time=03:00
 
 ### e.g. request 2 nodes with 1 gpu each, totally 2 gpus (WORLD_SIZE==2)
-### Note: --gres=gpu:1        #GPU number in each node; should equal to ntasks-per-node
+#SBATCH --gres=gpu:1        #GPU number in each node; should equal to ntasks-per-node
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
