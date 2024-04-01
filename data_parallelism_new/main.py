@@ -123,8 +123,8 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
 
         computing_time += datetime.datetime.now().timestamp() - start
 
-        elapse_time = datetime.datetime.now().timestamp() - epoch_start.timestamp()
-        elapse_time = datetime.timedelta(seconds=elapse_time)
+        # elapse_time = datetime.datetime.now().timestamp() - epoch_start.timestamp()
+        # elapse_time = datetime.timedelta(seconds=elapse_time)
         # if batch_idx % 45 == 0:
         #    print("From Node: {}, epoch time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
     if epoch == (args.epochs - 1):
