@@ -1,7 +1,5 @@
 import datetime
 import os
-import builtins
-import argparse
 import sys
 import time
 
@@ -20,6 +18,7 @@ from resnet import ResNet18
 
 beginning_time = None
 ending_time = None
+computing_time = 0
 
 
 # https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
@@ -29,8 +28,8 @@ def main(args):
 
     ### model ###
     #model = vgg11()
-    #model = getStdModelForCifar10()
-    model = ResNet18()
+    model = getStdModelForCifar10()
+    #model = ResNet18()
 
     ### init group
     if args.distributed:
@@ -83,12 +82,14 @@ def main(args):
         # if args.rank == 0:  # only val and save on master node
         #    validate(val_loader, model, criterion, epoch, args)
         # save checkpoint if needed #
-    print('From Rank: {}, starting time{}, ending time {}, taking time{}'.format(args.rank, beginning_time, ending_time,
-                                                                                 ending_time.timestamp() - beginning_time.timestamp()))
+    print('From Rank: {}, starting time{}, ending time {}, taking time{}, computing time{}'.format(args.rank, beginning_time, ending_time,
+                                                                                 ending_time.timestamp() - beginning_time.timestamp(), computing_time))
+    # Tear down the process group
+    dist.destroy_process_group()
 
 
 def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
-    global beginning_time, ending_time
+    global beginning_time, ending_time, computing_time
     # only one gpu is visible here, so you can send cpu data to gpu by
     # input_data = input_data.cuda() as normal
     train_loss = 0
@@ -99,7 +100,7 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
         beginning_time = epoch_start
 
     for batch_idx, (inputs, targets) in enumerate(train_loader):
-        start = time.time()
+        start = datetime.datetime.now().timestamp()
 
         inputs = inputs.cuda()
         targets = targets.cuda()
@@ -116,13 +117,12 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
         correct += predicted.eq(targets).sum().item()
         acc = 100 * correct / total
 
-        batch_time = time.time() - start
+        computing_time += datetime.timedelta(seconds=datetime.datetime.now().timestamp() - start)
 
         elapse_time = datetime.datetime.now().timestamp() - epoch_start.timestamp()
         elapse_time = datetime.timedelta(seconds=elapse_time)
-        if batch_idx % 30 == 0:
-            print("From Node: {}, Training time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
-
+        if batch_idx % 45 == 0:
+            print("From Node: {}, epoch time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
     if epoch == (args.epochs - 1):
         ending_time = datetime.datetime.now()
 
@@ -133,5 +133,6 @@ def validate(val_loader, model, criterion, epoch, args):
 '''
 
 if __name__ == '__main__':
+
     args = getArgs()
     main(args)

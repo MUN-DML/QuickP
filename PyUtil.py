@@ -10,6 +10,7 @@ os.environ["KERAS_BACKEND"] = "torch"
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.distributed as dist
 from torch.utils.data import DataLoader
 from transformers import GPT2ForSequenceClassification, GPT2Config
@@ -164,3 +165,50 @@ def getGPT2Model(args):
     gpt2 = model_class(config)
     gpt2.to(args.device)
     gpt2.eval()
+
+
+def initTrainingLog():
+    return {'rank': -1,
+            'starting time': -1,
+            'ending time': -1,
+            'training time': -1,
+            'elapsed time': -1,
+            'communication time': -1,
+            'train_loss_per_batch': [],
+            'train_acc_per_epoch': [],
+            'train_loss_per_epoch': []}
+
+def compute_accuracy(model, data_loader, device):
+    model.eval()
+    with torch.no_grad():
+        correct_pred, num_examples = 0, 0
+        for i, (features, targets) in enumerate(data_loader):
+
+            features = features.to(device)
+            targets = targets.to(device)
+
+            logits = model(features)
+            if isinstance(logits, torch.distributed.rpc.api.RRef):
+                logits = logits.local_value()
+            _, predicted_labels = torch.max(logits, 1)
+            num_examples += targets.size(0)
+            correct_pred += (predicted_labels == targets).sum()
+    return correct_pred.float()/num_examples * 100
+
+
+def compute_epoch_loss(model, data_loader, device):
+    model.eval()
+    curr_loss, num_examples = 0., 0
+    with torch.no_grad():
+        for features, targets in data_loader:
+            features = features.to(device)
+            targets = targets.to(device)
+            logits = model(features)
+            if isinstance(logits, torch.distributed.rpc.api.RRef):
+                logits = logits.local_value()
+            loss = F.cross_entropy(logits, targets, reduction='sum')
+            num_examples += targets.size(0)
+            curr_loss += loss
+
+        curr_loss = curr_loss / num_examples
+        return curr_loss
