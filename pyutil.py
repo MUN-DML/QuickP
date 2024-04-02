@@ -34,7 +34,7 @@ def getStdModelForCifar10():
 
 
 # Data loading code for CiFar10
-def getStdCifar10DataLoader(batch_size, num_workers=1, train=True):
+def getStdCifar10DataLoader(batch_size=256, num_workers=0, train=True):
     """
     If Use keras dataset instead of torchvision
     https://keras.io/guides/writing_a_custom_training_loop_in_torch/
