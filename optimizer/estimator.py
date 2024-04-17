@@ -20,6 +20,11 @@ model.setParam("MIPFocus", 1)
 # ex-quadratic constraints can behave funky
 model.setParam("IntFeasTol", 1e-6)
 
+# TotalLatency that we are minimizing
+TotalLatency = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
+for node_id, node in nodes.items():
+    model.addConstr(TotalLatency >= latency[node_id])
+
 # Add constraints
 # schedule every node on exactly one machine
 for node_id, node in nodes.items():
@@ -27,3 +32,23 @@ for node_id, node in nodes.items():
     for machine_id in range(1 + maxSubgraphs):
         times_scheduled += x[node_id, machine_id]
     model.addConstr(times_scheduled == 1)
+
+
+# Run the solver
+sys.stdout.flush()
+model.optimize()
+
+if model.Status == GRB.Status.INFEASIBLE:
+    raise "infeasible"
+elif model.Status == GRB.Status.OPTIMAL:
+    print("Value is:", TotalLatency.X)
+else:
+    raise "Wrong status code"
+
+print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
+
+result = {}
+
+del model
+disposeDefaultEnv()
+print(json.dumps(result))
