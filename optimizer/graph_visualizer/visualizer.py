@@ -48,7 +48,7 @@ def train_and_output_photo(model, image, output):
 
     # Computational Graph
     make_dot(prediction,
-             params=dict(model.named_parameters()))
+             params=dict(model.named_parameters())).render("rnn_torchviz", format="png")
 
 
 train_and_output_photo(net, img, label)
