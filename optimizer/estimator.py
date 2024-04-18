@@ -1,6 +1,16 @@
 import json
 from gurobipy import *
 
+# Get the parameter values passed from the command
+if len(sys.argv) < 2:
+    raise 'no argument given'
+elif sys.argv[1] == 'contig':
+    FORCE_CONTIGUOUS_FORWARD = True
+elif sys.argv[1] == 'noncontig':
+    FORCE_CONTIGUOUS_FORWARD = False
+else:
+    raise 'argument should be contig/noncontig'
+
 # Load input
 graph = json.load(sys.stdin)  # operator graph in JSON format
 nodes = {}
