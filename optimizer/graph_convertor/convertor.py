@@ -3,6 +3,7 @@ import torchvision
 from torchvision import transforms
 from onnx2json import convert
 from VGGParaCifar import vgg11
+from pyutil import getStdModelForCifar10
 
 '''
 torch.onnx.export(model,                                # model being run
@@ -13,7 +14,7 @@ torch.onnx.export(model,                                # model being run
 '''
 
 # network
-net = vgg11()
+net = getStdModelForCifar10()
 
 # Input to the model
 transform_train = transforms.Compose(
