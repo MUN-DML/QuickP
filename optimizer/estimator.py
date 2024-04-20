@@ -43,6 +43,8 @@ for node_id, node in nodes.items():
         times_scheduled += x[node_id, machine_id]
     model.addConstr(times_scheduled == 1)
 
+# Set the target of solver
+model.setObjective(MaxLoad, GRB.MINIMIZE)
 
 # Run the solver
 sys.stdout.flush()
