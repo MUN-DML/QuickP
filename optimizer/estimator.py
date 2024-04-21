@@ -15,9 +15,6 @@ else:
 graph = json.load(sys.stdin)  # operator graph in JSON format
 nodes = {}
 
-# Define variables
-x = {}  # map from (node_id, machine_id) to variable
-
 # Init solver
 model = Model("minimize_maxload")
 model.setParam("LogToConsole", 0)
@@ -29,6 +26,15 @@ model.setParam("MIPFocus", 1)
 # if this is too large, then the reformulated
 # ex-quadratic constraints can behave funky
 model.setParam("IntFeasTol", 1e-6)
+
+# Define variables
+x = {}  # key will be (node_id, machine_id), value will be 1 or 0
+d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
+for node in graph.getNodes():
+    for machine_id in range(deviceNum):
+        x[node.id, machine_id] = model.addVar(vtype=GRB.BINARY)
+for edge in graph.getEdges():
+    d[edge.sourceID, edge.destID] = model.addVar(vtype=GRB.BINARY)
 
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
@@ -44,7 +50,7 @@ for node_id, node in nodes.items():
     model.addConstr(times_scheduled == 1)
 
 # Set the target of solver
-model.setObjective(MaxLoad, GRB.MINIMIZE)
+model.setObjective(TotalLatency, GRB.MINIMIZE)
 
 # Run the solver
 sys.stdout.flush()
