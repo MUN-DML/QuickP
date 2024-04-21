@@ -25,8 +25,9 @@ class Edge:
 class DAG:
     def __init__(self, name):
         self.name = name
-        self.__nodes = []
-        self.__edges = []
+        # {id1: Node1, id2: Node2}
+        self.__nodes = {}
+        self.__edges = {}
 
     def getNodes(self):
         return self.__nodes

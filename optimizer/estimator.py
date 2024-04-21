@@ -33,10 +33,10 @@ model.setParam("IntFeasTol", 1e-6)
 # Define variables
 x = {}  # key will be (node_id, machine_id), value will be 1 or 0
 d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
-for node in graph.getNodes():
+for node_id in list(graph.getNodes().keys()):
     for machine_id in list(devices.keys()):
-        x[node.id, machine_id] = model.addVar(vtype=GRB.BINARY)
-for edge in graph.getEdges():
+        x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY)
+for edge in list(graph.getEdges().values()):
     d[edge.sourceID, edge.destID] = model.addVar(vtype=GRB.BINARY)
 '''
 for key, value in d.items():
@@ -86,27 +86,14 @@ for key, value in device_op_count.items():
     number_op += value
     model.addConstr(number_op >= 1, "each device should have at least one op")
 
-# CommIn, CommOut
-node_in = {}
-comm_out = {}
-for machine_id in list(devices.keys()):
-    for node_id, node in nodes.items():
-        comm_in[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
-        comm_out[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
-    for edge in graph['edges']:
-        u = edge['sourceId']
-        v = edge['destId']
-        model.addConstr(comm_in[u, machine_id] >= x[v, machine_id] - x[u, machine_id])
-        model.addConstr(comm_out[u, machine_id] >= x[u, machine_id] - x[v, machine_id])
-
 # TotalLatency that we are minimizing
 # Latency (only create variables)
-latency = {}
-for node in graph.getNodes():
-    latency[node.id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
+start = {}
+finish = {}
+for node_id in list(graph.getNodes().keys()):
+    finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
-for node in graph.getNodes():
-    model.addConstr(TotalLatency >= latency[node.id])
+model.addConstr(TotalLatency >= max(list(finish.values())), "satisfy each deice's latency")
 
 # Set the target of solver
 model.setObjective(TotalLatency, GRB.MINIMIZE)
