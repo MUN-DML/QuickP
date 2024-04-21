@@ -16,6 +16,7 @@ else:
 # Load input
 # graph = json.load(sys.stdin)  # operator graph in JSON format
 graph = DAG('')
+devices = {}
 
 # Init solver
 model = Model("minimize_maxload")
@@ -33,26 +34,16 @@ model.setParam("IntFeasTol", 1e-6)
 x = {}  # key will be (node_id, machine_id), value will be 1 or 0
 d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
 for node in graph.getNodes():
-    for machine_id in range(deviceNum):
+    for machine_id in list(devices.keys()):
         x[node.id, machine_id] = model.addVar(vtype=GRB.BINARY)
 for edge in graph.getEdges():
     d[edge.sourceID, edge.destID] = model.addVar(vtype=GRB.BINARY)
-
-# TotalLatency that we are minimizing
-TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
-for node in graph.getNodes():
-    model.addConstr(TotalLatency >= latency[node.id])
-
 '''
-# Add constraints
-# schedule every node on exactly one machine
-for node_id, node in nodes.items():
-    times_scheduled = LinExpr()
-    for machine_id in range(1 + maxSubgraphs):
-        times_scheduled += x[node_id, machine_id]
-    model.addConstr(times_scheduled == 1)
+for key, value in d.items():
+    sourceId = key[0]
+    destId = key[1]
+    source_node_device
 '''
-
 # Add constraints that schedule every node on exactly one machine
 node_schedule_count = {}
 # map the node_id to the times it is assigned
@@ -61,10 +52,61 @@ for key, value in x.items():
     if key[0] not in node_schedule_count:
         node_schedule_count[key[0]] = 0
     node_schedule_count[key[0]] += value
-for key, _ in node_schedule_count.items():
+for key, value in node_schedule_count.items():
     times_scheduled = LinExpr()
-    times_scheduled += node_schedule_count[key]
-    model.addConstr(times_scheduled == 1)
+    times_scheduled += value
+    model.addConstr(times_scheduled == 1, "one op can only be scheduled once")
+
+# Add constraints that operators assigned cannot exceed the capacity
+device_mem_count = {}
+# map the node_id to the times it is assigned
+for key, value in x.items():
+    # (node_id, machine_id) is the key and key[1] is the machine_id.
+    if key[1] not in device_mem_count:
+        device_mem_count[key[1]] = 0
+    nodeId = key[0]
+    # value is either 1 or 0
+    device_mem_count[key[1]] += value * graph.getNodes()[key[0]].size
+for key, value in device_mem_count.items():
+    # devices[key] will return a device object
+    device_capacity = devices[key].capacity
+    memory_sum = LinExpr()
+    memory_sum += value
+    model.addConstr(memory_sum <= device_capacity, "satisfy each deice's memory constraint")
+
+# Add constraints that each device should have at least one operator assigned
+device_op_count = {}
+for key, value in x.items():
+    # (node_id, machine_id) is the key and key[1] is the machine_id. Time complexity is only n
+    if key[1] not in device_op_count:
+        device_op_count[key[1]] = 0
+    device_op_count[key[1]] += value
+for key, value in device_op_count.items():
+    number_op = LinExpr()
+    number_op += value
+    model.addConstr(number_op >= 1, "each device should have at least one op")
+
+# CommIn, CommOut
+node_in = {}
+comm_out = {}
+for machine_id in list(devices.keys()):
+    for node_id, node in nodes.items():
+        comm_in[node_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
+        comm_out[node_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
+    for edge in graph['edges']:
+        u = edge['sourceId']
+        v = edge['destId']
+        model.addConstr(comm_in[u, machine_id] >= x[v, machine_id] - x[u, machine_id])
+        model.addConstr(comm_out[u, machine_id] >= x[u, machine_id] - x[v, machine_id])
+
+# TotalLatency that we are minimizing
+# Latency (only create variables)
+latency = {}
+for node in graph.getNodes():
+    latency[node.id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
+TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
+for node in graph.getNodes():
+    model.addConstr(TotalLatency >= latency[node.id])
 
 # Set the target of solver
 model.setObjective(TotalLatency, GRB.MINIMIZE)
