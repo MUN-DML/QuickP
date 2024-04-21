@@ -49,30 +49,28 @@ node_schedule_count = {}
 # map the node_id to the times it is assigned
 for key, value in x.items():
     # (node_id, machine_id) is the key and key[0] is the node_id. Time complexity is only n
-    if key[0] not in node_schedule_count:
-        node_schedule_count[key[0]] = 0
-    node_schedule_count[key[0]] += value
-for key, value in node_schedule_count.items():
-    times_scheduled = LinExpr()
-    times_scheduled += value
-    model.addConstr(times_scheduled == 1, "one op can only be scheduled once")
+    node_id = key[0]
+    if node_id not in node_schedule_count:
+        node_schedule_count[node_id] = model.addVar(vtype=GRB.INTEGER, lb=0)
+    node_schedule_count[node_id] += value
+for times in list(node_schedule_count.values()):
+    model.addConstr(times == 1, "one op can only be scheduled once")
 
 # Add constraints that operators assigned cannot exceed the capacity
 device_mem_count = {}
 # map the node_id to the times it is assigned
 for key, value in x.items():
     # (node_id, machine_id) is the key and key[1] is the machine_id.
-    if key[1] not in device_mem_count:
-        device_mem_count[key[1]] = 0
+    device_id = key[1]
     nodeId = key[0]
+    if device_id not in device_mem_count:
+        device_mem_count[device_id] = model.addVar(vtype=GRB.INTEGER, lb=0)
     # value is either 1 or 0
-    device_mem_count[key[1]] += value * graph.getNodes()[key[0]].size
+    device_mem_count[device_id] += value * graph.getNodes()[nodeId].size
 for key, value in device_mem_count.items():
     # devices[key] will return a device object
     device_capacity = devices[key].capacity
-    memory_sum = LinExpr()
-    memory_sum += value
-    model.addConstr(memory_sum <= device_capacity, "satisfy each deice's memory constraint")
+    model.addConstr(value <= device_capacity, "satisfy each deice's memory constraint")
 
 # Add constraints that each device should have at least one operator assigned
 device_op_count = {}
@@ -92,6 +90,7 @@ start = {}
 finish = {}
 for node_id in list(graph.getNodes().keys()):
     finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
+
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
 model.addConstr(TotalLatency >= max(list(finish.values())), "satisfy each deice's latency")
 
