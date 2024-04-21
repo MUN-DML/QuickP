@@ -1,7 +1,7 @@
 import json
 from gurobipy import *
 
-from optimizer.data_structure.graph import DAG
+from optimizer.data_structure.graph import DAG, Tree
 
 # Get the parameter values passed from the command
 if len(sys.argv) < 2:
@@ -16,7 +16,18 @@ else:
 # Load input
 # graph = json.load(sys.stdin)  # operator graph in JSON format
 graph = DAG('')
+graph.add_node(1, "relu", 1, 1.5)
+graph.add_node(2, "relu", 4, 2.5)
+graph.add_node(3, "matmul", 1, 1.5)
+graph.add_node(4, "sigmoid", 1, 1.5)
+graph.add_edge(1, 1, 3, 0.3)
+graph.add_edge(2, 2, 3, 0.5)
+graph.add_edge(3, 3, 4, 0.3)
+
+deviceTopo = Tree()
 devices = {}
+
+#
 
 # Init solver
 model = Model("minimize_maxload")
