@@ -1,6 +1,8 @@
 import json
 from gurobipy import *
 
+from optimizer.data_structure.graph import DAG
+
 # Get the parameter values passed from the command
 if len(sys.argv) < 2:
     raise 'no argument given'
@@ -12,8 +14,8 @@ else:
     raise 'argument should be contig/noncontig'
 
 # Load input
-graph = json.load(sys.stdin)  # operator graph in JSON format
-nodes = {}
+# graph = json.load(sys.stdin)  # operator graph in JSON format
+graph = DAG('')
 
 # Init solver
 model = Model("minimize_maxload")
@@ -37,16 +39,31 @@ for edge in graph.getEdges():
     d[edge.sourceID, edge.destID] = model.addVar(vtype=GRB.BINARY)
 
 # TotalLatency that we are minimizing
-TotalLatency = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
-for node_id, node in nodes.items():
-    model.addConstr(TotalLatency >= latency[node_id])
+TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
+for node in graph.getNodes():
+    model.addConstr(TotalLatency >= latency[node.id])
 
+'''
 # Add constraints
 # schedule every node on exactly one machine
 for node_id, node in nodes.items():
     times_scheduled = LinExpr()
     for machine_id in range(1 + maxSubgraphs):
         times_scheduled += x[node_id, machine_id]
+    model.addConstr(times_scheduled == 1)
+'''
+
+# Add constraints that schedule every node on exactly one machine
+node_schedule_count = {}
+# map the node_id to the times it is assigned
+for key, value in x.items():
+    # (node_id, machine_id) is the key and key[0] is the node_id. Time complexity is only n
+    if key[0] not in node_schedule_count:
+        node_schedule_count[key[0]] = 0
+    node_schedule_count[key[0]] += value
+for key, _ in node_schedule_count.items():
+    times_scheduled = LinExpr()
+    times_scheduled += node_schedule_count[key]
     model.addConstr(times_scheduled == 1)
 
 # Set the target of solver
