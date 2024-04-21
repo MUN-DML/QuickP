@@ -91,8 +91,8 @@ node_in = {}
 comm_out = {}
 for machine_id in list(devices.keys()):
     for node_id, node in nodes.items():
-        comm_in[node_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
-        comm_out[node_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
+        comm_in[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
+        comm_out[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
     for edge in graph['edges']:
         u = edge['sourceId']
         v = edge['destId']
@@ -103,7 +103,7 @@ for machine_id in list(devices.keys()):
 # Latency (only create variables)
 latency = {}
 for node in graph.getNodes():
-    latency[node.id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
+    latency[node.id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
 for node in graph.getNodes():
     model.addConstr(TotalLatency >= latency[node.id])
@@ -124,7 +124,15 @@ else:
 
 print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
 
-result = {}
+#populate the result dict
+result = {'totalLatency': TotalLatency.X, 'Assignment': {}}
+for key, value in x.items():
+    # key[1] is the device id
+    if key[1] not in result['Assignment']:
+        result[key[1]] = []
+    # key[0] is the operator id. Put id into the list assigned to the device
+    if value.X > 0.99:
+        result[key[1]].append(key[0])
 
 del model
 disposeDefaultEnv()
