@@ -109,7 +109,8 @@ for node_id in list(graph.getNodes().keys()):
 for edge in list(graph.getEdges().values()):
     sourceID = edge.sourceID
     destID = edge.destID
-    model.addConstr(start[destID] >= finish[sourceID], "data dependency between source and destination nodes")
+    model.addConstr(start[destID] >= finish[sourceID] + graph.getEdges()[sourceID, destID].communicationCost,
+                    "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
