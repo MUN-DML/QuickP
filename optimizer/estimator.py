@@ -1,7 +1,7 @@
 import json
 from gurobipy import *
 
-from optimizer.data_structure.graph import DAG, Tree, DeviceGraph
+from optimizer.data_structure.graph import DAG, DeviceGraph
 
 # Get the parameter values passed from the command
 if len(sys.argv) < 2:
@@ -25,6 +25,8 @@ graph.add_edge(2, 3, 0.5)
 graph.add_edge(3, 4, 0.3)
 
 deviceTopo = DeviceGraph()
+deviceTopo.random_rebuild(4)
+standard_tensor_size = 1000
 
 # Init solver
 model = Model("minimize_maxload")
@@ -42,7 +44,7 @@ model.setParam("IntFeasTol", 1e-6)
 x = {}  # key will be (node_id, machine_id), value will be 1 or 0
 d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
 for node_id in list(graph.getNodes().keys()):
-    for machine_id in list(devices.keys()):
+    for machine_id in list(deviceTopo.getDeviceIDs()):
         x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY)
 for edge in list(graph.getEdges().values()):
     d[edge.sourceID, edge.destID] = model.addVar(vtype=GRB.BINARY)
@@ -76,8 +78,7 @@ for key, value in x.items():
     # value is either 1 or 0
     device_mem_count[device_id] += value * graph.getNodes()[nodeId].size
 for key, value in device_mem_count.items():
-    # devices[key] will return a device object
-    device_capacity = devices[key].capacity
+    device_capacity = deviceTopo.getDevice(key).memory_capacity
     model.addConstr(value <= device_capacity, "satisfy each deice's memory constraint")
 
 # Add constraints that each device should have at least one operator assigned
@@ -90,12 +91,6 @@ for key, value in x.items():
     device_op_count[device_id] += value
 for number_op in list(device_op_count.values()):
     model.addConstr(number_op >= 1, "each device should have at least one op")
-'''
-for key, value in device_op_count.items():
-    number_op = LinExpr()
-    number_op += value
-    model.addConstr(number_op >= 1, "each device should have at least one op")
-'''
 
 # Add constraints that later operator cannot begin before all previous ones finish computing and transmission
 start = {}
@@ -106,7 +101,10 @@ for node_id in list(graph.getNodes().keys()):
 for edge in list(graph.getEdges().values()):
     sourceID = edge.sourceID
     destID = edge.destID
-    model.addConstr(start[destID] >= finish[sourceID] + graph.getEdges()[sourceID, destID].communicationCost,
+    source_placement = 1
+    dest_placement = 1
+    model.addConstr(start[destID] >= finish[sourceID] + round(
+        standard_tensor_size / deviceTopo.getConnection(source_placement, dest_placement).computing_speed, 2),
                     "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
