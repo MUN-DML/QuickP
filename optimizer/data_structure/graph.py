@@ -1,4 +1,5 @@
 import networkx as nx
+import random
 
 
 class Node:
@@ -52,11 +53,20 @@ class DAG:
         return ""
 
 
+# Undirected Graph
 class DeviceGraph(nx.Graph):
 
     def random_rebuild(self, device_num):
+        device_list = list(range(device_num))
+        for i in range(device_num):
+            self.add_new_node(i, 200, random.randint(3, 60))
         # generate edge tuple list
-        self.add_new_edges_from()
+        tuple_list = []
+        for i in range(device_num - 1):
+            for j in range(i + 1, device_num):
+                tuple_list.append((i, j))
+        for obj in tuple_list:
+            self.add_new_edge(obj[0], obj[1], random.randint(50, 100))
 
     def add_new_node(self, device_id, comp_sp, capacity):
         nx.Graph.add_node(self, node_for_adding=device_id, source_id=device_id, computing_speed=comp_sp,
@@ -78,10 +88,16 @@ class DeviceGraph(nx.Graph):
         return self.edges[source_id, dest_id]
 
     def getAllDevices(self):
-        pass
+        return list(self.nodes(data=True))
+
+    def getDeviceIDs(self):
+        return list(self.nodes.keys())
 
     def getAllEdges(self):
         return list(self.edges(data=True))
+
+    def getEdgeIDs(self):
+        return list(self.edges.keys())
 
     def __str__(self):
         return ""

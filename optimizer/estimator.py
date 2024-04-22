@@ -1,7 +1,7 @@
 import json
 from gurobipy import *
 
-from optimizer.data_structure.graph import DAG, Tree
+from optimizer.data_structure.graph import DAG, Tree, DeviceGraph
 
 # Get the parameter values passed from the command
 if len(sys.argv) < 2:
@@ -24,10 +24,7 @@ graph.add_edge(1, 3, 0.3)
 graph.add_edge(2, 3, 0.5)
 graph.add_edge(3, 4, 0.3)
 
-deviceTopo = Tree()
-devices = {}
-
-#
+deviceTopo = DeviceGraph()
 
 # Init solver
 model = Model("minimize_maxload")
