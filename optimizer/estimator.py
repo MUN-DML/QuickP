@@ -87,21 +87,31 @@ for key, value in device_mem_count.items():
 device_op_count = {}
 for key, value in x.items():
     # (node_id, machine_id) is the key and key[1] is the machine_id. Time complexity is only n
-    if key[1] not in device_op_count:
-        device_op_count[key[1]] = 0
-    device_op_count[key[1]] += value
+    device_id = key[1]
+    if device_id not in device_op_count:
+        device_op_count[device_id] = model.addVar(vtype=GRB.INTEGER, lb=0)
+    device_op_count[device_id] += value
+for number_op in list(device_op_count.values()):
+    model.addConstr(number_op >= 1, "each device should have at least one op")
+'''
 for key, value in device_op_count.items():
     number_op = LinExpr()
     number_op += value
     model.addConstr(number_op >= 1, "each device should have at least one op")
+'''
 
-# TotalLatency that we are minimizing
-# Latency (only create variables)
+# Add constraints that later operator cannot begin before all previous ones finish computing and transmission
 start = {}
 finish = {}
 for node_id in list(graph.getNodes().keys()):
+    start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
     finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
+for edge in list(graph.getEdges().values()):
+    sourceID = edge.sourceID
+    destID = edge.destID
+    model.addConstr(start[destID] >= finish[sourceID], "data dependency between source and destination nodes")
 
+# TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
 model.addConstr(TotalLatency >= max(list(finish.values())), "satisfy each deice's latency")
 

@@ -14,8 +14,8 @@ class Node:
 
 
 class Edge:
-    def __init__(self, edge_id=0, name="", sourceID=0, targetID=0, cost=0):
-        self.id = edge_id
+    def __init__(self, name="", sourceID=0, targetID=0, cost=0):
+        self.id = (sourceID, targetID)
         self.name = name
         self.sourceID = sourceID
         self.destID = targetID
@@ -35,8 +35,8 @@ class DAG:
     def add_node(self, node_id, node_type, size, comp_cost):
         self.__nodes[node_id] = Node(node_id, node_type, size, comp_cost)
 
-    def add_edge(self, edge_id, source_id, dest_id, com_cost):
-        self.__edges[edge_id] = Node(edge_id, source_id, dest_id, com_cost)
+    def add_edge(self, source_id, dest_id, com_cost):
+        self.__edges[source_id, dest_id] = Edge(source_id, dest_id, com_cost)
 
     def getNodes(self):
         return self.__nodes
