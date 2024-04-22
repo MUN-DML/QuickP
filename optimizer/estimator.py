@@ -2,7 +2,7 @@ import json
 from gurobipy import *
 
 from optimizer.data_structure.graph import DAG, DeviceGraph
-
+'''
 # Get the parameter values passed from the command
 if len(sys.argv) < 2:
     raise 'no argument given'
@@ -12,7 +12,7 @@ elif sys.argv[1] == 'noncontig':
     FORCE_CONTIGUOUS_FORWARD = False
 else:
     raise 'argument should be contig/noncontig'
-
+'''
 # Load input
 # graph = json.load(sys.stdin)  # operator graph in JSON format
 graph = DAG('')
@@ -26,6 +26,7 @@ graph.add_edge(3, 4, 0.3)
 
 deviceTopo = DeviceGraph()
 deviceTopo.random_rebuild(4)
+print(deviceTopo.getAllDevices())
 standard_tensor_size = 1000
 
 # Init solver
@@ -78,7 +79,7 @@ for key, value in x.items():
     # value is either 1 or 0
     device_mem_count[device_id] += value * graph.getNodes()[nodeId].size
 for key, value in device_mem_count.items():
-    device_capacity = deviceTopo.getDevice(key).memory_capacity
+    device_capacity = deviceTopo.getDevice(key)["memory_capacity"]
     model.addConstr(value <= device_capacity, "satisfy each deice's memory constraint")
 
 # Add constraints that each device should have at least one operator assigned
@@ -104,7 +105,7 @@ for edge in list(graph.getEdges().values()):
     source_placement = 1
     dest_placement = 1
     model.addConstr(start[destID] >= finish[sourceID] + round(
-        standard_tensor_size / deviceTopo.getConnection(source_placement, dest_placement).computing_speed, 2),
+        standard_tensor_size / deviceTopo.getConnection(source_placement, dest_placement)["computing_speed"], 2),
                     "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
