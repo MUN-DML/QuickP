@@ -26,12 +26,6 @@ model.setParam("MIPFocus", 1)
 # ex-quadratic constraints can behave funky
 model.setParam("IntFeasTol", 1e-6)
 
-# Define placement variable
-# {node_id: device_id}
-x = {}
-for op_id in comp_graph.getOperatorIDs():
-    x[op_id] = model.addVar(vtype=GRB.INTEGER, lb=0, ub=max(deviceTopo.nodes))
-
 # Define variables
 x = {}  # key will be (node_id, machine_id), value will be 1 or 0
 d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
