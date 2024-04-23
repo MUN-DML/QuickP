@@ -32,16 +32,6 @@ x = {}
 for op_id in comp_graph.getOperatorIDs():
     x[op_id] = model.addVar(vtype=GRB.INTEGER, lb=0, ub=max(deviceTopo.nodes))
 
-# Define variables
-x = {}  # key will be (node_id, machine_id), value will be 1 or 0
-d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
-for node_id in list(comp_graph.getOperatorIDs()):
-    for machine_id in list(deviceTopo.getDeviceIDs()):
-        x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY)
-for edge_id_tuple in list(comp_graph.getEdgeIDs()):
-    d[edge_id_tuple[0], edge_id_tuple[1]] = model.addVar(vtype=GRB.BINARY)
-# for
-
 # Add constraints that schedule every node on exactly one machine
 node_schedule_count = {}
 # map the node_id to the times it is assigned
