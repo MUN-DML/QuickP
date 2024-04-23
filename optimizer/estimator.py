@@ -91,10 +91,10 @@ finish = {}
 for node_id in list(comp_graph.getOperatorIDs()):
     start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
     finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
-for edge in list(comp_graph.getEdgeObjs()):
-    sourceID = edge.sourceID
-    destID = edge.destID
-    print(sourceID, destID)
+for edge_id_tuple in list(comp_graph.getEdgeIDs()):
+    print(edge_id_tuple)
+    sourceID = edge_id_tuple[0]
+    destID = edge_id_tuple[1]
     for i in deviceTopo.getDeviceIDs():
         model.addConstr(start[destID] >= finish[sourceID] + round(
             standard_tensor_size / deviceTopo.getConnection(x[sourceID, i], x[destID, i])["computing_speed"], 2),

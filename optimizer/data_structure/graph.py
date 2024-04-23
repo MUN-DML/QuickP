@@ -67,7 +67,7 @@ class DeviceGraph(nx.Graph):
             self.add_new_edge(obj[0], obj[1], random.randint(50, 100))
 
     def add_new_node(self, device_id, comp_sp, capacity):
-        nx.Graph.add_node(self, node_for_adding=device_id, source_id=device_id, computing_speed=comp_sp,
+        nx.Graph.add_node(self, node_for_adding=device_id, computing_speed=comp_sp,
                           memory_capacity=capacity)
 
     def add_new_nodes_from(self, device_list, comp_sp, capacity):
