@@ -2,62 +2,60 @@ import networkx as nx
 import random
 
 
-class Node:
-    def __init__(self, op_id=0, name="operator", size=0, op_type="not specified", comp_cost=0):
-        self.id = op_id
-        self.name = name
-        self.size = size
-        self.type = op_type
-        self.compCost = comp_cost
+class CompGraph(nx.DiGraph):
+    def random_rebuild(self, operator_num):
+        operator_list = list(range(operator_num))
+        for i in range(operator_num):
+            self.add_new_node(i, random.randint(50, 200), random.randint(3, 60), "not specified")
+        # generate edge tuple list
+        tuple_list = []
+        for i in range(operator_num - 1):
+            for j in range(i + 1, operator_num):
+                tuple_list.append((i, j))
+        for obj in tuple_list:
+            self.add_new_edge(obj[0], obj[1])
 
-    def set_comp_cost(self, comp_cost):
-        self.compCost = comp_cost
+    def add_new_node(self, operator_id, size, comp_cost, op_type):
+        nx.DiGraph.add_node(self, node_for_adding=operator_id, size=size, computing_cost=comp_cost, op_type=op_type)
 
-    def __str__(self):
-        return f"NodeID: {self.id}, Node Name: {self.name}, Node Type: {self.type}, Memory: {self.size}"
+    def add_new_nodes_from(self, operator_list):
+        nx.DiGraph.add_edges_from(self, ebunch_to_add=operator_list)
 
+    def add_new_edge(self, source_id, dest_id):
+        nx.DiGraph.add_edge(self, u_of_edge=source_id, v_of_edge=dest_id)
 
-class Edge:
-    def __init__(self, name="", sourceID=0, targetID=0, cost=0):
-        self.id = (sourceID, targetID)
-        self.name = name
-        self.sourceID = sourceID
-        self.destID = targetID
-        self.communicationCost = cost
+    def add_new_edges_from(self, edge_tuple_list):
+        nx.DiGraph.add_edges_from(self, ebunch_to_add=edge_tuple_list)
 
-    def __str__(self):
-        return f"EdgeID: {self.id}, Edge Name: {self.name}, sourceNodeID Type: {self.sourceID}, destinationNodeID: {self.destID}"
+    def getOperator(self, node_id):
+        return self.nodes[node_id]
 
+    def getConnection(self, source_id, dest_id):
+        return self.edges[source_id, dest_id]
 
-class DAG:
-    def __init__(self, name):
-        self.name = name
-        # {id1: Node1, id2: Node2}
-        self.__nodes = {}
-        # {(source_id, dest_id): Edge1}
-        self.__edges = {}
+    def getAllOperators(self):
+        return list(self.nodes(data=True))
 
-    def add_node(self, node_id, node_type, size, comp_cost):
-        self.__nodes[node_id] = Node(node_id, node_type, size, comp_cost)
+    def getOperatorIDs(self):
+        return list(self.nodes.keys())
 
-    def add_edge(self, source_id, dest_id, com_cost):
-        self.__edges[source_id, dest_id] = Edge(source_id, dest_id, com_cost)
+    def getOperatorObjs(self):
+        return list(self.nodes.values())
 
-    def getNodes(self):
-        return self.__nodes
+    def getAllEdges(self):
+        return list(self.edges(data=True))
 
-    def getEdges(self):
-        return self.__edges
+    def getEdgeIDs(self):
+        return list(self.edges.keys())
 
-    def __str__(self):
-        return ""
+    def getEdgeObjs(self):
+        return list(self.edges.values())
 
 
 # Undirected Graph
 class DeviceGraph(nx.Graph):
 
     def random_rebuild(self, device_num):
-        device_list = list(range(device_num))
         for i in range(device_num):
             self.add_new_node(i, random.randint(50, 200), random.randint(3, 60))
         # generate edge tuple list
@@ -93,11 +91,17 @@ class DeviceGraph(nx.Graph):
     def getDeviceIDs(self):
         return list(self.nodes.keys())
 
+    def getDeviceObjs(self):
+        return list(self.nodes.values())
+
     def getAllEdges(self):
         return list(self.edges(data=True))
 
     def getEdgeIDs(self):
         return list(self.edges.keys())
+
+    def getEdgeObjs(self):
+        return list(self.edges.values())
 
     def __str__(self):
         return ""

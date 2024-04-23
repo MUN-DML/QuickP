@@ -1,7 +1,8 @@
 import json
 from gurobipy import *
 
-from optimizer.data_structure.graph import DAG, DeviceGraph
+from optimizer.data_structure.graph import DeviceGraph, CompGraph
+
 '''
 # Get the parameter values passed from the command
 if len(sys.argv) < 2:
@@ -15,14 +16,9 @@ else:
 '''
 # Load input
 # graph = json.load(sys.stdin)  # operator graph in JSON format
-graph = DAG('')
-graph.add_node(1, "relu", 1, 1.5)
-graph.add_node(2, "relu", 4, 2.5)
-graph.add_node(3, "matmul", 1, 1.5)
-graph.add_node(4, "sigmoid", 1, 1.5)
-graph.add_edge(1, 3, 0.3)
-graph.add_edge(2, 3, 0.5)
-graph.add_edge(3, 4, 0.3)
+comp_graph = CompGraph()
+comp_graph.random_rebuild(8)
+print(comp_graph.getAllOperators())
 
 deviceTopo = DeviceGraph()
 deviceTopo.random_rebuild(4)
@@ -44,17 +40,13 @@ model.setParam("IntFeasTol", 1e-6)
 # Define variables
 x = {}  # key will be (node_id, machine_id), value will be 1 or 0
 d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
-for node_id in list(graph.getNodes().keys()):
+for node_id in list(comp_graph.getOperatorIDs()):
     for machine_id in list(deviceTopo.getDeviceIDs()):
         x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY)
-for edge in list(graph.getEdges().values()):
-    d[edge.sourceID, edge.destID] = model.addVar(vtype=GRB.BINARY)
-'''
-for key, value in d.items():
-    sourceId = key[0]
-    destId = key[1]
-    source_node_device
-'''
+for edge_id_tuple in list(comp_graph.getEdgeIDs()):
+    d[edge_id_tuple[0], edge_id_tuple[1]] = model.addVar(vtype=GRB.BINARY)
+# for
+
 # Add constraints that schedule every node on exactly one machine
 node_schedule_count = {}
 # map the node_id to the times it is assigned
@@ -77,7 +69,7 @@ for key, value in x.items():
     if device_id not in device_mem_count:
         device_mem_count[device_id] = model.addVar(vtype=GRB.INTEGER, lb=0)
     # value is either 1 or 0
-    device_mem_count[device_id] += value * graph.getNodes()[nodeId].size
+    device_mem_count[device_id] += value * comp_graph.getOperator(nodeId)["size"]
 for key, value in device_mem_count.items():
     device_capacity = deviceTopo.getDevice(key)["memory_capacity"]
     model.addConstr(value <= device_capacity, "satisfy each deice's memory constraint")
@@ -96,17 +88,17 @@ for number_op in list(device_op_count.values()):
 # Add constraints that later operator cannot begin before all previous ones finish computing and transmission
 start = {}
 finish = {}
-for node_id in list(graph.getNodes().keys()):
+for node_id in list(comp_graph.getOperatorIDs()):
     start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
     finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
-for edge in list(graph.getEdges().values()):
+for edge in list(comp_graph.getEdgeObjs()):
     sourceID = edge.sourceID
     destID = edge.destID
-    source_placement = 1
-    dest_placement = 1
-    model.addConstr(start[destID] >= finish[sourceID] + round(
-        standard_tensor_size / deviceTopo.getConnection(source_placement, dest_placement)["computing_speed"], 2),
-                    "data dependency between source and destination nodes")
+    print(sourceID, destID)
+    for i in deviceTopo.getDeviceIDs():
+        model.addConstr(start[destID] >= finish[sourceID] + round(
+            standard_tensor_size / deviceTopo.getConnection(x[sourceID, i], x[destID, i])["computing_speed"], 2),
+                        "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
