@@ -123,16 +123,15 @@ else:
     raise "Wrong status code"
 
 print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
-
 #populate the result dict
 result = {'totalLatency': TotalLatency.X, 'Assignment': {}}
 for key, value in x.items():
     # key[1] is the device id
     if key[1] not in result['Assignment']:
-        result[key[1]] = []
+        result['Assignment'][key[1]] = []
     # key[0] is the operator id. Put id into the list assigned to the device
     if value.X > 0.99:
-        result[key[1]].append(key[0])
+        result['Assignment'][key[1]].append(key[0])
 
 del model
 disposeDefaultEnv()
