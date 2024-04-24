@@ -42,22 +42,14 @@ for node_id in comp_graph.getOperatorIDs():
     for machine_id in deviceTopo.getDeviceIDs():
         times_scheduled += x[node_id, machine_id]
     model.addConstr(times_scheduled == 1,"every node on exactly one machine")
-'''
+
 # Add constraints that operators assigned cannot exceed the capacity
-device_mem_count = {}
-# map the node_id to the times it is assigned
-for key, value in x.items():
-    # (node_id, machine_id) is the key and key[1] is the machine_id.
-    device_id = key[1]
-    nodeId = key[0]
-    if device_id not in device_mem_count:
-        device_mem_count[device_id] = model.addVar(vtype=GRB.INTEGER, lb=0)
-    # value is either 1 or 0
-    device_mem_count[device_id] += value * comp_graph.getOperator(nodeId)["size"]
-for key, value in device_mem_count.items():
-    device_capacity = deviceTopo.getDevice(key)["memory_capacity"]
-    model.addConstr(value <= device_capacity, "satisfy each deice's memory constraint")
-'''
+for machine_id in deviceTopo.getDeviceIDs():
+    mem_sum = LinExpr()
+    for node_id in comp_graph.getOperatorIDs():
+        mem_sum += x[node_id, machine_id] * comp_graph.getOperator(node_id)["size"]
+    model.addConstr(mem_sum <= deviceTopo.getDevice(machine_id)["memory_capacity"], "satisfy each device's memory constraint")
+
 # Add constraints that each device should have at least one operator assigned
 for machine_id in deviceTopo.getDeviceIDs():
     op_count = LinExpr()

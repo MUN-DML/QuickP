@@ -57,7 +57,7 @@ class DeviceGraph(nx.Graph):
 
     def random_rebuild(self, device_num):
         for i in range(device_num):
-            self.add_new_node(i, random.randint(50, 200), random.randint(3, 60))
+            self.add_new_node(i, random.randint(50, 200), random.randint(200, 400))
         # generate edge tuple list
         tuple_list = []
         for i in range(device_num - 1):
