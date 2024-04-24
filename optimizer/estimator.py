@@ -90,6 +90,8 @@ for node_id in list(comp_graph.getOperatorIDs()):
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     sourceID = edge_id_tuple[0]
     destID = edge_id_tuple[1]
+    model.addConstr(start[destID] >= finish[sourceID])
+    '''
     source_placement = 1
     dest_placement = 1
     model.addConstr(start[destID] >= finish[sourceID] + round(
@@ -100,10 +102,11 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
         model.addConstr(start[destID] >= finish[sourceID] + round(
             standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"], 2),
                         "data dependency between source and destination nodes")
-
+    '''
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
-model.addConstr(TotalLatency >= max(list(finish.values())), "satisfy each deice's latency")
+for op_end in finish.values():
+    model.addConstr(TotalLatency >= op_end, "satisfy each deice's latency")
 
 # Set the target of solver
 model.setObjective(TotalLatency, GRB.MINIMIZE)
