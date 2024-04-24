@@ -80,6 +80,13 @@ finish = {}
 for node_id in list(comp_graph.getOperatorIDs()):
     start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
     finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
+for node_id in list(comp_graph.getOperatorIDs()):
+    comp_cost = LinExpr()
+    # since there is one placement, only one x[node_id, device_id] will be 1
+    for device_id in deviceTopo.getDeviceIDs():
+        comp_cost += x[node_id, device_id] * comp_graph.getOperator(node_id)["computing_cost"]
+    model.addConstr(finish[node_id] == start[node_id] + comp_cost, "finish == start + process")
+
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     print(edge_id_tuple)
     sourceID = edge_id_tuple[0]
