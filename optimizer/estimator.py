@@ -88,7 +88,6 @@ for node_id in list(comp_graph.getOperatorIDs()):
     model.addConstr(finish[node_id] == start[node_id] + comp_cost, "finish == start + process")
 
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
-    print(edge_id_tuple)
     sourceID = edge_id_tuple[0]
     destID = edge_id_tuple[1]
     source_placement = 1
