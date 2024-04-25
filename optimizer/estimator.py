@@ -73,19 +73,24 @@ for node_id in list(comp_graph.getOperatorIDs()):
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     sourceID = edge_id_tuple[0]
     destID = edge_id_tuple[1]
-    model.addConstr(start[destID] >= finish[sourceID])
-    '''
-    source_placement = 1
-    dest_placement = 1
-    model.addConstr(start[destID] >= finish[sourceID] + round(
-        standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"], 2),
-                    "data dependency between source and destination nodes")
+    source_placement = -1
+    dest_placement = -1
+    # Constants
+    # M is chosen to be as small as possible given the bounds on x and y
+    eps = 0.0001
+    M = 10 + eps
+    # https://support.gurobi.com/hc/en-us/articles/360039628832-Constraint-has-no-bool-value-are-you-trying-lb-expr-ub
+    for device_id in deviceTopo.getDeviceIDs():
+        # If x[sourceID, device_id] > x[destID, device_id], then b = 1, otherwise b = 0
+        model.addConstr(x[sourceID, device_id] >= x[destID, device_id] + eps - M * (1 - b), name="bigM_constr1")
+        model.addConstr(x[sourceID, device_id] <= x[destID, device_id] + M * b, name="bigM_constr2")
+        #if x[sourceID, device_id] == 1:
+        #    source_placement = device_id
+        #if x[destID, device_id] > [sourceID, device_id]:
+        #    dest_placement = device_id
+    communication_cost = round(standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"])
+    model.addConstr(start[destID] >= finish[sourceID] + communication_cost, "data dependency between source and destination nodes")
 
-    for i in deviceTopo.getDeviceIDs():
-        model.addConstr(start[destID] >= finish[sourceID] + round(
-            standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"], 2),
-                        "data dependency between source and destination nodes")
-    '''
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
 for op_end in finish.values():
