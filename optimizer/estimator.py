@@ -1,7 +1,7 @@
 import json
 from gurobipy import *
 
-from optimizer.data_structure.graph import DeviceGraph, CompGraph
+from optimizer.data_structure.graph import DeviceGraph, CompGraph, CompCostMatrix
 
 # Load input
 # graph = json.load(sys.stdin)  # operator graph in JSON format
@@ -13,6 +13,8 @@ deviceTopo = DeviceGraph()
 deviceTopo.random_rebuild(4)
 print(deviceTopo.getAllDevices())
 standard_tensor_size = 1000
+
+comp_cost_matrix = CompCostMatrix(operator_ids=comp_graph.getOperatorIDs(), device_ids=deviceTopo.getDeviceIDs())
 
 # Init solver
 model = Model("minimize_maxload")
@@ -77,7 +79,8 @@ for node_id in list(comp_graph.getOperatorIDs()):
     comp_cost = LinExpr()
     # since there is one placement, only one x[node_id, device_id] will be 1
     for device_id in deviceTopo.getDeviceIDs():
-        comp_cost += x[node_id, device_id] * comp_graph.getOperator(node_id)["computing_cost"]
+        # comp_cost_matrix consider the device heterogeneity
+        comp_cost += x[node_id, device_id] * comp_cost_matrix.cost_matrix[node_id, device_id]
     model.addConstr(finish[node_id] == start[node_id] + comp_cost, "finish == start + process")
 
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):

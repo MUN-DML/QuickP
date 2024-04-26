@@ -105,3 +105,11 @@ class DeviceGraph(nx.Graph):
 
     def __str__(self):
         return ""
+
+
+class CompCostMatrix:
+    def __init__(self, operator_ids, device_ids):
+        self.cost_matrix = {}
+        for operator_id in operator_ids:
+            for device_id in device_ids:
+                self.cost_matrix[operator_id, device_id] = random.randint(50, 300)
