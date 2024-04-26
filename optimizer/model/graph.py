@@ -6,17 +6,12 @@ from matplotlib import pyplot as plt
 
 class CompGraph(nx.DiGraph):
     def random_rebuild(self, operator_num):
-        operator_list = list(range(operator_num))
-        for i in range(operator_num):
+        G = nx.gnp_random_graph(operator_num, 0.5, directed=True)
+        for i in G.nodes():
             self.add_new_node(i, random.randint(50, 200), "not specified")
-        # generate edge tuple list
-        tuple_list = []
-        for i in range(operator_num - 1):
-            for j in range(i + 1, operator_num):
-                tuple_list.append((i, j))
-        for obj in tuple_list:
-            if random.randint(0, 100) < 30:
-                self.add_new_edge(obj[0], obj[1])
+        for (u, v) in G.edges():
+            if u < v:
+                self.add_new_edge(u, v)
 
     def add_new_node(self, operator_id, size, op_type):
         nx.DiGraph.add_node(self, node_for_adding=operator_id, size=size, op_type=op_type)
