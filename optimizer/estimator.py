@@ -42,8 +42,8 @@ for source_id in comp_graph.getOperatorIDs():
             model.addConstr(d[source_id, dest_id] == 0)
         else:
             for device_id in deviceTopo.getDeviceIDs():
-                model.addConstr((x[source_id, device_id] == 1) >> x1 == 1, "source node is placed on the device")
-                model.addConstr((x[dest_id, device_id] == 1) >> x2 == 1, "dest node is placed on the device")
+                model.addConstr((x[source_id, device_id] == 1) >> (x1 == 1), "source node is placed on the device")
+                model.addConstr((x[dest_id, device_id] == 1) >> (x2 == 1), "dest node is placed on the device")
                 model.addGenConstrAnd(d[source_id, dest_id], [x1, x2], "andconstr")
 
 # Add constraints that schedule every node on exactly one machine
