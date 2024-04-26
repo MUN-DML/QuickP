@@ -1,6 +1,8 @@
 import networkx as nx
 import random
 
+from matplotlib import pyplot as plt
+
 
 class CompGraph(nx.DiGraph):
     def random_rebuild(self, operator_num):
@@ -13,7 +15,8 @@ class CompGraph(nx.DiGraph):
             for j in range(i + 1, operator_num):
                 tuple_list.append((i, j))
         for obj in tuple_list:
-            self.add_new_edge(obj[0], obj[1])
+            if random.randint(0, 100) < 30:
+                self.add_new_edge(obj[0], obj[1])
 
     def add_new_node(self, operator_id, size, comp_cost, op_type):
         nx.DiGraph.add_node(self, node_for_adding=operator_id, size=size, computing_cost=comp_cost, op_type=op_type)
@@ -113,3 +116,8 @@ class CompCostMatrix:
         for operator_id in operator_ids:
             for device_id in device_ids:
                 self.cost_matrix[operator_id, device_id] = random.randint(50, 300)
+
+def visualize_graph(graph):
+    pos = nx.spring_layout(graph, seed=225)  # Seed for reproducible layout
+    nx.draw(graph, pos)
+    plt.show()

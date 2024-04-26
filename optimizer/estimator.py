@@ -1,17 +1,19 @@
 import json
 from gurobipy import *
 
-from model.graph import DeviceGraph, CompGraph, CompCostMatrix
+from model.graph import DeviceGraph, CompGraph, CompCostMatrix, visualize_graph
 
 # Load input
 # graph = json.load(sys.stdin)  # operator graph in JSON format
 comp_graph = CompGraph()
 comp_graph.random_rebuild(8)
 print(comp_graph.getAllOperators())
+visualize_graph(comp_graph)
 
 deviceTopo = DeviceGraph()
 deviceTopo.random_rebuild(4)
 print(deviceTopo.getAllDevices())
+visualize_graph(deviceTopo)
 standard_tensor_size = 1000
 
 comp_cost_matrix = CompCostMatrix(operator_ids=comp_graph.getOperatorIDs(), device_ids=deviceTopo.getDeviceIDs())
