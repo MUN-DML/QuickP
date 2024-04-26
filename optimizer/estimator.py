@@ -1,4 +1,6 @@
 import json
+
+import networkx as nx
 from gurobipy import *
 
 from model.graph import DeviceGraph, CompGraph, CompCostMatrix, visualize_graph
@@ -8,6 +10,8 @@ from model.graph import DeviceGraph, CompGraph, CompCostMatrix, visualize_graph
 comp_graph = CompGraph()
 comp_graph.random_rebuild(8)
 print(comp_graph.getAllOperators())
+if not nx.is_directed_acyclic_graph(comp_graph):
+    raise "comp_graph is not directed acyclic"
 visualize_graph(comp_graph)
 
 deviceTopo = DeviceGraph()
