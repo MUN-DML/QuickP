@@ -17,6 +17,7 @@ visualize_graph(deviceTopo)
 standard_tensor_size = 1000
 
 comp_cost_matrix = CompCostMatrix(operator_ids=comp_graph.getOperatorIDs(), device_ids=deviceTopo.getDeviceIDs())
+print(comp_cost_matrix.cost_matrix)
 
 # Init solver
 model = Model("minimize_maxload")

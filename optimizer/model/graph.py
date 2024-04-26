@@ -8,7 +8,7 @@ class CompGraph(nx.DiGraph):
     def random_rebuild(self, operator_num):
         operator_list = list(range(operator_num))
         for i in range(operator_num):
-            self.add_new_node(i, random.randint(50, 200), random.randint(3, 60), "not specified")
+            self.add_new_node(i, random.randint(50, 200), "not specified")
         # generate edge tuple list
         tuple_list = []
         for i in range(operator_num - 1):
@@ -18,8 +18,8 @@ class CompGraph(nx.DiGraph):
             if random.randint(0, 100) < 30:
                 self.add_new_edge(obj[0], obj[1])
 
-    def add_new_node(self, operator_id, size, comp_cost, op_type):
-        nx.DiGraph.add_node(self, node_for_adding=operator_id, size=size, computing_cost=comp_cost, op_type=op_type)
+    def add_new_node(self, operator_id, size, op_type):
+        nx.DiGraph.add_node(self, node_for_adding=operator_id, size=size, op_type=op_type)
 
     def add_new_nodes_from(self, operator_list):
         nx.DiGraph.add_edges_from(self, ebunch_to_add=operator_list)
@@ -116,6 +116,7 @@ class CompCostMatrix:
         for operator_id in operator_ids:
             for device_id in device_ids:
                 self.cost_matrix[operator_id, device_id] = random.randint(50, 300)
+
 
 def visualize_graph(graph):
     pos = nx.spring_layout(graph, seed=225)  # Seed for reproducible layout

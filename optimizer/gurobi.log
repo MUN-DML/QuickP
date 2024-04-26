@@ -1,0 +1,130 @@
+
+Gurobi 11.0.1 (win64) logging started Fri Apr 26 16:17:06 2024
+
+Set parameter LogFile to value "gurobi.log"
+Set parameter MIPGap to value 0.01
+Set parameter TimeLimit to value 1200
+Set parameter MIPFocus to value 1
+Set parameter IntFeasTol to value 1e-06
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (win64 - Windows 11.0 (22631.2))
+
+CPU model: Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz, instruction set [SSE2|AVX|AVX2]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 96 rows, 129 columns and 238 nonzeros
+Model fingerprint: 0x8b4ec9d8
+Model has 84 general constraints
+Variable types: 17 continuous, 112 integer (98 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 3e+02]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 4e+02]
+  GenCon rhs range [1e+00, 1e+00]
+  GenCon coe range [1e+00, 1e+00]
+Presolve removed 68 rows and 91 columns
+Presolve time: 0.01s
+Presolved: 28 rows, 38 columns, 136 nonzeros
+Variable types: 3 continuous, 35 integer (32 binary)
+Found heuristic solution: objective 429.0000000
+Found heuristic solution: objective 381.0000000
+Found heuristic solution: objective 371.0000000
+
+Root relaxation: objective 3.470000e+02, 12 iterations, 0.00 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0  347.00000    0    6  371.00000  347.00000  6.47%     -    0s
+     0     0     cutoff    0       371.00000  371.00000  0.00%     -    0s
+
+Explored 1 nodes (18 simplex iterations) in 0.04 seconds (0.00 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 3: 371 381 429 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 3.710000000000e+02, best bound 3.710000000000e+02, gap 0.0000%
+
+Gurobi 11.0.1 (win64) logging started Fri Apr 26 16:21:35 2024
+
+Set parameter LogFile to value "gurobi.log"
+Set parameter MIPGap to value 0.01
+Set parameter TimeLimit to value 1200
+Set parameter MIPFocus to value 1
+Set parameter IntFeasTol to value 1e-06
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (win64 - Windows 11.0 (22631.2))
+
+CPU model: Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz, instruction set [SSE2|AVX|AVX2]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 96 rows, 129 columns and 238 nonzeros
+Model fingerprint: 0x7725d392
+Model has 84 general constraints
+Variable types: 17 continuous, 112 integer (98 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 3e+02]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 4e+02]
+  GenCon rhs range [1e+00, 1e+00]
+  GenCon coe range [1e+00, 1e+00]
+Presolve removed 66 rows and 91 columns
+Presolve time: 0.01s
+Presolved: 30 rows, 38 columns, 142 nonzeros
+Variable types: 3 continuous, 35 integer (32 binary)
+Found heuristic solution: objective 374.0000000
+Found heuristic solution: objective 325.0000000
+
+Root relaxation: objective 2.620000e+02, 13 iterations, 0.00 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0  262.00000    0    7  325.00000  262.00000  19.4%     -    0s
+H    0     0                     306.0000000  262.00000  14.4%     -    0s
+
+Explored 1 nodes (13 simplex iterations) in 0.05 seconds (0.00 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 3: 306 325 374 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 3.060000000000e+02, best bound 3.060000000000e+02, gap 0.0000%
+
+Gurobi 11.0.1 (win64) logging started Fri Apr 26 16:22:15 2024
+
+Set parameter LogFile to value "gurobi.log"
+Set parameter MIPGap to value 0.01
+Set parameter TimeLimit to value 1200
+Set parameter MIPFocus to value 1
+Set parameter IntFeasTol to value 1e-06
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (win64 - Windows 11.0 (22631.2))
+
+CPU model: Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz, instruction set [SSE2|AVX|AVX2]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 96 rows, 137 columns and 246 nonzeros
+Model fingerprint: 0xe0c0fbf8
+Model has 132 general constraints
+Variable types: 17 continuous, 120 integer (98 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 3e+02]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 3e+02]
+  GenCon rhs range [1e+00, 1e+00]
+  GenCon coe range [1e+00, 1e+00]
+Presolve removed 69 rows and 98 columns
+Presolve time: 0.00s
+Presolved: 27 rows, 39 columns, 137 nonzeros
+Variable types: 2 continuous, 37 integer (32 binary)
+Found heuristic solution: objective 595.0000000
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds (0.00 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 595 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.950000000000e+02, best bound 5.950000000000e+02, gap 0.0000%
