@@ -29,12 +29,21 @@ model.setParam("IntFeasTol", 1e-6)
 # Define variables
 x = {}  # key will be (node_id, machine_id), value will be 1 or 0
 d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
+x1 = model.addVar(vtype=GRB.BINARY, name="w1")
+x2 = model.addVar(vtype=GRB.BINARY, name="w2")
 for node_id in comp_graph.getOperatorIDs():
     for machine_id in deviceTopo.getDeviceIDs():
         x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY)
-for edge_id_tuple in comp_graph.getEdgeIDs():
-    d[edge_id_tuple[0], edge_id_tuple[1]] = model.addVar(vtype=GRB.BINARY)
-# for
+for source_id in comp_graph.getOperatorIDs():
+    for dest_id in comp_graph.getOperatorIDs():
+        d[source_id, dest_id] = model.addVar(vtype=GRB.BINARY)
+        if (source_id, dest_id) not in comp_graph.getEdgeIDs():
+            model.addConstr(d[source_id, dest_id] == 0)
+        else:
+            for device_id in deviceTopo.getDeviceIDs():
+                model.addConstr((x[source_id, device_id] == 1) >> x1 == 1, "source node is placed on the device")
+                model.addConstr((x[dest_id, device_id] == 1) >> x2 == 1, "dest node is placed on the device")
+                model.addGenConstrAnd(d[source_id, dest_id], [x1, x2], "andconstr")
 
 # Add constraints that schedule every node on exactly one machine
 for node_id in comp_graph.getOperatorIDs():
@@ -75,7 +84,7 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     destID = edge_id_tuple[1]
     source_placement = model.addVar(vtype=GRB.INTEGER, name="w1")
     dest_placement = model.addVar(vtype=GRB.INTEGER, name="w1")
-    b = model.addVar(vtype=GRB.BINARY, name="indicator")
+    # b = model.addVar(vtype=GRB.BINARY, name="indicator")
     # Add indicator constraints
     # model.addConstr((b == 1) >> (z == w1), name="indicator_constr1")
     # model.addConstr((b == 0) >> (z == w2), name="indicator_constr2")
@@ -87,13 +96,14 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     # https://support.gurobi.com/hc/en-us/community/posts/360077951791-if-statement-in-constraint
     for device_id in deviceTopo.getDeviceIDs():
         # If x[sourceID, device_id] > x[destID, device_id], then b = 1, otherwise b = 0
-        model.addConstr(x[sourceID, device_id] >= x[destID, device_id] + eps - M * (1 - b), name="bigM_constr1")
-        model.addConstr(x[sourceID, device_id] <= x[destID, device_id] + M * b, name="bigM_constr2")
+        # model.addConstr(x[sourceID, device_id] >= x[destID, device_id] + eps - M * (1 - b), name="bigM_constr1")
+        # model.addConstr(x[sourceID, device_id] <= x[destID, device_id] + M * b, name="bigM_constr2")
         #if x[sourceID, device_id] == 1:
         #    source_placement = device_id
         #if x[destID, device_id] > [sourceID, device_id]:
         #    dest_placement = device_id
         model.addConstr((x[sourceID, device_id] == 1) >> source_placement == device_id)
+        model.addConstr((x[destID, device_id] == 1) >> dest_placement == device_id)
     communication_cost = round(standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"])
     model.addConstr(start[destID] >= finish[sourceID] + communication_cost, "data dependency between source and destination nodes")
 

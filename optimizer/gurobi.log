@@ -1,0 +1,8 @@
+
+Gurobi 11.0.1 (win64) logging started Thu Apr 25 20:22:04 2024
+
+Set parameter LogFile to value "gurobi.log"
+Set parameter MIPGap to value 0.01
+Set parameter TimeLimit to value 1200
+Set parameter MIPFocus to value 1
+Set parameter IntFeasTol to value 1e-06
