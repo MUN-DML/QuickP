@@ -1,7 +1,7 @@
 import json
 from gurobipy import *
 
-from optimizer.data_structure.graph import DeviceGraph, CompGraph, CompCostMatrix
+from model.graph import DeviceGraph, CompGraph, CompCostMatrix
 
 # Load input
 # graph = json.load(sys.stdin)  # operator graph in JSON format
