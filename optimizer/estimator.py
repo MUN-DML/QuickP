@@ -37,6 +37,7 @@ for node_id in comp_graph.getOperatorIDs():
 for source_id in comp_graph.getOperatorIDs():
     for dest_id in comp_graph.getOperatorIDs():
         d[source_id, dest_id] = model.addVar(vtype=GRB.BINARY)
+        # If two nodes do not have dependency relationship
         if (source_id, dest_id) not in comp_graph.getEdgeIDs():
             model.addConstr(d[source_id, dest_id] == 0)
         else:
@@ -94,7 +95,7 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     M = 10 + eps
     # https://support.gurobi.com/hc/en-us/articles/360039628832-Constraint-has-no-bool-value-are-you-trying-lb-expr-ub
     # https://support.gurobi.com/hc/en-us/community/posts/360077951791-if-statement-in-constraint
-    for device_id in deviceTopo.getDeviceIDs():
+    # for device_id in deviceTopo.getDeviceIDs():
         # If x[sourceID, device_id] > x[destID, device_id], then b = 1, otherwise b = 0
         # model.addConstr(x[sourceID, device_id] >= x[destID, device_id] + eps - M * (1 - b), name="bigM_constr1")
         # model.addConstr(x[sourceID, device_id] <= x[destID, device_id] + M * b, name="bigM_constr2")
@@ -102,10 +103,10 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
         #    source_placement = device_id
         #if x[destID, device_id] > [sourceID, device_id]:
         #    dest_placement = device_id
-        model.addConstr((x[sourceID, device_id] == 1) >> source_placement == device_id)
-        model.addConstr((x[destID, device_id] == 1) >> dest_placement == device_id)
-    communication_cost = round(standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"])
-    model.addConstr(start[destID] >= finish[sourceID] + communication_cost, "data dependency between source and destination nodes")
+        # model.addConstr((x[sourceID, device_id] == 1) >> source_placement == device_id)
+        # model.addConstr((x[destID, device_id] == 1) >> dest_placement == device_id)
+    # communication_cost = round(standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"])
+    model.addConstr(start[destID] >= finish[sourceID], "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
