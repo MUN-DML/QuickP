@@ -91,28 +91,13 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     destID = edge_id_tuple[1]
     source_placement = model.addVar(vtype=GRB.INTEGER, name="w1")
     dest_placement = model.addVar(vtype=GRB.INTEGER, name="w1")
-    # b = model.addVar(vtype=GRB.BINARY, name="indicator")
-    # Add indicator constraints
-    # model.addConstr((b == 1) >> (z == w1), name="indicator_constr1")
-    # model.addConstr((b == 0) >> (z == w2), name="indicator_constr2")
-    # Constants
-    # M is chosen to be as small as possible given the bounds on x and y
-    eps = 0.0001
-    M = 10 + eps
     # https://support.gurobi.com/hc/en-us/articles/360039628832-Constraint-has-no-bool-value-are-you-trying-lb-expr-ub
     # https://support.gurobi.com/hc/en-us/community/posts/360077951791-if-statement-in-constraint
-    # for device_id in deviceTopo.getDeviceIDs():
-        # If x[sourceID, device_id] > x[destID, device_id], then b = 1, otherwise b = 0
-        # model.addConstr(x[sourceID, device_id] >= x[destID, device_id] + eps - M * (1 - b), name="bigM_constr1")
-        # model.addConstr(x[sourceID, device_id] <= x[destID, device_id] + M * b, name="bigM_constr2")
-        #if x[sourceID, device_id] == 1:
-        #    source_placement = device_id
-        #if x[destID, device_id] > [sourceID, device_id]:
-        #    dest_placement = device_id
-        # model.addConstr((x[sourceID, device_id] == 1) >> source_placement == device_id)
-        # model.addConstr((x[destID, device_id] == 1) >> dest_placement == device_id)
-    # communication_cost = round(standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"])
-    model.addConstr(start[destID] >= finish[sourceID] + d[sourceID, destID] * 50, "data dependency between source and destination nodes")
+    for device_id in deviceTopo.getDeviceIDs():
+        model.addConstr((x[sourceID, device_id] == 1) >> (source_placement == device_id))
+        model.addConstr((x[destID, device_id] == 1) >> (dest_placement == device_id))
+    communication_cost = round(standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"])
+    model.addConstr(start[destID] >= finish[sourceID] + d[sourceID, destID] * communication_cost, "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)

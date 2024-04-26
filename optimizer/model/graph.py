@@ -115,6 +115,7 @@ class CompCostMatrix:
         self.cost_matrix = {}
         for operator_id in operator_ids:
             for device_id in device_ids:
+                # self.cost_matrix[operator_id, device_id] means the computing cost of this operator on this device
                 self.cost_matrix[operator_id, device_id] = random.randint(50, 300)
 
 
