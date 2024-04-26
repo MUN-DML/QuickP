@@ -106,7 +106,7 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
         # model.addConstr((x[sourceID, device_id] == 1) >> source_placement == device_id)
         # model.addConstr((x[destID, device_id] == 1) >> dest_placement == device_id)
     # communication_cost = round(standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"])
-    model.addConstr(start[destID] >= finish[sourceID], "data dependency between source and destination nodes")
+    model.addConstr(start[destID] >= finish[sourceID] + d[sourceID, destID] * 50, "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
