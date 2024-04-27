@@ -100,7 +100,9 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     for device_id in deviceTopo.getDeviceIDs():
         model.addConstr((x[sourceID, device_id] == 1) >> (source_placement == device_id))
         model.addConstr((x[destID, device_id] == 1) >> (dest_placement == device_id))
-    communication_cost = round(standard_tensor_size / deviceTopo.getConnection(source_placement, source_placement)["computing_speed"])
+    model.update()
+    path = nx.shortest_path(deviceTopo, source=source_placement, target=dest_placement)
+    communication_cost = deviceTopo.calculateCommunicationCost(standard_tensor_size, path_list=path)
     model.addConstr(start[destID] >= finish[sourceID] + d[sourceID, destID] * communication_cost, "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing

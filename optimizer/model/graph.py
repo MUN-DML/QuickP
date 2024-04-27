@@ -101,6 +101,13 @@ class DeviceGraph(nx.Graph):
     def getEdgeObjs(self):
         return list(self.edges.values())
 
+    def calculateCommunicationCost(self, tensor_size, path_list):
+        cost = 0
+        for i in range(len(path_list) - 1):
+            speed = self.getConnection(path_list[i], path_list[i + 1])["communication_speed"]
+            cost += tensor_size / speed
+        return cost
+
     def __str__(self):
         return ""
 
@@ -116,5 +123,5 @@ class CompCostMatrix:
 
 def visualize_graph(graph):
     pos = nx.spring_layout(graph, seed=225)  # Seed for reproducible layout
-    nx.draw(graph, pos)
+    nx.draw(graph, pos, with_labels=True)
     plt.show()
