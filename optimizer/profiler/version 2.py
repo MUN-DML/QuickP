@@ -1,10 +1,14 @@
 import torch
 import torch.nn as nn
 import torchviz
+from torch.autograd.profiler import record_function
 
 from pyutil import getStdModelForCifar10, getStdCifar10DataLoader
+from resnet import ResNet18
 
-model = getStdModelForCifar10().cuda()
+# https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html
+
+model = ResNet18().cuda()
 trainloader = getStdCifar10DataLoader()
 
 ### optimizer, criterion ###
@@ -22,13 +26,16 @@ with torch.profiler.profile(
             active=6,
             repeat=1),
         with_stack=True,
-        profile_memory=True
+        record_shapes=True,
+        profile_memory=True,
+        on_trace_ready=torch.profiler.tensorboard_trace_handler('./log')
 ) as profiler:
     for step, data in enumerate(trainloader, 0):
         print("step:{}".format(step))
         inputs, labels = data[0].cuda(), data[1].cuda()
         # forward
-        outputs = model(inputs)
+        with record_function("model_inference"):
+            outputs = model(inputs)
         loss = criterion(outputs, labels)
         # backward
         optimizer.zero_grad()
@@ -38,6 +45,6 @@ with torch.profiler.profile(
         profiler.step()
 
 # Print the computation time of each operator
-print(profiler.key_averages().table(sort_by="self_cuda_memory_usage"))
-profiler.export_stacks(path="./profiler.json", metric="self_cuda_time_total")
+print(profiler.key_averages().table())
+
 # torchviz.make_dot(outputs, params=dict(model.named_parameters())).render("computation_graph_forward", format="png")
