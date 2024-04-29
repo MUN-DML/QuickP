@@ -8,7 +8,7 @@
 #SBATCH --output=%N-%j.out
 #module load python/3.10 # Using Default Python version - Make sure to choose a version that suits your application
 # the environment file is etc/environment-modules/modulespath; /usr/share/Modules/modulefiles
-#source /etc/profile.d/modules.sh
+#source /etc/profiler.d/modules.sh
 
 # use sbatch PyTorchDP.sh to execute
 export TORCH_NCCL_BLOCKING_WAIT=1  #Set this environment variable if you wish to use the NCCL backend for inter-GPU communication.
