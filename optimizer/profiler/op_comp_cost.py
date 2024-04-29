@@ -7,7 +7,9 @@ import torchvision.transforms as transforms
 from pyutil import getStdModelForCifar10
 
 # https://pytorch.org/tutorials/beginner/profiler.html
+# https://pytorch.org/docs/stable/profiler.html
 # https://discuss.pytorch.org/t/cuda-memory-profiling/182065/2
+# https://pytorch.org/blog/introducing-pytorch-profiler-the-new-and-improved-performance-tool/
 # Create an instance of the model
 model = getStdModelForCifar10().cuda()
 
