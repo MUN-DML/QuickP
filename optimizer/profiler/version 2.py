@@ -18,6 +18,7 @@ criterion = nn.CrossEntropyLoss().cuda()
 
 with torch.profiler.profile(
         activities=[
+            torch.profiler.ProfilerActivity.CPU,
             torch.profiler.ProfilerActivity.CUDA,
         ],
         schedule=torch.profiler.schedule(
@@ -45,6 +46,6 @@ with torch.profiler.profile(
         profiler.step()
 
 # Print the computation time of each operator
-print(profiler.key_averages().table())
+print(profiler.key_averages().table(sort_by="cuda_time_total"))
 
 # torchviz.make_dot(outputs, params=dict(model.named_parameters())).render("computation_graph_forward", format="png")
