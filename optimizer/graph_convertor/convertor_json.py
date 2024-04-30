@@ -2,7 +2,7 @@ import torch
 import torchvision
 from torchvision import transforms
 from onnx2json import convert
-from VGGParaCifar import vgg11
+from vgg import vgg11
 from py_util import getStdModelForCifar10
 
 '''

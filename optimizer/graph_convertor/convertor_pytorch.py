@@ -2,7 +2,7 @@ import torch
 import torchvision
 from torch.autograd.profiler import profile
 from torchvision import transforms
-from VGGParaCifar import vgg11
+from vgg import vgg11
 from onnx2torch import convert
 from py_util import getStdModelForCifar10
 

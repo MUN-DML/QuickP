@@ -13,7 +13,7 @@ import torch.nn as nn
 
 sys.path.append("../")
 from py_util import getStdModelForCifar10, getArgs
-from VGGParaCifar import vgg16, vgg11
+from vgg import vgg16, vgg11
 from resnet import ResNet18
 from alexnet import AlexNet
 
