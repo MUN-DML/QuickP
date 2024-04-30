@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torchviz
-from torch.autograd.profiler import record_function
+from torch.profiler import profile, record_function, ProfilerActivity
 
 from pyutil import getStdModelForCifar10, getStdCifar10DataLoader
 from resnet import ResNet18
