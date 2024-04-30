@@ -89,7 +89,7 @@ def getArgs():
     parser.add_argument('--distributed', action='store_true', help='')
     parser.add_argument('--master_addr', type=str, default=os.getenv('MASTER_ADDR', '192.168.0.66'))
     parser.add_argument('--master_port', type=str, default=os.getenv('MASTER_PORT', '3456'))
-    parser.add_argument('--chunks', type=int, default=4)
+    parser.add_argument('--chunks', type=int, default=2)
     args = parser.parse_args()
     nodeID = int(os.environ.get("SLURM_NODEID"))
     # DDP setting
