@@ -7,6 +7,7 @@ from pyutil import getStdModelForCifar10, getStdCifar10DataLoader
 from resnet import ResNet18
 
 # https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html
+# https://medium.com/computing-systems-and-hardware-for-emerging/profiling-a-training-task-with-pytorch-profiler-and-viewing-it-on-tensorboard-2cb7e0fef30e
 
 model = ResNet18().cuda()
 trainloader = getStdCifar10DataLoader()
@@ -32,15 +33,18 @@ with torch.profiler.profile(
         on_trace_ready=torch.profiler.tensorboard_trace_handler('./log')
 ) as profiler:
     for step, data in enumerate(trainloader, 0):
+        if step == 15:
+            break
         print("step:{}".format(step))
         inputs, labels = data[0].cuda(), data[1].cuda()
         # forward
-        with record_function("model_inference"):
+        with record_function("forward_pass"):
             outputs = model(inputs)
         loss = criterion(outputs, labels)
         # backward
         optimizer.zero_grad()
-        loss.backward()
+        with record_function("backward_pass"):
+            loss.backward()
         optimizer.step()
         # send a signal to the profiler that the next iteration has started
         profiler.step()
