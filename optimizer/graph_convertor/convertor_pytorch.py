@@ -4,7 +4,7 @@ from torch.autograd.profiler import profile
 from torchvision import transforms
 from VGGParaCifar import vgg11
 from onnx2torch import convert
-from pyutil import getStdModelForCifar10
+from py_util import getStdModelForCifar10
 
 # Input to the model
 transform_train = transforms.Compose(

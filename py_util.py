@@ -2,6 +2,7 @@ import argparse
 import os
 
 import torchvision
+from pippy import annotate_split_points, SplitPoint
 from torchvision import transforms
 
 # This guide can only be run with the torch backend. must write when using both keras and pytorch
@@ -88,6 +89,7 @@ def getArgs():
     parser.add_argument('--distributed', action='store_true', help='')
     parser.add_argument('--master_addr', type=str, default=os.getenv('MASTER_ADDR', '192.168.0.66'))
     parser.add_argument('--master_port', type=str, default=os.getenv('MASTER_PORT', '3456'))
+    parser.add_argument('--chunks', type=int, default=4)
     args = parser.parse_args()
     nodeID = int(os.environ.get("SLURM_NODEID"))
     # DDP setting
@@ -210,3 +212,14 @@ def compute_epoch_loss(model, data_loader, device):
 
         curr_loss = curr_loss / num_examples
         return curr_loss
+
+
+def get_number_of_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def add_split_points(model, world_size):
+    for i in range(1, world_size):
+        # the name should correspond to the layer name in the model
+        annotate_split_points(
+            model, {f"layer{i}": SplitPoint.BEGINNING})

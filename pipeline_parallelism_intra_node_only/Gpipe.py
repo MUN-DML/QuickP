@@ -5,7 +5,7 @@ import sys
 import time
 
 sys.path.append("../")
-from pyutil import getStdModelForCifar10, getStdCifar10DataLoader, saveModelState, retrieve_existing_model, testPYModel
+from py_util import getStdModelForCifar10, getStdCifar10DataLoader, saveModelState, retrieve_existing_model, testPYModel
 
 # This guide can only be run with the torch backend. must write when using both keras and pytorch
 # sudo apt install python3-packaging

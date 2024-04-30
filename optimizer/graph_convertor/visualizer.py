@@ -6,7 +6,7 @@ import torch.optim as optim
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
-from pyutil import getStdModelForCifar10
+from py_util import getStdModelForCifar10
 
 # network
 net = getStdModelForCifar10()

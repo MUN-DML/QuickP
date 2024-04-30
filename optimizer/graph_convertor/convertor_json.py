@@ -3,7 +3,7 @@ import torchvision
 from torchvision import transforms
 from onnx2json import convert
 from VGGParaCifar import vgg11
-from pyutil import getStdModelForCifar10
+from py_util import getStdModelForCifar10
 
 '''
 torch.onnx.export(model,                                # model being run

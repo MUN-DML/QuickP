@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchviz
 from torch.profiler import profile, record_function, ProfilerActivity
 
-from pyutil import getStdModelForCifar10, getStdCifar10DataLoader
+from py_util import getStdModelForCifar10, getStdCifar10DataLoader
 from resnet import ResNet18
 
 # https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html

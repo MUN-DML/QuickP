@@ -4,7 +4,7 @@ import torch.autograd as autograd
 import torchvision
 import torchviz
 import torchvision.transforms as transforms
-from pyutil import getStdModelForCifar10
+from py_util import getStdModelForCifar10
 
 # https://pytorch.org/tutorials/beginner/profiler.html
 # https://pytorch.org/docs/stable/profiler.html
