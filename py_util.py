@@ -188,9 +188,11 @@ def train(epoch, train_loader, model, criterion, optimizer, device):
     for i in range(epoch):
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             inputs = inputs.to(device)
+            # shape: batch_size * 1
             targets = targets.to(device)
 
             optimizer.zero_grad()
+            # shape batch_size * 10
             outputs = model(inputs)
 
             loss = criterion(outputs, targets)
