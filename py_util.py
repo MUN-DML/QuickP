@@ -187,8 +187,8 @@ def train(epoch, train_loader, model, criterion, optimizer, device):
     model.train(True)
     for i in range(epoch):
         for batch_idx, (inputs, targets) in enumerate(train_loader):
-            inputs = inputs.cuda()
-            targets = targets.cuda()
+            inputs = inputs.to(device)
+            targets = targets.to(device)
 
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -199,10 +199,13 @@ def train(epoch, train_loader, model, criterion, optimizer, device):
             optimizer.step()
 
             train_loss += loss.item()
-            _, predicted = outputs.max(1)
+            _, predicted_idx = outputs.max(1)
             total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
-            acc = 100 * correct / total
+            correct += predicted_idx.eq(targets).sum().item()
+            acc = correct / total
+            if batch_idx % 20 == 0:  # print every 20 mini-batches
+                print(f'[{i}, {batch_idx}] loss: {train_loss / 2000:.3f} accu: {acc * 100:.2f}')
+                train_loss = 0.0
 
 
 def compute_accuracy(model, data_loader, device):
