@@ -8,17 +8,17 @@ import torch.nn as nn
 import torch.nn.init as init
 
 __all__ = [
-    'VGGParaCifar', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
+    'VGG', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
     'vgg19_bn', 'vgg19',
 ]
 
 
-class VGGParaCifar(nn.Module):
+class VGG(nn.Module):
     '''
     VGG model
     '''
     def __init__(self, features):
-        super(VGGParaCifar, self).__init__()
+        super(VGG, self).__init__()
         self.features = features
         self.classifier = nn.Sequential(
             nn.Dropout(),
@@ -66,39 +66,39 @@ cfg = {
 
 def vgg11():
     """VGG 11-layer model (configuration "A")"""
-    return VGGParaCifar(make_layers(cfg['A']))
+    return VGG(make_layers(cfg['A']))
 
 
 def vgg11_bn():
     """VGG 11-layer model (configuration "A") with batch normalization"""
-    return VGGParaCifar(make_layers(cfg['A'], batch_norm=True))
+    return VGG(make_layers(cfg['A'], batch_norm=True))
 
 
 def vgg13():
     """VGG 13-layer model (configuration "B")"""
-    return VGGParaCifar(make_layers(cfg['B']))
+    return VGG(make_layers(cfg['B']))
 
 
 def vgg13_bn():
     """VGG 13-layer model (configuration "B") with batch normalization"""
-    return VGGParaCifar(make_layers(cfg['B'], batch_norm=True))
+    return VGG(make_layers(cfg['B'], batch_norm=True))
 
 
 def vgg16():
     """VGG 16-layer model (configuration "D")"""
-    return VGGParaCifar(make_layers(cfg['D']))
+    return VGG(make_layers(cfg['D']))
 
 
 def vgg16_bn():
     """VGG 16-layer model (configuration "D") with batch normalization"""
-    return VGGParaCifar(make_layers(cfg['D'], batch_norm=True))
+    return VGG(make_layers(cfg['D'], batch_norm=True))
 
 
 def vgg19():
     """VGG 19-layer model (configuration "E")"""
-    return VGGParaCifar(make_layers(cfg['E']))
+    return VGG(make_layers(cfg['E']))
 
 
 def vgg19_bn():
     """VGG 19-layer model (configuration 'E') with batch normalization"""
-    return VGGParaCifar(make_layers(cfg['E'], batch_norm=True))
+    return VGG(make_layers(cfg['E'], batch_norm=True))

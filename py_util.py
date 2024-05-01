@@ -178,6 +178,31 @@ def initTrainingLog():
             'log': []}
 
 
+def train_one_epoch(train_loader, model, criterion, optimizer, device):
+    # only one gpu is visible here, so you can send cpu data to gpu by
+    # input_data = input_data.cuda() as normal
+    train_loss = 0
+    correct = 0
+    total = 0
+
+    for batch_idx, (inputs, targets) in enumerate(train_loader):
+        inputs = inputs.to(device)
+        targets = targets.to(device)
+
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        train_loss += loss.item()
+        _, predicted = outputs.max(1)
+        total += targets.size(0)
+        correct += predicted.eq(targets).sum().item()
+        acc = 100 * correct / total
+
+
 def compute_accuracy(model, data_loader, device):
     model.eval()
     with torch.no_grad():
