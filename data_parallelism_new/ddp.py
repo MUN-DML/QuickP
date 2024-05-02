@@ -7,6 +7,7 @@ import torch
 import numpy as np
 import random
 import torch.distributed as dist
+from torch.utils import data
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 import torch.nn as nn
@@ -28,8 +29,8 @@ def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
 
     ### model ###
-    # model = vgg11()
-    model = getStdModelForCifar10()
+    model = vgg11()
+    # model = getStdModelForCifar10()
     # model = ResNet18()
     # model = AlexNet(10)
 
@@ -65,7 +66,7 @@ def main(args):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     train_dataset = CIFAR10(root='../data', train=True, download=True, transform=transform_train)
-    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+    train_sampler = data.distributed.DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=int(os.environ["SLURM_CPUS_PER_TASK"]), pin_memory=True, sampler=train_sampler, drop_last=True)
@@ -78,7 +79,7 @@ def main(args):
         random.seed(epoch)
         # fix sampling seed such that each gpu gets different part of dataset
         if args.distributed:
-            train_loader.sampler.set_epoch(epoch)
+            train_sampler.set_epoch(epoch)
 
         # adjust lr if needed #
 
