@@ -190,7 +190,7 @@ def train(epoch, train_loader, model, criterion, optimizer, device):
             inputs = inputs.to(device)
             # shape: batch_size * 1
             targets = targets.to(device)
-
+            # optimizer.zero_grad() everywhere in the loop but not between the loss.backward() and optimizer.step()
             optimizer.zero_grad()
             # shape batch_size * 10
             outputs = model(inputs)

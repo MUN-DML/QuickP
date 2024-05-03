@@ -49,12 +49,13 @@ with torch.profiler.profile(
         # forward
         with record_function("forward_pass"):
             outputs = model(inputs)
-        loss = criterion(outputs, labels)
+            loss = criterion(outputs, labels)
         # backward
-        optimizer.zero_grad()
         with record_function("backward_pass"):
+            optimizer.zero_grad()
             loss.backward()
-        optimizer.step()
+        with record_function("optimization"):
+            optimizer.step()
         # send a signal to the profiler that the next iteration has started
         profiler.step()
 
