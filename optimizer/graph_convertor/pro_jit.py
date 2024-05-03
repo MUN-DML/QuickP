@@ -5,6 +5,7 @@ from torch.autograd.profiler import record_function
 from torch.profiler import profile
 from torchvision import transforms
 
+from optimizer.graph_convertor.onnx_util import to_json
 from vgg import vgg11
 
 model = vgg11().cuda()
@@ -29,6 +30,5 @@ for node in traced_model.graph.nodes():
                 edges.append({"from": inp.debugName(), "to": node_id})
 
 graph_dict = {"nodes": nodes, "edges": edges}
-print(graph_dict)
-for i, data in enumerate(traced_model.graph.nodes()):
-    print(i, data)
+
+to_json(graph_dict, "jit_graph.json")

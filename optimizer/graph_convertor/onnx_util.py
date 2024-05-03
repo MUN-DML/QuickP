@@ -16,7 +16,7 @@ def model_to_onnx(model, input, path="example.onnx"):
                       )
 
 
-def onnx_to_graph(input_path="example.onnx", output_path="model_graph.json"):
+def onnx_to_graph(input_path="example.onnx", output_path="onnx_graph.json"):
     onnx_model = onnx.load(input_path)
 
     # Extract the graph
@@ -37,6 +37,10 @@ def onnx_to_graph(input_path="example.onnx", output_path="model_graph.json"):
 
     graph_dict = {"nodes": nodes, "edges": edges}
 
+    to_json(graph_dict, output_path)
+
+
+def to_json(graph_dict, output_path):
     json_data = json.dumps(graph_dict, indent=4)  # Converts dictionary to JSON string with pretty printing
     # If you want to print the JSON data to check its content
     # To save the JSON data to a file

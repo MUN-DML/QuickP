@@ -29,4 +29,4 @@ x = x.reshape((1, x.shape[0], x.shape[1], x.shape[2])).to(device)
 path = "example.onnx"
 
 model_to_onnx(net, x, path)
-onnx_to_graph()
+onnx_to_graph(path, "onnx_graph.json")
