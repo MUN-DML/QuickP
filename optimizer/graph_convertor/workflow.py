@@ -2,6 +2,8 @@ import torch
 import torchvision
 from torchvision import transforms
 from onnx2json import convert
+
+from optimizer.graph_convertor.onnx_util import model_to_onnx, onnx_to_graph
 from vgg import vgg11
 from py_util import getStdModelForCifar10
 
@@ -14,7 +16,8 @@ torch.onnx.export(model,                                # model being run
 '''
 
 # network
-net = vgg11()
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+net = vgg11().to(device)
 
 # Input to the model
 transform_train = transforms.Compose(
@@ -22,22 +25,8 @@ transform_train = transforms.Compose(
 train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, transform=transform_train, download=True)
 
 x, _ = train_dataset[0]
-x = x.reshape((1, x.shape[0], x.shape[1], x.shape[2]))
+x = x.reshape((1, x.shape[0], x.shape[1], x.shape[2])).to(device)
+path = "example.onnx"
 
-# Export the model
-torch.onnx.export(net,  # model being run
-                  x,  # model input (or a tuple for multiple inputs)
-                  "example.onnx",  # where to save the model (can be a file or file-like object)
-                  export_params=True,  # store the trained parameter weights inside the model file
-                  opset_version=17,  # the ONNX version to export the model to
-                  do_constant_folding=True,  # whether to execute constant folding for optimization
-                  input_names=['X'],  # the model's input names
-                  output_names=['Y']  # the model's output names
-                  )
-
-help(convert)
-onnx_json = convert(
-  input_onnx_file_path="example.onnx",
-  output_json_path="example.json",
-  json_indent=2,
-)
+model_to_onnx(net, x, path)
+onnx_to_graph()
