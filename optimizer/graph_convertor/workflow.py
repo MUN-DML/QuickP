@@ -31,3 +31,5 @@ path = "example.onnx"
 model_to_onnx(net, x, path)
 graph_dict = onnx_to_dict(path)
 to_json(graph_dict, "onnx_graph.json")
+
+session = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])

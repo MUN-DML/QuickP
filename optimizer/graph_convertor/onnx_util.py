@@ -18,7 +18,7 @@ def model_to_onnx(model, input, path="example.onnx"):
 
 def onnx_to_dict(input_path="example.onnx"):
     onnx_model = onnx.load(input_path)
-
+    onnx.checker.check_model(onnx_model)
     # Extract the graph
     graph = onnx_model.graph
 
