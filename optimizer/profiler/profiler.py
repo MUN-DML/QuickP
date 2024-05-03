@@ -5,11 +5,12 @@ from torch.profiler import profile, record_function, ProfilerActivity
 
 from py_util import getStdModelForCifar10, getStdCifar10DataLoader
 from resnet import ResNet18
+from vgg import vgg11
 
 # https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html
 # https://medium.com/computing-systems-and-hardware-for-emerging/profiling-a-training-task-with-pytorch-profiler-and-viewing-it-on-tensorboard-2cb7e0fef30e
 
-model = ResNet18().cuda()
+model = vgg11().cuda()
 trainloader = getStdCifar10DataLoader()
 
 ### optimizer, criterion ###
@@ -37,8 +38,10 @@ with torch.profiler.profile(
             active=6,
             repeat=1),
         with_stack=True,
+        with_flops=True,
         record_shapes=True,
         profile_memory=True,
+        with_modules=True,
         on_trace_ready=torch.profiler.tensorboard_trace_handler('./log')
 ) as profiler:
     for step, data in enumerate(trainloader, 0):
@@ -54,12 +57,14 @@ with torch.profiler.profile(
         with record_function("backward_pass"):
             optimizer.zero_grad()
             loss.backward()
-        with record_function("optimization"):
             optimizer.step()
         # send a signal to the profiler that the next iteration has started
         profiler.step()
 
 # Print the computation time of each operator
-print(profiler.key_averages().table(sort_by="cuda_time_total"))
+# print(profiler.key_averages().table(sort_by="cuda_time_total"))
 # profiler.export_chrome_trace("result.json")
 # torchviz.make_dot(outputs, params=dict(model.named_parameters())).render("computation_graph_forward", format="png")
+for event in profiler.key_averages(group_by_stack_n=5):
+    if 'cudaMemcpy' in event.name or 'cudaMemcpyAsync' in event.name:
+        print(f"{event.name}: {event.cuda_time_total:.2f}us")
