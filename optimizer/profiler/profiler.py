@@ -31,11 +31,11 @@ with torch.profiler.profile(
             torch.profiler.ProfilerActivity.CPU,
             torch.profiler.ProfilerActivity.CUDA,
         ],
-        # in the following schedule, the profiler will record the performance form the 3 to the 8 mini-batch
+        # in the following schedule, the profiler will record the performance form the 2+2 to the 2+2+1 mini-batch
         schedule=torch.profiler.schedule(
             wait=2,
             warmup=2,
-            active=6,
+            active=1,
             repeat=1),
         with_stack=True,
         with_flops=True,
@@ -46,7 +46,7 @@ with torch.profiler.profile(
         on_trace_ready=torch.profiler.tensorboard_trace_handler('./log')
 ) as profiler:
     for step, data in enumerate(trainloader, 0):
-        if step == 9:
+        if step == 5:
             break
         print("step:{}".format(step))
         inputs, labels = data[0].cuda(), data[1].cuda()
@@ -63,9 +63,8 @@ with torch.profiler.profile(
         profiler.step()
 
 # Print the computation time of each operator
-# print(profiler.key_averages().table(sort_by="cuda_time_total"))
+print(profiler.key_averages().table(sort_by="cuda_time_total"))
 # profiler.export_chrome_trace("result.json")
 # torchviz.make_dot(outputs, params=dict(model.named_parameters())).render("computation_graph_forward", format="png")
-for event in profiler.key_averages(group_by_stack_n=5):
-    if 'cudaMemcpy' in event.name or 'cudaMemcpyAsync' in event.name:
-        print(f"{event.name}: {event.cuda_time_total:.2f}us")
+# for event in profiler.key_averages(group_by_stack_n=5):
+#     print(event)
