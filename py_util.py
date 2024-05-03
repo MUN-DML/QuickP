@@ -84,7 +84,8 @@ def getArgs():
     parser.add_argument('--local_rank', default=-1, type=int, help='local rank for distributed training')
     parser.add_argument('--num_workers', type=int, default=-1, help='')
     parser.add_argument('--world_size', default=-1, type=int, help='')
-    parser.add_argument('--init_method', default='tcp://192.168.0.66:3456', type=str, help='')
+    # 'tcp://192.168.0.66:3456'
+    parser.add_argument('--init_method', default='env://', type=str, help='')
     parser.add_argument('--dist_backend', default='nccl', type=str, help='')
     parser.add_argument('--distributed', action='store_true', help='')
     parser.add_argument('--master_addr', type=str, default=os.getenv('MASTER_ADDR', '192.168.0.66'))
