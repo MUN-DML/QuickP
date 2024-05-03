@@ -42,6 +42,7 @@ with torch.profiler.profile(
         record_shapes=True,
         profile_memory=True,
         with_modules=True,
+        # https://pytorch.org/tutorials/intermediate/tensorboard_profiler_tutorial.html
         on_trace_ready=torch.profiler.tensorboard_trace_handler('./log')
 ) as profiler:
     for step, data in enumerate(trainloader, 0):
