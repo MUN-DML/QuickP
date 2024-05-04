@@ -1,6 +1,7 @@
 import json
 
 import onnx
+# pip install onnxruntime-gpu
 import onnxruntime as ort
 import torch
 
