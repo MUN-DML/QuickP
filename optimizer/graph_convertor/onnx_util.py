@@ -49,9 +49,9 @@ def to_json(graph_dict, output_path):
         json_file.write(json_data)
 
 
-def generate_prof_json(onnx_path, input_data):
-    if torch.is_tensor(input_data):
-        input_data = input_data.cpu().numpy()
+# https://github.com/microsoft/onnxruntime/issues/20398
+# http://www.xavierdupre.fr/app/mlprodict/helpsphinx/notebooks/onnx_profile_ort.html a better example
+def generate_prof_json(onnx_path, data_loader):
     sess_options = ort.SessionOptions()
     sess_options.enable_profiling = True
     print(ort.get_available_providers())
@@ -59,7 +59,14 @@ def generate_prof_json(onnx_path, input_data):
                                         providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
 
     input_name = sess_profile.get_inputs()[0].name
-    # put x from GPU to CPU
-    sess_profile.run(None, {input_name: input_data})
-    profile_file = sess_profile.end_profiling()
-    print(profile_file)
+
+    for i, (input_data, _) in enumerate(data_loader):
+        if i == 5:
+            break
+        # put input tensor from GPU to CPU.
+        sess_profile.run(None, {input_name: input_data.cpu().numpy()})
+    return sess_profile.end_profiling()
+
+
+def load_prof_result():
+    pass
