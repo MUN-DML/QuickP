@@ -5,7 +5,7 @@ import torchvision
 from torchvision import transforms
 from onnx2json import convert
 
-from optimizer.graph_convertor.onnx_util import model_to_onnx, onnx_to_dict, to_json
+from optimizer.graph_convertor.onnx_util import model_to_onnx, onnx_to_dict, to_json, generate_prof_json
 from vgg import vgg11
 from py_util import getStdModelForCifar10
 
@@ -34,15 +34,4 @@ model_to_onnx(net, x, path)
 graph_dict = onnx_to_dict(path)
 to_json(graph_dict, "onnx_graph.json")
 
-sess_options = ort.SessionOptions()
-sess_options.enable_profiling = True
-print(ort.get_available_providers())
-sess_profile = ort.InferenceSession("example.onnx", sess_options=sess_options,
-                                    providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-
-input_name = sess_profile.get_inputs()[0].name
-# put x from GPU to CPU
-x = x.cpu().numpy()
-sess_profile.run(None, {input_name: x})
-profile_file = sess_profile.end_profiling()
-print(profile_file)
+generate_prof_json("example.onnx", x)

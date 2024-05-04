@@ -1,6 +1,7 @@
 import json
 
 import onnx
+import onnxruntime as ort
 import torch
 
 
@@ -44,3 +45,19 @@ def to_json(graph_dict, output_path):
     # To save the JSON data to a file
     with open(output_path, 'w') as json_file:
         json_file.write(json_data)
+
+
+def generate_prof_json(onnx_path, input_data):
+    if torch.is_tensor(input_data):
+        input_data = input_data.cpu().numpy()
+    sess_options = ort.SessionOptions()
+    sess_options.enable_profiling = True
+    print(ort.get_available_providers())
+    sess_profile = ort.InferenceSession(onnx_path, sess_options=sess_options,
+                                        providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+
+    input_name = sess_profile.get_inputs()[0].name
+    # put x from GPU to CPU
+    sess_profile.run(None, {input_name: input_data})
+    profile_file = sess_profile.end_profiling()
+    print(profile_file)
