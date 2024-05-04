@@ -1,7 +1,8 @@
 import json
 
 import onnx
-# pip install onnxruntime-gpu
+# pip install onnxruntime-gpu for cuda 11
+# pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/ for cuda12
 import onnxruntime as ort
 import torch
 
