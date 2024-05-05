@@ -53,7 +53,7 @@ def to_json(graph_dict, output_path):
 # https://github.com/microsoft/onnxruntime/issues/20398
 # https://github.com/microsoft/onnxruntime/issues/7212
 # http://www.xavierdupre.fr/app/mlprodict/helpsphinx/notebooks/onnx_profile_ort.html a better example
-def generate_prof_json(onnx_path, data_loader):
+def generate_prof_json(onnx_path, data_loader, batch_size):
     sess_options = ort.SessionOptions()
     sess_options.enable_profiling = True
     print(ort.get_available_providers())
@@ -62,18 +62,28 @@ def generate_prof_json(onnx_path, data_loader):
                                         providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
     input_name = sess_profile.get_inputs()[0].name
     label_name = sess_profile.get_outputs()[0].name
+    for output in sess_profile.get_outputs():
+        print(f"Output Name: {output.name}, Type: {output.type}")
 
-    for i, (input_data, _) in enumerate(data_loader):
+    for i, (input_data, targets) in enumerate(data_loader):
         if i == 5:
             break
-        # X is numpy array on cpu
+        # X is numpy array on cpu. Put input to GPU
         X_ortvalue = ort.OrtValue.ortvalue_from_numpy(input_data.numpy(), 'cuda', 0)
+        Y_ortvalue = ort.OrtValue.ortvalue_from_shape_and_type([batch_size, 10], np.int32, 'cuda', 0)
 
         io_binding = sess_profile.io_binding()
-        # copy the data over to the CUDA device
-        io_binding.bind_input(name=input_name, device_type=X_ortvalue.device_name(), device_id=0, element_type=np.float32,
+        # binds an input tensor to a GPU memory buffer
+        io_binding.bind_input(name=input_name, device_type=X_ortvalue.device_name(), device_id=0,
+                              element_type=np.float32,
                               shape=X_ortvalue.shape(), buffer_ptr=X_ortvalue.data_ptr())
-        io_binding.bind_output('logits', 'cuda')
+        io_binding.bind_output(
+            name=label_name,
+            device_type=Y_ortvalue.device_name(),
+            device_id=0,
+            element_type=np.float32,
+            shape=Y_ortvalue.shape(),
+            buffer_ptr=Y_ortvalue.data_ptr())
         # put input tensor from GPU to CPU.
         sess_profile.run_with_iobinding(io_binding)
     return sess_profile.end_profiling()
