@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 import onnx
 # pip install onnxruntime-gpu for cuda 11
 # pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/ for cuda12
@@ -50,21 +51,31 @@ def to_json(graph_dict, output_path):
 
 
 # https://github.com/microsoft/onnxruntime/issues/20398
+# https://github.com/microsoft/onnxruntime/issues/7212
 # http://www.xavierdupre.fr/app/mlprodict/helpsphinx/notebooks/onnx_profile_ort.html a better example
 def generate_prof_json(onnx_path, data_loader):
     sess_options = ort.SessionOptions()
     sess_options.enable_profiling = True
     print(ort.get_available_providers())
+    # https://onnxruntime.ai/docs/api/python/api_summary.html
     sess_profile = ort.InferenceSession(onnx_path, sess_options=sess_options,
                                         providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-
     input_name = sess_profile.get_inputs()[0].name
+    label_name = sess_profile.get_outputs()[0].name
 
     for i, (input_data, _) in enumerate(data_loader):
         if i == 5:
             break
+        # X is numpy array on cpu
+        X_ortvalue = ort.OrtValue.ortvalue_from_numpy(input_data.numpy(), 'cuda', 0)
+
+        io_binding = sess_profile.io_binding()
+        # copy the data over to the CUDA device
+        io_binding.bind_input(name=input_name, device_type=X_ortvalue.device_name(), device_id=0, element_type=np.float32,
+                              shape=X_ortvalue.shape(), buffer_ptr=X_ortvalue.data_ptr())
+        io_binding.bind_output('logits', 'cuda')
         # put input tensor from GPU to CPU.
-        sess_profile.run(None, {input_name: input_data.cpu().numpy()})
+        sess_profile.run_with_iobinding(io_binding)
     return sess_profile.end_profiling()
 
 
