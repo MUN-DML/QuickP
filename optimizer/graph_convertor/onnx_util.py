@@ -9,6 +9,13 @@ import torch
 
 
 def model_to_onnx(model, input, path="example.onnx"):
+    """
+    torch.onnx.export(model,                                # model being run
+                      torch.randn(1, 28, 28).to(device),    # model input (or a tuple for multiple inputs)
+                      "fashion_mnist_model.onnx",           # where to save the model (can be a file or file-like object)
+                      input_names = ['input'],              # the model's input names
+                      output_names = ['output'])            # the model's output names
+    """
     torch.onnx.export(model,  # model being run
                       input,  # model input (or a tuple for multiple inputs)
                       path,  # where to save the model (can be a file or file-like object)
@@ -89,5 +96,7 @@ def generate_prof_json(onnx_path, data_loader, batch_size):
     return sess_profile.end_profiling()
 
 
-def load_prof_result():
-    pass
+def load_prof_result(prof_json_path):
+    with open(prof_json_path, "r") as f:
+        return json.load(f)
+
