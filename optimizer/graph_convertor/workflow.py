@@ -27,5 +27,4 @@ profile_path = generate_prof_json("example.onnx", data_loader, batch, 4, 3)
 # profiling result
 profile_result = load_prof_result(profile_path)
 
-for data in profile_result:
-    print(data)
+to_json(profile_result, "filtered_result.json")
