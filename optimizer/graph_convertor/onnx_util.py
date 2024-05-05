@@ -103,5 +103,5 @@ def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num
 
 def load_prof_result(prof_json_path):
     with open(prof_json_path, "r") as f:
-        return json.load(f)
-
+        result = json.load(f)
+        return [item for item in result if item["dur"] != 0]
