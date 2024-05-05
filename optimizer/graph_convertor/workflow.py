@@ -19,11 +19,13 @@ for i, data in enumerate(data_loader):
 path = "example.onnx"
 
 model_to_onnx(net, sample_inputs, path)
+# operator graph
 graph_dict = onnx_to_dict(path)
 to_json(graph_dict, "onnx_graph.json")
 
-profile_path = generate_prof_json("example.onnx", data_loader, batch)
+profile_path = generate_prof_json("example.onnx", data_loader, batch, 4, 3)
+# profiling result
 profile_result = load_prof_result(profile_path)
 
-for data in profile_result:
-    print(data)
+# for data in profile_result:
+#     print(data)

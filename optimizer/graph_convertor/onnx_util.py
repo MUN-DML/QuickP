@@ -6,7 +6,7 @@ import onnx
 # pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/ for cuda12
 import onnxruntime as ort
 import torch
-
+import nvtx
 
 def model_to_onnx(model, input, path="example.onnx"):
     """
@@ -60,7 +60,7 @@ def to_json(graph_dict, output_path):
 # https://github.com/microsoft/onnxruntime/issues/20398
 # https://github.com/microsoft/onnxruntime/issues/7212
 # http://www.xavierdupre.fr/app/mlprodict/helpsphinx/notebooks/onnx_profile_ort.html a better example
-def generate_prof_json(onnx_path, data_loader, batch_size):
+def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num_prof_iter):
     sess_options = ort.SessionOptions()
     sess_options.enable_profiling = True
     print(ort.get_available_providers())
@@ -73,8 +73,6 @@ def generate_prof_json(onnx_path, data_loader, batch_size):
         print(f"Output Name: {output.name}, Type: {output.type}")
 
     for i, (input_data, targets) in enumerate(data_loader):
-        if i == 5:
-            break
         # X is numpy array on cpu. Put input to GPU
         X_ortvalue = ort.OrtValue.ortvalue_from_numpy(input_data.numpy(), 'cuda', 0)
         Y_ortvalue = ort.OrtValue.ortvalue_from_shape_and_type([batch_size, 10], np.int32, 'cuda', 0)
@@ -92,7 +90,14 @@ def generate_prof_json(onnx_path, data_loader, batch_size):
             shape=Y_ortvalue.shape(),
             buffer_ptr=Y_ortvalue.data_ptr())
         # put input tensor from GPU to CPU.
-        sess_profile.run_with_iobinding(io_binding)
+        if i < warm_up_end_step:
+            with nvtx.annotate("warmup"):
+                sess_profile.run_with_iobinding(io_binding)
+        elif i < warm_up_end_step + num_prof_iter:
+            with nvtx.annotate("profile part"):
+                sess_profile.run_with_iobinding(io_binding)
+        else:
+            break
     return sess_profile.end_profiling()
 
 
