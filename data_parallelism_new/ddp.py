@@ -32,8 +32,8 @@ def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
 
     # model
-    model = vgg11()
-    # model = getStdModelForCifar10()
+    # model = vgg11()
+    model = getStdModelForCifar10()
     # model = ResNet18()
     # model = AlexNet(10)
 
@@ -69,7 +69,7 @@ def main(args):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     train_dataset = CIFAR10(root='../data', train=True, download=True, transform=transform_train)
-    train_sampler = UnevenDistributedSampler(dataset=train_dataset, num_replicas=args.world_size, rank=args.rank)
+    train_sampler = UnevenDistributedSampler(dataset=train_dataset, num_replicas=args.world_size, rank=args.rank, split_ratio_list=[0.8, 0.2])
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
