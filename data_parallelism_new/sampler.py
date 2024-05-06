@@ -45,3 +45,4 @@ class UnevenDistributedSampler(DistributedSampler):
         if self.rank == 1:  # data 60-99 on node 1
             return indices[40000:50000]
 
+        return iter(indices)
