@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch.utils.data import DistributedSampler
 
@@ -18,16 +20,6 @@ class UnevenDistributedSampler(DistributedSampler):
         """
         # indices is a list of element index of a dataset
         """
-        '''
-        indices = list(range(len(self.dataset)))  # type: ignore[arg-type]
-
-        start = sum(self.split_ratio_list[:self.rank]) * len(self.dataset)  # type: ignore[arg-type]
-        ratio = self.split_ratio_list[self.rank]
-        length = len(self.dataset) * ratio  # type: ignore[arg-type]
-        indices = indices[int(start): int(start+length)]
-        assert len(indices) == length
-        return iter(indices)
-        '''
         if self.shuffle:
             # deterministically shuffle based on epoch and seed
             g = torch.Generator()
@@ -48,9 +40,10 @@ class UnevenDistributedSampler(DistributedSampler):
             indices = indices[:self.total_size]
         assert len(indices) == self.total_size
 
-        # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
-        print(len(indices))
-        assert len(indices) == self.num_samples
-
+        start = sum(self.split_ratio_list[:self.rank]) * len(indices)  # type: ignore[arg-type]
+        ratio = self.split_ratio_list[self.rank]
+        length = len(indices) * ratio  # type: ignore[arg-type]
+        indices = indices[int(start): int(start+length)]
+        print(self.rank, length)
+        assert len(indices) == length
         return iter(indices)
