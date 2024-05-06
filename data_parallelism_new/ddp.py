@@ -132,7 +132,7 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
 
         computing_time += datetime.datetime.now().timestamp() - start
 
-        if batch_idx % 10 == 0:
+        if batch_idx % 25 == 0:
             print("From Node: {}, epoch {}, steps {}".format(nodeID, epoch, batch_idx))
 
     if epoch == (args.epochs - 1):
