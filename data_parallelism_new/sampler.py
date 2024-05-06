@@ -50,7 +50,7 @@ class UnevenDistributedSampler(DistributedSampler):
 
         # subsample
         indices = indices[self.rank:self.total_size:self.num_replicas]
-        print(indices)
+        print(len(indices))
         assert len(indices) == self.num_samples
 
         return iter(indices)
