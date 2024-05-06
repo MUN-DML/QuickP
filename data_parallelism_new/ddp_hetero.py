@@ -74,7 +74,7 @@ def main(args):
     train_sampler = UnevenDistributedSampler(dataset=train_dataset, num_replicas=args.world_size, rank=args.rank,
                                              split_ratio_list=[0.8, 0.2])
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
+        train_dataset, batch_size=[200, 50][dist.get_rank()], shuffle=(train_sampler is None),
         num_workers=args.num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
 
     torch.backends.cudnn.benchmark = True
