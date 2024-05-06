@@ -42,7 +42,7 @@ class UnevenDistributedSampler(DistributedSampler):
 
         start = self.rank * 0.5 * len(indices)  # type: ignore[arg-type]
         ratio = self.split_ratio_list[self.rank]
-        length = len(indices) * ratio  # type: ignore[arg-type]
+        length = 25000  # type: ignore[arg-type]
         indices = indices[int(start): int(start+length)]
         print(self.rank, length)
         assert len(indices) == length
