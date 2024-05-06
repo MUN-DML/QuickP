@@ -41,8 +41,8 @@ class UnevenDistributedSampler(DistributedSampler):
         assert len(indices) == self.total_size
 
         if self.rank == 0:  # data 0-59 on node 0
-            return indices[0:40000]
+            indices = indices[0:40000]
         if self.rank == 1:  # data 60-99 on node 1
-            return indices[40000:50000]
+            indices = indices[40000:50000]
 
         return iter(indices)
