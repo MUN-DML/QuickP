@@ -7,10 +7,12 @@ import torch
 import numpy as np
 import random
 import torch.distributed as dist
-from torch.utils import data
+from torch.utils.data import DistributedSampler
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 import torch.nn as nn
+
+from data_parallelism_new.sampler import UnevenDistributedSampler
 
 sys.path.append("../")
 from py_util import getStdModelForCifar10, getArgs
@@ -22,6 +24,7 @@ beginning_time = None
 ending_time = None
 computing_time = 0
 device = torch.device("cuda:0")
+
 
 # https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
 
@@ -53,12 +56,12 @@ def main(args):
     else:
         raise NotImplementedError("Only DistributedDataParallel is supported.")
 
-    ### optimizer, criterion ###
+    # optimizer, criterion
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
-    ### only one GPU per node, so we can directly use cuda() instead of .to()
+    # only one GPU per node, so we can directly use cuda() instead of .to()
     criterion = nn.CrossEntropyLoss().to(device)
 
-    ### data ###
+    # data
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -66,14 +69,14 @@ def main(args):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     train_dataset = CIFAR10(root='../data', train=True, download=True, transform=transform_train)
-    train_sampler = data.distributed.DistributedSampler(train_dataset)
+    train_sampler = UnevenDistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=int(os.environ["SLURM_CPUS_PER_TASK"]), pin_memory=True, sampler=train_sampler, drop_last=True)
 
     torch.backends.cudnn.benchmark = True
 
-    ### main loop ###
+    # main loop
     for epoch in range(0, args.epochs):
         np.random.seed(epoch)
         random.seed(epoch)
