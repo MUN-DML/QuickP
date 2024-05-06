@@ -6,9 +6,16 @@ import onnx
 # pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/ for cuda12
 import onnxruntime as ort
 import torch
-
+import nvtx
 
 def model_to_onnx(model, input, path="example.onnx"):
+    """
+    torch.onnx.export(model,                                # model being run
+                      torch.randn(1, 28, 28).to(device),    # model input (or a tuple for multiple inputs)
+                      "fashion_mnist_model.onnx",           # where to save the model (can be a file or file-like object)
+                      input_names = ['input'],              # the model's input names
+                      output_names = ['output'])            # the model's output names
+    """
     torch.onnx.export(model,  # model being run
                       input,  # model input (or a tuple for multiple inputs)
                       path,  # where to save the model (can be a file or file-like object)
@@ -53,7 +60,7 @@ def to_json(graph_dict, output_path):
 # https://github.com/microsoft/onnxruntime/issues/20398
 # https://github.com/microsoft/onnxruntime/issues/7212
 # http://www.xavierdupre.fr/app/mlprodict/helpsphinx/notebooks/onnx_profile_ort.html a better example
-def generate_prof_json(onnx_path, data_loader):
+def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num_prof_iter):
     sess_options = ort.SessionOptions()
     sess_options.enable_profiling = True
     print(ort.get_available_providers())
@@ -62,22 +69,39 @@ def generate_prof_json(onnx_path, data_loader):
                                         providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
     input_name = sess_profile.get_inputs()[0].name
     label_name = sess_profile.get_outputs()[0].name
+    for output in sess_profile.get_outputs():
+        print(f"Output Name: {output.name}, Type: {output.type}")
 
-    for i, (input_data, _) in enumerate(data_loader):
-        if i == 5:
-            break
-        # X is numpy array on cpu
+    for i, (input_data, targets) in enumerate(data_loader):
+        # X is numpy array on cpu. Put input to GPU
         X_ortvalue = ort.OrtValue.ortvalue_from_numpy(input_data.numpy(), 'cuda', 0)
+        Y_ortvalue = ort.OrtValue.ortvalue_from_shape_and_type([batch_size, 10], np.int32, 'cuda', 0)
 
         io_binding = sess_profile.io_binding()
-        # copy the data over to the CUDA device
-        io_binding.bind_input(name=input_name, device_type=X_ortvalue.device_name(), device_id=0, element_type=np.float32,
+        # binds an input tensor to a GPU memory buffer
+        io_binding.bind_input(name=input_name, device_type=X_ortvalue.device_name(), device_id=0,
+                              element_type=np.float32,
                               shape=X_ortvalue.shape(), buffer_ptr=X_ortvalue.data_ptr())
-        io_binding.bind_output('logits', 'cuda')
+        io_binding.bind_output(
+            name=label_name,
+            device_type=Y_ortvalue.device_name(),
+            device_id=0,
+            element_type=np.float32,
+            shape=Y_ortvalue.shape(),
+            buffer_ptr=Y_ortvalue.data_ptr())
         # put input tensor from GPU to CPU.
-        sess_profile.run_with_iobinding(io_binding)
+        if i < warm_up_end_step:
+            with nvtx.annotate("warmup"):
+                sess_profile.run_with_iobinding(io_binding)
+        elif i < warm_up_end_step + num_prof_iter:
+            with nvtx.annotate("profile part"):
+                sess_profile.run_with_iobinding(io_binding)
+        else:
+            break
     return sess_profile.end_profiling()
 
 
-def load_prof_result():
-    pass
+def load_prof_result(prof_json_path):
+    with open(prof_json_path, "r") as f:
+        result = json.load(f)
+        return [item for item in result if item["dur"] != 0]
