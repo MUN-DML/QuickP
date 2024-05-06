@@ -40,7 +40,7 @@ class UnevenDistributedSampler(DistributedSampler):
             indices = indices[:self.total_size]
         assert len(indices) == self.total_size
 
-        start = sum(self.split_ratio_list[:self.rank]) * len(indices)  # type: ignore[arg-type]
+        start = sum(self.rank) * 0.5 * len(indices)  # type: ignore[arg-type]
         ratio = self.split_ratio_list[self.rank]
         length = len(indices) * ratio  # type: ignore[arg-type]
         indices = indices[int(start): int(start+length)]
