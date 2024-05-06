@@ -12,10 +12,9 @@ from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 import torch.nn as nn
 
-from data_parallelism_new.sampler import UnevenDistributedSampler
-
 sys.path.append("../")
 from py_util import getStdModelForCifar10, getArgs
+from data_parallelism_new.sampler import UnevenDistributedSampler
 from vgg import vgg16, vgg11
 from resnet import ResNet18
 from alexnet import AlexNet
