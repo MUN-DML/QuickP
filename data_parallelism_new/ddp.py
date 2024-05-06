@@ -31,13 +31,13 @@ device = torch.device("cuda:0")
 def main(args):
     nodeID = int(os.environ.get("SLURM_NODEID"))
 
-    ### model ###
+    # model
     model = vgg11()
     # model = getStdModelForCifar10()
     # model = ResNet18()
     # model = AlexNet(10)
 
-    ### init group
+    # init group
     if args.distributed:
         dist.init_process_group(backend=args.dist_backend, init_method=args.init_method,
                                 world_size=args.world_size, rank=args.rank)
@@ -59,7 +59,7 @@ def main(args):
     # optimizer, criterion
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
     # only one GPU per node, so we can directly use cuda() instead of .to()
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.CrossEntropyLoss()
 
     # data
     transform_train = transforms.Compose([
@@ -69,10 +69,10 @@ def main(args):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     train_dataset = CIFAR10(root='../data', train=True, download=True, transform=transform_train)
-    train_sampler = UnevenDistributedSampler(train_dataset)
+    train_sampler = UnevenDistributedSampler(dataset=train_dataset, num_replicas=args.world_size, rank=args.rank)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=int(os.environ["SLURM_CPUS_PER_TASK"]), pin_memory=True, sampler=train_sampler, drop_last=True)
+        num_workers=args.num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
 
     torch.backends.cudnn.benchmark = True
 
@@ -132,10 +132,9 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
 
         computing_time += datetime.datetime.now().timestamp() - start
 
-        # elapse_time = datetime.datetime.now().timestamp() - epoch_start.timestamp()
-        # elapse_time = datetime.timedelta(seconds=elapse_time)
-        # if batch_idx % 45 == 0:
-        #    print("From Node: {}, epoch time {}, epoch {}, steps {}".format(nodeID, elapse_time, epoch, batch_idx))
+        if batch_idx % 10 == 0:
+            print("From Node: {}, epoch {}, steps {}".format(nodeID, epoch, batch_idx))
+
     if epoch == (args.epochs - 1):
         ending_time = datetime.datetime.now()
 
