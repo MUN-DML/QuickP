@@ -40,10 +40,8 @@ class UnevenDistributedSampler(DistributedSampler):
             indices = indices[:self.total_size]
         assert len(indices) == self.total_size
 
-        start = self.rank * 0.5 * len(indices)  # type: ignore[arg-type]
-        ratio = self.split_ratio_list[self.rank]
-        length = 25000  # type: ignore[arg-type]
-        indices = indices[int(start): int(start+length)]
-        print(self.rank, length)
-        assert len(indices) == length
-        return iter(indices)
+        if self.rank == 0:  # data 0-59 on node 0
+            return indices[0:40000]
+        if self.rank == 1:  # data 60-99 on node 1
+            return indices[40000:50000]
+
