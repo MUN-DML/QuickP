@@ -68,7 +68,11 @@ def main(args):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     train_dataset = CIFAR10(root='../data', train=True, download=True, transform=transform_train)
-    train_sampler = UnevenDistributedSampler(dataset=train_dataset, num_replicas=args.world_size, rank=args.rank, split_ratio_list=[0.8, 0.2])
+    '''
+    the key idea is that different device has the same number of iterations but different batch size
+    '''
+    train_sampler = UnevenDistributedSampler(dataset=train_dataset, num_replicas=args.world_size, rank=args.rank,
+                                             split_ratio_list=[0.8, 0.2])
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
@@ -113,26 +117,10 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         start = datetime.datetime.now().timestamp()
 
-        inputs = inputs.to(device)
-        targets = targets.to(device)
-
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        train_loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
-        acc = 100 * correct / total
-
         computing_time += datetime.datetime.now().timestamp() - start
 
-        if batch_idx % 25 == 0:
-            print("From Node: {}, epoch {}, steps {}".format(nodeID, epoch, batch_idx))
+        if batch_idx % 5 == 0:
+            print("From Node: {}, epoch {}, steps {}, batch size {}".format(nodeID, epoch, batch_idx, inputs.size()))
 
     if epoch == (args.epochs - 1):
         ending_time = datetime.datetime.now()
