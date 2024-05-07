@@ -19,15 +19,14 @@ from vgg import vgg16, vgg11
 from resnet import ResNet18
 from alexnet import AlexNet
 
-beginning_time = None
-ending_time = None
-computing_time = 0
-device = torch.device("cuda:0")
-
-
 # https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
+computing_time = 0
+
 
 def main(args):
+    beginning_time = None
+    ending_time = None
+    device = torch.device("cuda:0")
     nodeID = int(os.environ.get("SLURM_NODEID"))
 
     # model
@@ -75,7 +74,7 @@ def main(args):
                                                     world_size=args.world_size, num_workers=args.num_workers)
 
     torch.backends.cudnn.benchmark = True
-
+    beginning_time = datetime.datetime.now()
     # main loop
     for epoch in range(0, args.epochs):
         np.random.seed(epoch)
@@ -86,10 +85,12 @@ def main(args):
 
         # adjust lr if needed #
 
-        train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID)
+        train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID, device=device)
         # if args.rank == 0:  # only val and save on master node
         #    validate(val_loader, model, criterion, epoch, args)
         # save checkpoint if needed #
+    dist.barrier()
+    ending_time = datetime.datetime.now()
     total_time = datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp())
     c_time = datetime.timedelta(seconds=computing_time)
     print('From Rank: {}, starting time{}, ending time {}, taking time{}, computing time{}'.format(args.rank,
@@ -100,27 +101,24 @@ def main(args):
     dist.destroy_process_group()
 
 
-def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
-    global beginning_time, ending_time, computing_time
-    # only one gpu is visible here, so you can send cpu data to gpu by
-    # input_data = input_data.cuda() as normal
-    train_loss = 0
-    correct = 0
-    total = 0
-    epoch_start = datetime.datetime.now()
-    if epoch == 0:
-        beginning_time = epoch_start
+def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID, device):
+    global computing_time
 
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         start = datetime.datetime.now().timestamp()
+        inputs = inputs.to(device)
+        targets = targets.to(device)
 
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
         computing_time += datetime.datetime.now().timestamp() - start
 
         if batch_idx % 20 == 0:
             print("From Node: {}, epoch {}, steps {}, batch size {}".format(nodeID, epoch, batch_idx, inputs.size()))
-
-    if epoch == (args.epochs - 1):
-        ending_time = datetime.datetime.now()
 
 
 '''
