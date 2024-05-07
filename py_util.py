@@ -266,12 +266,15 @@ def print_communication_cost(table_str):
     lines = table_str.split('\n')
 
     # Initialize a list to hold the titles
-    filtered_lines = lines[0:3] + lines[-5:0]
+    filtered_lines = lines[0:3]
 
     # Search for rows that contain the keyword 'AllReduce'
     for line in lines[3:]:
         if 'all_reduce' in line:
             filtered_lines.append(line)
+
+    filtered_lines.append(lines[-2:])
+    filtered_lines.append('\n')
 
     for line in filtered_lines:
         print(line)
