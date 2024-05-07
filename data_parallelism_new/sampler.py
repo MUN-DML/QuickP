@@ -48,13 +48,11 @@ class UnevenDistributedSampler(DistributedSampler):
         return iter(indices)
 
 
-def get_uneven_loader(dataset, world_size, rank, num_workers, split_ratio_list, batch_size_list):
-    assert len(batch_size_list) == len(split_ratio_list) == world_size >= 2 > rank
-    # check if split_ratio_list and batch_size_list are legal
-    ratio = batch_size_list[0] / split_ratio_list[0]
-    for i in range(len(split_ratio_list)):
-        if (batch_size_list[i] / split_ratio_list[i]) != ratio:
-            raise ValueError("split_ratio_list and batch_size_list ratio must match")
+def get_uneven_loader(dataset, world_size, rank, num_workers, batch_size_list):
+    assert len(batch_size_list) == world_size >= 2 > rank
+    # create split_ratio_list based on the batch_size_list
+    sum_of_world_size = sum(batch_size_list)
+    split_ratio_list = [x / sum_of_world_size for x in batch_size_list]
     train_sampler = UnevenDistributedSampler(dataset=dataset, num_replicas=world_size, rank=rank,
                                              split_ratio_list=split_ratio_list)
     '''batch size will be unequal among all ranks. Thus, 
