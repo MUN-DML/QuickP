@@ -120,7 +120,8 @@ def getArgs():
 
     nodeName = os.environ.get("SLURMD_NODENAME")
 
-    print("nodeID: ", nodeID, "nodeName: ", nodeName, " distributed mode: ", args.distributed, " from rank: ", args.rank,
+    print("nodeID: ", nodeID, "nodeName: ", nodeName, " distributed mode: ", args.distributed, " from rank: ",
+          args.rank,
           " world_size: ", args.world_size, " num_workers: ", args.num_workers, " local_rank(always 0): ",
           args.local_rank, " gpu(always 0): ", args.gpu)
     return args
@@ -258,3 +259,19 @@ def add_split_points(model, world_size):
         # the name should correspond to the layer name in the model
         annotate_split_points(
             model, {f"layer{i}": SplitPoint.BEGINNING})
+
+
+def print_communication_cost(table_str):
+    # Split the table into lines
+    lines = table_str.split('\n')
+
+    # Initialize a list to hold the titles
+    filtered_lines = lines[0:3] + lines[-5:0]
+
+    # Search for rows that contain the keyword 'AllReduce'
+    for line in lines[3:]:
+        if 'all_reduce' in line:
+            filtered_lines.append(line)
+
+    for line in filtered_lines:
+        print(line)
