@@ -273,7 +273,7 @@ def print_communication_cost(table_str):
         if 'all_reduce' in line:
             filtered_lines.append(line)
 
-    filtered_lines.append(lines[-2:])
+    filtered_lines = filtered_lines + lines[-2:]
     filtered_lines.append('\n')
 
     for line in filtered_lines:
