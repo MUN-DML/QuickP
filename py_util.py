@@ -120,7 +120,7 @@ def getArgs():
 
     nodeName = os.environ.get("SLURMD_NODENAME")
 
-    print("nodeID: ", nodeID, "nodeName", nodeName, " distributed mode: ", args.distributed, " from rank: ", args.rank,
+    print("nodeID: ", nodeID, "nodeName: ", nodeName, " distributed mode: ", args.distributed, " from rank: ", args.rank,
           " world_size: ", args.world_size, " num_workers: ", args.num_workers, " local_rank(always 0): ",
           args.local_rank, " gpu(always 0): ", args.gpu)
     return args
