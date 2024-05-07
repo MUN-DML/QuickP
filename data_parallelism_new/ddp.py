@@ -101,11 +101,7 @@ def main(args):
 
 def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
     global beginning_time, ending_time, computing_time
-    # only one gpu is visible here, so you can send cpu data to gpu by
-    # input_data = input_data.cuda() as normal
-    train_loss = 0
-    correct = 0
-    total = 0
+
     epoch_start = datetime.datetime.now()
     if epoch == 0:
         beginning_time = epoch_start
@@ -123,16 +119,10 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
         loss.backward()
         optimizer.step()
 
-        train_loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
-        acc = 100 * correct / total
-
         computing_time += datetime.datetime.now().timestamp() - start
 
-        if batch_idx % 25 == 0:
-            print("From Node: {}, epoch {}, steps {}".format(nodeID, epoch, batch_idx))
+        if batch_idx % 24 == 0:
+            print("From Node: {}, epoch {}, steps {}, batch size {}".format(nodeID, epoch, batch_idx, inputs.size()))
 
     if epoch == (args.epochs - 1):
         ending_time = datetime.datetime.now()

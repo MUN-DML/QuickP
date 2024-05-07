@@ -70,7 +70,7 @@ def main(args):
     '''
     the key idea is that different device has the same number of iterations but different batch size
     '''
-    train_loader, train_sampler = get_uneven_loader(train_dataset, batch_size_list=[400, 100], rank=args.rank,
+    train_loader, train_sampler = get_uneven_loader(train_dataset, batch_size_list=[320, 80], rank=args.rank,
                                                     world_size=args.world_size, num_workers=args.num_workers)
 
     torch.backends.cudnn.benchmark = True
@@ -117,7 +117,7 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID, de
         optimizer.step()
         computing_time += datetime.datetime.now().timestamp() - start
 
-        if batch_idx % 20 == 0:
+        if batch_idx % 24 == 0:
             print("From Node: {}, epoch {}, steps {}, batch size {}".format(nodeID, epoch, batch_idx, inputs.size()))
 
 
