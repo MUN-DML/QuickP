@@ -14,7 +14,7 @@ import torch.nn as nn
 
 sys.path.append("../")
 from py_util import getStdModelForCifar10, getArgs
-from data_parallelism_new.sampler import UnevenDistributedSampler
+from data_parallelism_new.sampler import UnevenDistributedSampler, get_uneven_loader
 from vgg import vgg16, vgg11
 from resnet import ResNet18
 from alexnet import AlexNet
@@ -71,11 +71,9 @@ def main(args):
     '''
     the key idea is that different device has the same number of iterations but different batch size
     '''
-    train_sampler = UnevenDistributedSampler(dataset=train_dataset, num_replicas=args.world_size, rank=args.rank,
-                                             split_ratio_list=[0.8, 0.2])
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=[200, 50][args.rank], shuffle=(train_sampler is None),
-        num_workers=args.num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
+    train_loader, train_sampler = get_uneven_loader(train_dataset, batch_size_list=[200, 50], rank=args.rank,
+                                                    world_size=args.world_size, split_ratio_list=[0.8, 0.2],
+                                                    num_workers=args.num_workers)
 
     torch.backends.cudnn.benchmark = True
 

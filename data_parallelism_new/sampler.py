@@ -43,7 +43,24 @@ class UnevenDistributedSampler(DistributedSampler):
         start = sum(self.split_ratio_list[:self.rank]) * len(indices)
         ratio = self.split_ratio_list[self.rank]
         length = len(indices) * ratio
-        indices = indices[int(start): int(start+length)]
+        indices = indices[int(start): int(start + length)]
         print(self.rank, length)
         assert len(indices) == length
         return iter(indices)
+
+
+def get_uneven_loader(dataset, world_size, rank, num_workers, split_ratio_list, batch_size_list):
+    assert len(batch_size_list) == len(split_ratio_list) == world_size >= 2 > rank
+    # check if split_ratio_list and batch_size_list are legal
+    ratio = batch_size_list[0] / split_ratio_list[0]
+    for i in range(len(split_ratio_list)):
+        if (batch_size_list[i] / split_ratio_list[i]) != ratio:
+            raise ValueError("split_ratio_list and batch_size_list ratio must match")
+    train_sampler = UnevenDistributedSampler(dataset=dataset, num_replicas=world_size, rank=rank,
+                                             split_ratio_list=split_ratio_list)
+    '''batch size will be unequal among all ranks. Thus, 
+    it will be the format of [batch_size_1, batch_size_2, ...][rank_1, rank_2, ...]'''
+    train_loader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size_list[rank], shuffle=(train_sampler is None),
+        num_workers=num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
+    return train_loader, train_sampler
