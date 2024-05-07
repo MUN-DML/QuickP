@@ -19,9 +19,6 @@ from vgg import vgg16, vgg11
 from resnet import ResNet18
 from alexnet import AlexNet
 
-beginning_time = None
-ending_time = None
-computing_time = 0
 device = torch.device("cuda:0")
 
 
@@ -74,7 +71,7 @@ def main(args):
         num_workers=args.num_workers, pin_memory=True, sampler=train_sampler, drop_last=True)
 
     torch.backends.cudnn.benchmark = True
-
+    beginning_time = datetime.datetime.now()
     # main loop
     for epoch in range(0, args.epochs):
         np.random.seed(epoch)
@@ -89,6 +86,8 @@ def main(args):
         # if args.rank == 0:  # only val and save on master node
         #    validate(val_loader, model, criterion, epoch, args)
         # save checkpoint if needed #
+    dist.barrier()
+    ending_time = datetime.datetime.now()
     total_time = datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp())
     c_time = datetime.timedelta(seconds=computing_time)
     print('From Rank: {}, starting time{}, ending time {}, taking time{}, computing time{}'.format(args.rank,
@@ -100,11 +99,7 @@ def main(args):
 
 
 def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
-    global beginning_time, ending_time, computing_time
-
-    epoch_start = datetime.datetime.now()
-    if epoch == 0:
-        beginning_time = epoch_start
+    global computing_time
 
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         start = datetime.datetime.now().timestamp()
@@ -123,9 +118,6 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, nodeID):
 
         if batch_idx % 24 == 0:
             print("From Node: {}, epoch {}, steps {}, batch size {}".format(nodeID, epoch, batch_idx, inputs.size()))
-
-    if epoch == (args.epochs - 1):
-        ending_time = datetime.datetime.now()
 
 
 '''

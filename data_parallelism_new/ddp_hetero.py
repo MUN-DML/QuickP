@@ -24,8 +24,6 @@ computing_time = 0
 
 
 def main(args):
-    beginning_time = None
-    ending_time = None
     device = torch.device("cuda:0")
     nodeID = int(os.environ.get("SLURM_NODEID"))
 
