@@ -44,7 +44,6 @@ class UnevenDistributedSampler(DistributedSampler):
         ratio = self.split_ratio_list[self.rank]
         length = len(indices) * ratio
         indices = indices[int(start): int(start + length)]
-        print(self.rank, length)
         assert len(indices) == length
         return iter(indices)
 
