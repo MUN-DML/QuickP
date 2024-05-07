@@ -20,6 +20,7 @@ from resnet import ResNet18
 from alexnet import AlexNet
 
 device = torch.device("cuda:0")
+computing_time = 0
 
 
 # https://gist.github.com/TengdaHan/1dd10d335c7ca6f13810fff41e809904
