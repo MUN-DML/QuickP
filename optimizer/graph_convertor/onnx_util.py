@@ -118,7 +118,13 @@ def load_prof_result(prof_json_path):
             # Append the dictionary to the list of its corresponding name
             grouped_data[item['name']].append(item)
 
+        # check each value has the same length
+        len_list = [len(node_list) for node_list in grouped_data.values()]
+        if not all(length == len_list[0] for length in len_list):
+            raise ValueError("operators show different stage numbers")
+
         return grouped_data
+
 
 def get_comp_graph(dict):
     graph = CompGraph()
