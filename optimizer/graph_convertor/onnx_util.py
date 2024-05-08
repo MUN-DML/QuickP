@@ -102,7 +102,7 @@ def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num
     return sess_profile.end_profiling()
 
 
-def load_prof_result(prof_json_path):
+def load_prof_result(prof_json_path, warm_up_end_step=3):
     with open(prof_json_path, "r") as f:
         result = json.load(f)
         data_filtered = [{"name": item["name"], "comp_cost": item["dur"],
@@ -117,6 +117,9 @@ def load_prof_result(prof_json_path):
         for item in data_filtered:
             # Append the dictionary to the list of its corresponding name
             grouped_data[item['name']].append(item)
+        # Skip warm up
+        for (key, value) in grouped_data.items():
+            grouped_data[key] = value[warm_up_end_step:]
 
         # check each value has the same length
         len_list = [len(node_list) for node_list in grouped_data.values()]

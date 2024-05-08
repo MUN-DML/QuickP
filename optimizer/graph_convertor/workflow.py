@@ -23,7 +23,7 @@ path = "example.onnx"
 model_to_onnx(net, sample_inputs, path)
 # operator graph
 graph_dict = onnx_to_dict(path)
-to_json(graph_dict, "onnx_graph.json")
+# to_json(graph_dict, "onnx_graph.json")
 graph = get_comp_graph(graph_dict)
 if not nx.is_directed_acyclic_graph(graph):
     raise "comp_graph is not directed acyclic"
