@@ -9,7 +9,6 @@ class CompGraph(DiGraph):
     def random_rebuild(self, operator_num):
         G = gnp_random_graph(operator_num, 0.5, directed=True)
         for i in G.nodes():
-            print(i)
             self.add_new_node(operator_id=i, size=random.randint(50, 200), op_type="not specified")
         for (u, v) in G.edges():
             if u < v:
