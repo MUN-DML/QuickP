@@ -122,7 +122,7 @@ class CompCostMatrix:
                 self.cost_matrix[operator_id, device_id] = random.randint(50, 300)
 
 
-def visualize_graph(graph):
+def visualize_graph(graph, show_labels=True):
     pos = spring_layout(graph, seed=225)  # Seed for reproducible layout
-    draw(graph, pos, with_labels=True)
+    draw(graph, pos, with_labels=show_labels)
     plt.show()

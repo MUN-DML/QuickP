@@ -36,19 +36,18 @@ def onnx_to_dict(input_path="example.onnx"):
     # Extract the graph
     graph = onnx_model.graph
 
-    nodes = {}
+    nodes = []
     edges = []
 
     for node in graph.node:
-        nodes[node.name] = {
+        nodes.append({
             "name": node.name,
-            "type": node.op_type,
-            "inputs": list(node.input),
-            "outputs": list(node.output)
-        }
+            "type": node.op_type
+        })
         for inp in node.input:
             edges.append({"from": inp, "to": node.name})
-
+        for out in node.output:
+            edges.append({"from": node.name, "to": out})
     return {"nodes": nodes, "edges": edges}
 
 
@@ -111,5 +110,14 @@ def load_prof_result(prof_json_path):
                 if item["dur"] != 0 and item["cat"] != "Session"]
 
 
-def parse_comp_graph(comp_grapgh_path):
+def get_comp_graph(dict):
     graph = CompGraph()
+    for node in dict["nodes"]:
+        graph.add_new_node(operator_id=node["name"], size=0, op_type=node["type"])
+    for edge in dict["edges"]:
+        graph.add_new_edge(source_id=edge["from"], dest_id=edge["to"])
+    return graph
+
+
+def update_graph_with_profile(graph):
+    pass
