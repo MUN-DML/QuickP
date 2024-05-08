@@ -56,7 +56,7 @@ class DeviceGraph(Graph):
 
     def random_rebuild(self, device_num):
         for i in range(device_num):
-            self.add_new_node(i, random.randint(50, 200), random.randint(200, 400))
+            self.add_new_node(device_id=i, comp_sp=random.randint(50, 200), capacity=random.randint(200, 400))
         # generate edge tuple list
         tuple_list = []
         for i in range(device_num - 1):
@@ -67,7 +67,7 @@ class DeviceGraph(Graph):
 
     def add_new_node(self, device_id, comp_sp, capacity):
         super().add_node(node_for_adding=device_id, computing_speed=comp_sp,
-                          memory_capacity=capacity)
+                         memory_capacity=capacity)
 
     def add_new_nodes_from(self, device_list, comp_sp, capacity):
         super().add_edges_from(ebunch_to_add=device_list, computing_speed=comp_sp, memory_capacity=capacity)
