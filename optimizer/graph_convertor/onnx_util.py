@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 
 import numpy as np
 import onnx
@@ -104,11 +105,20 @@ def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num
 def load_prof_result(prof_json_path):
     with open(prof_json_path, "r") as f:
         result = json.load(f)
-        return [{"name": item["name"], "id": item["args"]["node_index"], "comp_cost": item["dur"],
-                 "mem": item["args"]["output_size"] + item["args"]["parameter_size"]}
-                for item in result
-                if item["dur"] != 0 and item["cat"] != "Session"]
+        data_filtered = [{"name": item["name"], "comp_cost": item["dur"],
+                          "mem": item["args"]["output_size"] + item["args"]["parameter_size"]}
+                         for item in result
+                         if item["dur"] != 0 and item["cat"] != "Session"]
 
+        # Create a default dict where each value is a list
+        grouped_data = defaultdict(list)
+
+        # Iterate over each dictionary in the list
+        for item in data_filtered:
+            # Append the dictionary to the list of its corresponding name
+            grouped_data[item['name']].append(item)
+
+        return grouped_data
 
 def get_comp_graph(dict):
     graph = CompGraph()

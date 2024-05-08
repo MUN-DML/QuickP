@@ -27,10 +27,10 @@ to_json(graph_dict, "onnx_graph.json")
 graph = get_comp_graph(graph_dict)
 if not nx.is_directed_acyclic_graph(graph):
     raise "comp_graph is not directed acyclic"
-visualize_graph(graph, show_labels=False)
+# visualize_graph(graph, show_labels=False)
 
 profile_path = generate_prof_json("example.onnx", data_loader, batch, 4, 3)
 # profiling result
 profile_result = load_prof_result(profile_path)
-# to_json(profile_result, "filtered_result.json")
+to_json(profile_result, "group_result.json")
 
