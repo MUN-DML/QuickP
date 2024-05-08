@@ -65,6 +65,6 @@ with torch.profiler.profile(
 # Print the computation time of each operator
 print(profiler.key_averages().table(sort_by="cuda_time_total"))
 # profiler.export_chrome_trace("result.json")
-# torchviz.make_dot(outputs, params=dict(model.named_parameters())).render("computation_graph_forward", format="png")
+torchviz.make_dot(outputs, params=dict(model.named_parameters())).render("computation_graph_backward", format="png")
 # for event in profiler.key_averages(group_by_stack_n=5):
 #     print(event)

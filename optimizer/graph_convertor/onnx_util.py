@@ -69,8 +69,6 @@ def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num
                                         providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
     input_name = sess_profile.get_inputs()[0].name
     label_name = sess_profile.get_outputs()[0].name
-    for output in sess_profile.get_outputs():
-        print(f"Output Name: {output.name}, Type: {output.type}")
 
     for i, (input_data, targets) in enumerate(data_loader):
         # X is numpy array on cpu. Put input to GPU
@@ -104,4 +102,7 @@ def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num
 def load_prof_result(prof_json_path):
     with open(prof_json_path, "r") as f:
         result = json.load(f)
-        return [item for item in result if item["dur"] != 0]
+        return [{"name": item["name"], "id": item["args"]["node_index"], "comp_cost": item["dur"],
+                 "mem": item["args"]["output_size"] + item["args"]["parameter_size"]}
+                for item in result
+                if item["dur"] != 0 and item["cat"] != "Session"]
