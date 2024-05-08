@@ -8,6 +8,9 @@ import onnxruntime as ort
 import torch
 import nvtx
 
+from optimizer.model.graph import CompGraph
+
+
 def model_to_onnx(model, input, path="example.onnx"):
     """
     torch.onnx.export(model,                                # model being run
@@ -106,3 +109,7 @@ def load_prof_result(prof_json_path):
                  "mem": item["args"]["output_size"] + item["args"]["parameter_size"]}
                 for item in result
                 if item["dur"] != 0 and item["cat"] != "Session"]
+
+
+def parse_comp_graph(comp_grapgh_path):
+    graph = CompGraph()

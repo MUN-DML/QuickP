@@ -1,12 +1,13 @@
-import networkx as nx
+import networkx
 import random
 
 from matplotlib import pyplot as plt
+from networkx import DiGraph, Graph, gnp_random_graph, spring_layout, draw
 
 
-class CompGraph(nx.DiGraph):
+class CompGraph(DiGraph):
     def random_rebuild(self, operator_num):
-        G = nx.gnp_random_graph(operator_num, 0.5, directed=True)
+        G = gnp_random_graph(operator_num, 0.5, directed=True)
         for i in G.nodes():
             self.add_new_node(i, random.randint(50, 200), "not specified")
         for (u, v) in G.edges():
@@ -14,16 +15,16 @@ class CompGraph(nx.DiGraph):
                 self.add_new_edge(u, v)
 
     def add_new_node(self, operator_id, size, op_type):
-        nx.DiGraph.add_node(self, node_for_adding=operator_id, size=size, op_type=op_type)
+        super().add_node(self, node_for_adding=operator_id, size=size, op_type=op_type)
 
     def add_new_nodes_from(self, operator_list):
-        nx.DiGraph.add_edges_from(self, ebunch_to_add=operator_list)
+        super().add_edges_from(self, ebunch_to_add=operator_list)
 
     def add_new_edge(self, source_id, dest_id):
-        nx.DiGraph.add_edge(self, u_of_edge=source_id, v_of_edge=dest_id)
+        super().add_edge(self, u_of_edge=source_id, v_of_edge=dest_id)
 
     def add_new_edges_from(self, edge_tuple_list):
-        nx.DiGraph.add_edges_from(self, ebunch_to_add=edge_tuple_list)
+        super().add_edges_from(self, ebunch_to_add=edge_tuple_list)
 
     def getOperator(self, node_id):
         return self.nodes[node_id]
@@ -51,7 +52,7 @@ class CompGraph(nx.DiGraph):
 
 
 # Undirected Graph
-class DeviceGraph(nx.Graph):
+class DeviceGraph(Graph):
 
     def random_rebuild(self, device_num):
         for i in range(device_num):
@@ -65,17 +66,17 @@ class DeviceGraph(nx.Graph):
             self.add_new_edge(obj[0], obj[1], random.randint(50, 100))
 
     def add_new_node(self, device_id, comp_sp, capacity):
-        nx.Graph.add_node(self, node_for_adding=device_id, computing_speed=comp_sp,
+        super().add_node(self, node_for_adding=device_id, computing_speed=comp_sp,
                           memory_capacity=capacity)
 
     def add_new_nodes_from(self, device_list, comp_sp, capacity):
-        nx.Graph.add_edges_from(self, ebunch_to_add=device_list, computing_speed=comp_sp, memory_capacity=capacity)
+        super().add_edges_from(self, ebunch_to_add=device_list, computing_speed=comp_sp, memory_capacity=capacity)
 
     def add_new_edge(self, source_id, dest_id, com_sp):
-        nx.Graph.add_edge(self, u_of_edge=source_id, v_of_edge=dest_id, communication_speed=com_sp)
+        super().add_edge(self, u_of_edge=source_id, v_of_edge=dest_id, communication_speed=com_sp)
 
     def add_new_edges_from(self, edge_tuple_list, com_cost):
-        nx.Graph.add_edges_from(self, ebunch_to_add=edge_tuple_list, communication_cost=com_cost)
+        super().add_edges_from(self, ebunch_to_add=edge_tuple_list, communication_cost=com_cost)
 
     def getDevice(self, node_id):
         return self.nodes[node_id]
@@ -122,6 +123,6 @@ class CompCostMatrix:
 
 
 def visualize_graph(graph):
-    pos = nx.spring_layout(graph, seed=225)  # Seed for reproducible layout
-    nx.draw(graph, pos, with_labels=True)
+    pos = spring_layout(graph, seed=225)  # Seed for reproducible layout
+    draw(graph, pos, with_labels=True)
     plt.show()
