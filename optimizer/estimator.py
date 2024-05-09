@@ -66,7 +66,7 @@ for node_id in comp_graph.getOperatorIDs():
 for machine_id in deviceTopo.getDeviceIDs():
     mem_sum = LinExpr()
     for node_id in comp_graph.getOperatorIDs():
-        mem_sum += x[node_id, machine_id] * comp_graph.getOperator(node_id)["size"]
+        mem_sum += x[node_id, machine_id] * comp_graph.getOperator(node_id)["mem"]
     model.addConstr(mem_sum <= deviceTopo.getDevice(machine_id)["memory_capacity"], "satisfy each device's memory constraint")
 
 # Add constraints that each device should have at least one operator assigned

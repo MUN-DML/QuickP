@@ -102,7 +102,7 @@ def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num
     return sess_profile.end_profiling()
 
 
-def load_prof_result(prof_json_path, warm_up_end_step=3):
+def load_prof_result(prof_json_path: str, warm_up_end_step=3):
     def remove_after_first_underscore(s):
         return s.split('_', 1)[0]
 
@@ -146,11 +146,14 @@ def load_prof_result(prof_json_path, warm_up_end_step=3):
 def get_comp_graph(dict):
     graph = CompGraph()
     for node in dict["nodes"]:
-        graph.add_new_node(operator_id=node["name"], size=0, op_type=node["type"])
+        graph.add_new_node(operator_id=node["name"], mem=0, op_type=node["type"])
     for edge in dict["edges"]:
         graph.add_new_edge(source_id=edge["from"], dest_id=edge["to"])
     return graph
 
 
-def update_graph_with_profile(graph):
-    pass
+def update_graph_memory(op_graph: CompGraph, group_dict):
+    for node_id in op_graph.getOperatorIDs():
+        if node_id in group_dict.keys():
+            op_graph.nodes[node_id]["mem"] = group_dict[node_id]["mem"]
+

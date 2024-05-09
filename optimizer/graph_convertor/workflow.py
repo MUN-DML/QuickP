@@ -2,7 +2,7 @@ import networkx as nx
 import torch
 
 from optimizer.graph_convertor.onnx_util import model_to_onnx, onnx_to_dict, to_json, generate_prof_json, \
-    load_prof_result, get_comp_graph
+    load_prof_result, get_comp_graph, update_graph_memory
 from optimizer.model.graph import visualize_graph
 from vgg import vgg11
 from py_util import getStdCifar10DataLoader
@@ -32,5 +32,8 @@ if not nx.is_directed_acyclic_graph(graph):
 profile_path = generate_prof_json("example.onnx", data_loader, batch, 4, 3)
 # profiling result
 profile_result = load_prof_result(profile_path)
-to_json(profile_result, "group_result.json")
+# to_json(profile_result, "group_result.json")
 
+# update the xnetwork graph with profiling result
+update_graph_memory(graph, profile_result)
+print(graph.getAllOperators())

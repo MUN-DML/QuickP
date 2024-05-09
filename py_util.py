@@ -9,6 +9,7 @@ from torchvision import transforms
 # sudo apt install python3-packaging
 os.environ["KERAS_BACKEND"] = "torch"
 
+import socket
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -277,3 +278,7 @@ def print_communication_cost(table_str):
 
     for line in filtered_lines:
         print(line)
+
+
+def get_local_device_name():
+    return socket.gethostname()
