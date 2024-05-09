@@ -2,7 +2,7 @@ import networkx as nx
 import torch
 
 from optimizer.graph_convertor.onnx_util import model_to_onnx, onnx_to_dict, to_json, generate_prof_json, \
-    load_prof_result, get_comp_graph, update_graph_memory
+    load_prof_result, get_comp_graph, update_graph_with_prof
 from optimizer.model.graph import visualize_graph
 from vgg import vgg11
 from py_util import getStdCifar10DataLoader
@@ -35,5 +35,5 @@ profile_result = load_prof_result(profile_path)
 # to_json(profile_result, "group_result.json")
 
 # update the xnetwork graph with profiling result
-update_graph_memory(graph, profile_result)
-print(graph.getAllOperators())
+update_graph_with_prof(graph, profile_result)
+to_json(graph.getAllOperators(), "final_prof.json")

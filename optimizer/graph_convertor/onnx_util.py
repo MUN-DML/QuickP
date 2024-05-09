@@ -153,7 +153,7 @@ def get_comp_graph(dict):
     return graph
 
 
-def update_graph_memory(op_graph: CompGraph, group_dict):
+def update_graph_with_prof(op_graph: CompGraph, group_dict):
     device_name = get_local_device_name()
     for node_id in op_graph.getOperatorIDs():
         if node_id in group_dict.keys():
