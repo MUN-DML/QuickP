@@ -154,35 +154,6 @@ def printPipelineSplitInfo(rank, pipe):
             print(sm)
 
 
-def init_distributed_group(args):
-    dist.init_process_group(backend=args.dist_backend, init_method=args.init_method, rank=args.rank,
-                            world_size=args.world_size)
-
-
-def getGPT2Model(args):
-    config = GPT2Config()
-    config.n_embd = args.n_embd or config.n_embd
-    config.n_layer = args.n_layer or config.n_layer
-    config.n_head = args.n_head or config.n_head
-    print("Using device:", args.device)
-
-    # Create model
-    model_class = GPT2ForSequenceClassification
-    model_name = "GPT2ForSequenceClassification"
-    gpt2 = model_class(config)
-    gpt2.to(args.device)
-    gpt2.eval()
-
-
-def initTrainingLog():
-    return {'rank': -1,
-            'starting time': -1,
-            'ending time': -1,
-            'training time': -1,
-            'elapsed time': -1,
-            'log': []}
-
-
 def train(epoch, train_loader, model, criterion, optimizer, device):
     # only one gpu is visible here, so you can send cpu data to gpu by
     # input_data = input_data.cuda() as normal
