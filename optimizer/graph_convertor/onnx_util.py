@@ -103,15 +103,18 @@ def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num
 
 
 def load_prof_result(prof_json_path, warm_up_end_step=3):
+    def remove_after_first_underscore(s):
+        return s.split('_', 1)[0]
+
+    def default_entry():
+        return {"name": None, "time": [], "mem": None}
+
     with open(prof_json_path, "r") as f:
         result = json.load(f)
-        data_filtered = [{"name": item["name"], "dur": item["dur"],
+        data_filtered = [{"name": remove_after_first_underscore(item["name"]), "dur": item["dur"],
                           "mem": item["args"]["output_size"] + item["args"]["parameter_size"]}
                          for item in result
                          if item["dur"] != 0 and item["cat"] != "Session"]
-
-        def default_entry():
-            return {"name": None, "time": [], "mem": None}
 
         # Create a default dict where each value is a list
         grouped_data = defaultdict(default_entry)
