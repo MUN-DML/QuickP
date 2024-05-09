@@ -10,6 +10,7 @@ import torch
 import nvtx
 
 from optimizer.model.graph import CompGraph
+from py_util import get_local_device_name
 
 
 def model_to_onnx(model, input, path="example.onnx"):
@@ -153,7 +154,11 @@ def get_comp_graph(dict):
 
 
 def update_graph_memory(op_graph: CompGraph, group_dict):
+    device_name = get_local_device_name()
     for node_id in op_graph.getOperatorIDs():
         if node_id in group_dict.keys():
             op_graph.nodes[node_id]["mem"] = group_dict[node_id]["mem"]
+            if "comp_cost" not in op_graph.nodes[node_id]:
+                op_graph.nodes[node_id]["comp_cost"] = {}
+            op_graph.nodes[node_id]["comp_cost"][device_name] = group_dict[node_id]["time"]
 
