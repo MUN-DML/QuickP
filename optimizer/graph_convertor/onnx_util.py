@@ -105,26 +105,33 @@ def generate_prof_json(onnx_path, data_loader, batch_size, warm_up_end_step, num
 def load_prof_result(prof_json_path, warm_up_end_step=3):
     with open(prof_json_path, "r") as f:
         result = json.load(f)
-        data_filtered = [{"name": item["name"], "comp_cost": item["dur"],
+        data_filtered = [{"name": item["name"], "dur": item["dur"],
                           "mem": item["args"]["output_size"] + item["args"]["parameter_size"]}
                          for item in result
                          if item["dur"] != 0 and item["cat"] != "Session"]
 
+        def default_entry():
+            return {"name": None, "time": [], "mem": None}
+
         # Create a default dict where each value is a list
-        grouped_data = defaultdict(list)
+        grouped_data = defaultdict(default_entry)
 
         # Iterate over each dictionary in the list
         for item in data_filtered:
             # Append the dictionary to the list of its corresponding name
-            grouped_data[item['name']].append(item)
+            grouped_data[item['name']]["name"] = item.get("name")
+            grouped_data[item['name']]["mem"] = item.get("mem")
+            grouped_data[item['name']]["time"].append(item.get("dur"))
         # Skip warm up
         for (key, value) in grouped_data.items():
-            grouped_data[key] = value[warm_up_end_step:]
+            grouped_data[key]["time"] = value["time"][warm_up_end_step:]
 
         # check each value has the same length
         len_list = [len(node_list) for node_list in grouped_data.values()]
         if not all(length == len_list[0] for length in len_list):
             raise ValueError("operators show different stage numbers")
+
+        # Average the comp cost
 
         return grouped_data
 
