@@ -7,6 +7,11 @@ from optimizer.model.graph import visualize_graph
 from vgg import vgg11
 from py_util import getStdCifar10DataLoader
 
+"""
+https://github.com/microsoft/onnxruntime-training-examples/blob/master/on_device_training/desktop/python/mnist.ipynb
+Check the README.md file for both forward and backward passes
+"""
+
 
 def model_2_comp_graph(model, device):
     # Input to the model
