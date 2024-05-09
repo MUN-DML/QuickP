@@ -119,8 +119,10 @@ def load_prof_result(prof_json_path, warm_up_end_step=3):
         # Iterate over each dictionary in the list
         for item in data_filtered:
             # Append the dictionary to the list of its corresponding name
-            grouped_data[item['name']]["name"] = item.get("name")
-            grouped_data[item['name']]["mem"] = item.get("mem")
+            if grouped_data[item['name']]["name"] is None:
+                grouped_data[item['name']]["name"] = item.get("name")
+            if grouped_data[item['name']]["mem"] is None:
+                grouped_data[item['name']]["mem"] = item.get("mem")
             grouped_data[item['name']]["time"].append(item.get("dur"))
         # Skip warm up
         for (key, value) in grouped_data.items():
@@ -132,6 +134,8 @@ def load_prof_result(prof_json_path, warm_up_end_step=3):
             raise ValueError("operators show different stage numbers")
 
         # Average the comp cost
+        for (key, value) in grouped_data.items():
+            grouped_data[key]["time"] = sum(value["time"]) / len(value["time"])
 
         return grouped_data
 
