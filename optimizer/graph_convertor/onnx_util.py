@@ -113,7 +113,7 @@ def load_prof_result(prof_json_path: str, warm_up_end_step=3):
     with open(prof_json_path, "r") as f:
         result = json.load(f)
         data_filtered = [{"name": remove_after_first_underscore(item["name"]), "dur": item["dur"],
-                          "mem": item["args"]["output_size"] + item["args"]["parameter_size"]}
+                          "mem": int(item["args"]["output_size"]) + int(item["args"]["parameter_size"])}
                          for item in result
                          if item["dur"] != 0 and item["cat"] != "Session"]
 
