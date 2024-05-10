@@ -14,7 +14,7 @@ def main():
     # model = vgg11().to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-5)
-    train(epoch=1, model=model, train_loader=train_loader, optimizer=optimizer, criterion=criterion, device=device, profile_one_itr=True)
+    train(epoch=1, model=model, train_loader=train_loader, optimizer=optimizer, criterion=criterion, device=device)
 
 
 if __name__ == '__main__':

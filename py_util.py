@@ -6,6 +6,8 @@ from pippy import annotate_split_points, SplitPoint
 from torch.profiler import profile, record_function, ProfilerActivity
 from torchvision import transforms
 
+from optimizer.graph_convertor.onnx_util import to_json
+
 # This guide can only be run with the torch backend. must write when using both keras and pytorch
 # sudo apt install python3-packaging
 os.environ["KERAS_BACKEND"] = "torch"
@@ -193,7 +195,8 @@ def train(epoch, train_loader, model, criterion, optimizer, device, profile_one_
                     train_loss = 0.0
                 # send a signal to the profiler that the next iteration has started
                 prof.step()
-    prof.export_chrome_trace("single_device_prof.json")
+    # prof.export_chrome_trace("single_device_prof.json")
+    to_json(prof.key_averages().table(sort_by="cuda_time_total"), "single_device_prof.json")
 
 
 def compute_accuracy(model, data_loader, device):
