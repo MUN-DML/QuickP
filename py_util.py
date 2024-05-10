@@ -3,6 +3,7 @@ import os
 
 import torchvision
 from pippy import annotate_split_points, SplitPoint
+from torch.profiler import profile, record_function, ProfilerActivity
 from torchvision import transforms
 
 # This guide can only be run with the torch backend. must write when using both keras and pytorch
@@ -15,7 +16,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
 from torch.utils.data import DataLoader
-from transformers import GPT2ForSequenceClassification, GPT2Config
 
 
 # our module must be nn.Sequential as GPipe will automatically split the module into partitions with consecutive layers
@@ -160,30 +160,36 @@ def train(epoch, train_loader, model, criterion, optimizer, device):
     train_loss = 0
     correct = 0
     total = 0
-    model.train(True)
-    for i in range(epoch):
-        for batch_idx, (inputs, targets) in enumerate(train_loader):
-            inputs = inputs.to(device)
-            # shape: batch_size * 1
-            targets = targets.to(device)
-            # optimizer.zero_grad() everywhere in the loop but not between the loss.backward() and optimizer.step()
-            optimizer.zero_grad()
-            # shape batch_size * 10
-            outputs = model(inputs)
 
-            loss = criterion(outputs, targets)
-            loss.backward()
+    with profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+    ) as prof:
+        for i in range(epoch):
+            for batch_idx, (inputs, targets) in enumerate(train_loader):
+                inputs = inputs.to(device)
+                # shape: batch_size * 1
+                targets = targets.to(device)
+                # optimizer.zero_grad() everywhere in the loop but not between the loss.backward() and optimizer.step()
+                optimizer.zero_grad()
+                # shape batch_size * 10
+                outputs = model(inputs)
 
-            optimizer.step()
+                loss = criterion(outputs, targets)
+                loss.backward()
 
-            train_loss += loss.item()
-            _, predicted_idx = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted_idx.eq(targets).sum().item()
-            acc = correct / total
-            if batch_idx % 20 == 0:  # print every 20 mini-batches
-                print(f'[{i}, {batch_idx}] loss: {train_loss / 2000:.3f} accu: {acc * 100:.2f}')
-                train_loss = 0.0
+                optimizer.step()
+
+                train_loss += loss.item()
+                _, predicted_idx = outputs.max(1)
+                total += targets.size(0)
+                correct += predicted_idx.eq(targets).sum().item()
+                acc = correct / total
+                if batch_idx % 20 == 0:  # print every 20 mini-batches
+                    print(f'[{i}, {batch_idx}] loss: {train_loss / 2000:.3f} accu: {acc * 100:.2f}')
+                    train_loss = 0.0
+                # send a signal to the profiler that the next iteration has started
+                prof.step()
+    print(prof.key_averages().table(sort_by="cuda_time_total"))
 
 
 def compute_accuracy(model, data_loader, device):
