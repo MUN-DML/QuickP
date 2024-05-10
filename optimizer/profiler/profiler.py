@@ -31,10 +31,23 @@ with torch.profiler.profile(
             torch.profiler.ProfilerActivity.CPU,
             torch.profiler.ProfilerActivity.CUDA,
         ],
-
+        # in the following schedule, the profiler will record the performance form the 2+2 to the 2+2+1 mini-batch
+        schedule=torch.profiler.schedule(
+            wait=2,
+            warmup=2,
+            active=1,
+            repeat=1),
+        with_stack=True,
+        with_flops=True,
+        record_shapes=True,
+        profile_memory=True,
+        with_modules=True,
+        # https://pytorch.org/tutorials/intermediate/tensorboard_profiler_tutorial.html
+        on_trace_ready=torch.profiler.tensorboard_trace_handler('./log')
 ) as profiler:
     for step, data in enumerate(trainloader, 0):
-
+        if step == 5:
+            break
         print("step:{}".format(step))
         inputs, labels = data[0].cuda(), data[1].cuda()
         # forward
