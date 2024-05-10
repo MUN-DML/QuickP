@@ -154,18 +154,22 @@ def printPipelineSplitInfo(rank, pipe):
             print(sm)
 
 
-def train(epoch, train_loader, model, criterion, optimizer, device):
+def train(epoch, train_loader, model, criterion, optimizer, device, profile_one_itr=False):
     # only one gpu is visible here, so you can send cpu data to gpu by
     # input_data = input_data.cuda() as normal
     train_loss = 0
     correct = 0
     total = 0
-
+    model.train(True)
+    profiler_schedule = torch.profiler.schedule(wait=2, warmup=2, active=1, repeat=1) if profile_one_itr else None
     with profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+            schedule=profiler_schedule
     ) as prof:
         for i in range(epoch):
             for batch_idx, (inputs, targets) in enumerate(train_loader):
+                if batch_idx == 5 and profile_one_itr:
+                    break
                 inputs = inputs.to(device)
                 # shape: batch_size * 1
                 targets = targets.to(device)
@@ -189,7 +193,7 @@ def train(epoch, train_loader, model, criterion, optimizer, device):
                     train_loss = 0.0
                 # send a signal to the profiler that the next iteration has started
                 prof.step()
-    print(prof.key_averages().table(sort_by="cuda_time_total"))
+    prof.export_chrome_trace("single_device_prof.json")
 
 
 def compute_accuracy(model, data_loader, device):
