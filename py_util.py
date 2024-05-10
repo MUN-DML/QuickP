@@ -196,7 +196,7 @@ def train(epoch, train_loader, model, criterion, optimizer, device, profile_one_
                 # send a signal to the profiler that the next iteration has started
                 prof.step()
     # prof.export_chrome_trace("single_device_prof.json")
-    to_json(prof.key_averages().table(sort_by="cuda_time_total"), "single_device_prof.json")
+    print(prof.key_averages().table(sort_by="cuda_time_total"))
 
 
 def compute_accuracy(model, data_loader, device):
@@ -262,7 +262,3 @@ def print_communication_cost(table_str):
 
     for line in filtered_lines:
         print(line)
-
-
-def get_local_device_name():
-    return socket.gethostname()

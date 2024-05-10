@@ -1,16 +1,17 @@
 import json
+import socket
 from collections import defaultdict
 
 import numpy as np
 import onnx
 # pip install onnxruntime-gpu for cuda 11
 # pip install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/ for cuda12
+# pip install onnxruntime-training --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
 import onnxruntime as ort
 import torch
 import nvtx
 
 from optimizer.model.graph import CompGraph
-from py_util import get_local_device_name
 
 
 def model_to_onnx(model, input, path="example.onnx"):
@@ -154,7 +155,7 @@ def get_comp_graph(dict):
 
 
 def update_graph_with_prof(op_graph: CompGraph, group_dict):
-    device_name = get_local_device_name()
+    device_name = socket.gethostname()
     for node_id in op_graph.getOperatorIDs():
         if node_id in group_dict.keys():
             op_graph.nodes[node_id]["mem"] = group_dict[node_id]["mem"]
