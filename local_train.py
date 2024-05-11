@@ -1,8 +1,5 @@
 import torch
-import datetime
 from py_util import getStdCifar10DataLoader, train, getStdModelForCifar10
-from resnet import ResNet18
-from vgg import vgg11
 import torch.nn as nn
 
 

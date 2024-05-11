@@ -1,10 +1,7 @@
 import torch
 import torchvision
-from torch.autograd.profiler import profile
 from torchvision import transforms
-from vgg import vgg11
 from onnx2torch import convert
-from py_util import getStdModelForCifar10
 
 # Input to the model
 transform_train = transforms.Compose(

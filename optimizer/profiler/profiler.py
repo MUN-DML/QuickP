@@ -1,11 +1,10 @@
 import torch
 import torch.nn as nn
 import torchviz
-from torch.profiler import profile, record_function, ProfilerActivity
+from torch.profiler import record_function
 
-from py_util import getStdModelForCifar10, getStdCifar10DataLoader
-from resnet import ResNet18
-from vgg import vgg11
+from py_util import getStdCifar10DataLoader
+from DNN_model_ptytorch.vgg import vgg11
 
 # https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html
 # https://medium.com/computing-systems-and-hardware-for-emerging/profiling-a-training-task-with-pytorch-profiler-and-viewing-it-on-tensorboard-2cb7e0fef30e

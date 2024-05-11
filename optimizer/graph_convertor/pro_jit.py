@@ -1,12 +1,7 @@
 import torch
-import torchvision
-from torch._C._profiler import ProfilerActivity
-from torch.autograd.profiler import record_function
-from torch.profiler import profile
-from torchvision import transforms
 
 from optimizer.graph_convertor.onnx_util import to_json
-from vgg import vgg11
+from DNN_model_ptytorch.vgg import vgg11
 
 model = vgg11().cuda()
 example_input = torch.rand(1, 3, 32, 32).cuda()  # Adjust size according to the model

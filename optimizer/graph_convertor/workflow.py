@@ -3,8 +3,7 @@ import torch
 
 from optimizer.graph_convertor.onnx_util import model_to_onnx, onnx_to_dict, to_json, generate_prof_json, \
     load_prof_result, get_comp_graph, update_graph_with_prof
-from optimizer.model.graph import visualize_graph
-from vgg import vgg11
+from DNN_model_ptytorch.vgg import vgg11
 from py_util import getStdCifar10DataLoader
 
 """
