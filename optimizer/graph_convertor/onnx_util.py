@@ -10,6 +10,7 @@ import onnx
 import onnxruntime as ort
 import torch
 import nvtx
+from torch._C._onnx import OperatorExportTypes
 
 from optimizer.model.graph import CompGraph
 
@@ -28,6 +29,8 @@ def model_to_onnx(model, input, path="example.onnx"):
                       export_params=True,  # store the trained parameter weights inside the model file
                       opset_version=17,  # the ONNX version to export the model to
                       do_constant_folding=True,  # whether to execute constant folding for optimization
+                      operator_export_type=OperatorExportTypes.ONNX_ATEN_FALLBACK,
+                      training=torch.onnx.TrainingMode.TRAINING,
                       input_names=['X'],  # the model's input names
                       output_names=['Y']  # the model's output names
                       )
@@ -162,4 +165,3 @@ def update_graph_with_prof(op_graph: CompGraph, group_dict):
             if "comp_cost" not in op_graph.nodes[node_id]:
                 op_graph.nodes[node_id]["comp_cost"] = {}
             op_graph.nodes[node_id]["comp_cost"][device_name] = group_dict[node_id]["time"]
-
