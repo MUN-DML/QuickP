@@ -1,5 +1,6 @@
 from datetime import datetime
-
+# it is weird that on my server, have to import torch to activate tensorflow
+import torch
 import tensorflow as tf
 
 from DNN_model_tf.vgg_tf import VGG16_tf

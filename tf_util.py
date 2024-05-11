@@ -20,9 +20,8 @@ def getCifar():
 # GPU training: https://www.tensorflow.org/guide/gpu
 def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_list, batch_size=200):
     print(model.summary())
-    with tf.device('/device:CPU:0'):
-        model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=batch_size, shuffle=True,
-                  callbacks=call_back_list)
+    model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=batch_size, shuffle=True,
+              callbacks=call_back_list)
 
 
 def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
