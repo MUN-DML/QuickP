@@ -4,8 +4,6 @@ import keras
 import os
 from keras.src.layers import Dense, Conv2D, Flatten, MaxPooling2D
 from keras.src.models import Sequential
-from keras.src.optimizers import Adam
-from keras.src.datasets import cifar10
 from keras.src.layers import Dropout
 
 '''
@@ -14,7 +12,7 @@ https://keras.io/examples/vision/image_classification_from_scratch/
 '''
 
 
-def initModelForCifar10():
+def VGG16_tf():
     model = Sequential()
     # ignore the input layer
     # input_shape is the single image size of the suitable dataset. For Cifar_10 => input_shape=(32, 32, 3)
@@ -53,8 +51,6 @@ def initModelForCifar10():
     # the last fully connected layer is a classifier, 10 class for Cifar_10
     model.add(Dense(units=10, activation="softmax"))
 
-    model.compile(optimizer=keras.optimizers.Adam(3e-4), loss=keras.losses.BinaryCrossentropy(from_logits=True),
-                  metrics=[keras.metrics.BinaryAccuracy(name="acc")])
     return model
 
 

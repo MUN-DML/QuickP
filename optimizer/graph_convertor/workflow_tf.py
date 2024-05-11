@@ -1,14 +1,17 @@
+from datetime import datetime
+
 import tensorflow as tf
 
+from tf_util import train_model
+
 model = tf.keras.applications.VGG16()
+print(model.summary())
 optimizer = tf.keras.optimizers.Adam()
 
-# Convert to a TensorFlow function that includes both forward and backward passes
-@tf.function
-def train_step(input_data, target_data):
-    with tf.GradientTape() as tape:
-        predictions = model(input_data, training=True)
-        loss = tf.keras.losses.sparse_categorical_crossentropy(target_data, predictions)
-    gradients = tape.gradient(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-    return loss
+# Create a TensorBoard callback
+logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+tboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logs,
+                                                 histogram_freq=1,
+                                                 profile_batch='500,520')
+
+train_model()

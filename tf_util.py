@@ -1,3 +1,5 @@
+import keras
+import numpy as np
 from keras import Sequential
 from keras.src.datasets import cifar10
 from keras.src.utils import to_categorical
@@ -14,7 +16,24 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def train(model: Sequential, x_train, y_train, x_test, y_test):
+def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_list):
     print(model.summary())
-    model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=200, shuffle=True)
+    model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=200, shuffle=True, callbacks=call_back_list)
 
+
+def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(3e-4), loss=keras.losses.BinaryCrossentropy(from_logits=True)):
+    model.compile(optimizer=optimizer, loss=loss,
+                  metrics=[keras.metrics.BinaryAccuracy(name="acc")])
+
+
+def testExistModel(model: Sequential, x_test, y_test, test_num):
+    for i in range(test_num):
+        image = np.expand_dims(x_test[i], axis=0)
+        prediction = model.predict(image)[0]
+        real = y_test[i]
+        index_max_pre = np.argmax(prediction)
+        index_max_real = np.argmax(real)
+        if index_max_pre == index_max_real:
+            print("match")
+        else:
+            print("not match")
