@@ -3,6 +3,7 @@ import numpy as np
 from keras import Sequential
 from keras.src.datasets import cifar10
 from keras.src.utils import to_categorical
+import tensorflow as tf
 
 
 def getCifar():
@@ -16,12 +17,16 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_list):
+# GPU training: https://www.tensorflow.org/guide/gpu
+def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_list, batch_size=200):
     print(model.summary())
-    model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=200, shuffle=True, callbacks=call_back_list)
+    with tf.device('/device:CPU:0'):
+        model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=batch_size, shuffle=True,
+                  callbacks=call_back_list)
 
 
-def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(3e-4), loss=keras.losses.BinaryCrossentropy(from_logits=True)):
+def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
+                  loss=keras.losses.BinaryCrossentropy(from_logits=True)):
     model.compile(optimizer=optimizer, loss=loss,
                   metrics=[keras.metrics.BinaryAccuracy(name="acc")])
 
