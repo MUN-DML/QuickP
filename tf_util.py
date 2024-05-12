@@ -82,7 +82,8 @@ def parse_to_comp_graph(concrete_function):
 
 
 def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
-                   loss_fn=keras.losses.SparseCategoricalCrossentropy()):
+                   loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
+
     compile_model(model, optimizer, loss_fn)
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
@@ -97,13 +98,18 @@ def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
         gradients = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return loss
-
-    inputs = tf.TensorSpec(shape=[200, 32, 32, 3], dtype=tf.float32, name="input")
-    targets = tf.TensorSpec(shape=[None], dtype=tf.int32, name="target")
+    # tf.TensorSpec constrain the type of inputs accepted by a tf.function
+    # shape=[200, 32, 32, 3], 200 is batch size, 32x32x3 is the size for each image
+    inputs_constraint = tf.TensorSpec(shape=[batch_size, 32, 32, 3], dtype=tf.float32, name="input")
+    targets_constraint = tf.TensorSpec(shape=[batch_size], dtype=tf.int32, name="target")
     # to obtain a concrete function from a tf.function
-    concrete_function = training_step.get_concrete_function(inputs, targets)
+    concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
     parse_to_comp_graph(concrete_function)
-    # profile_train(concrete_function, inputs, targets)
+
+    # random data
+    x_data = tf.random.uniform([batch_size, 32, 32, 3])
+    y_data = tf.random.uniform([batch_size], maxval=9, dtype=tf.int32)
+    profile_train(concrete_function, x_data, y_data)
 
 
 get_comp_graph(VGG16_tf())
