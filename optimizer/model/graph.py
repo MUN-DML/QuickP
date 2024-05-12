@@ -124,5 +124,5 @@ class CompCostMatrix:
 
 def visualize_graph(graph, show_labels=True):
     pos = spring_layout(graph, seed=225)  # Seed for reproducible layout
-    draw(graph, pos, with_labels=show_labels)
+    draw(graph, pos, with_labels=show_labels, node_size=20)
     plt.show()
