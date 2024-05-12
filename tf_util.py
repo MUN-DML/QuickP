@@ -1,9 +1,13 @@
 import keras
+import torch
 import numpy as np
 from keras import Sequential
 from keras.src.datasets import cifar10
 from keras.src.utils import to_categorical
 import tensorflow as tf
+
+from DNN_model_tf.vgg_tf import VGG16_tf
+from optimizer.model.graph import visualize_graph
 
 
 def getCifar():
@@ -41,3 +45,45 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
             print("match")
         else:
             print("not match")
+
+
+def get_comp_graph():
+    # Create a dummy optimizer and loss for demonstration
+    optimizer = tf.keras.optimizers.Adam()
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
+    model = VGG16_tf()
+
+    # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
+    @tf.function
+    def training_step(x, y):
+        with tf.GradientTape() as tape:
+            predictions = model(x, training=True)
+            loss = loss_fn(y, predictions)
+        gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+        return loss
+
+    # to obtain a concrete function from a tf.function
+    concrete_function = training_step.get_concrete_function(
+        tf.TensorSpec(shape=[200, 32, 32, 3], dtype=tf.float32, name="input"),
+        tf.TensorSpec(shape=[None], dtype=tf.int32, name="target")
+    )
+
+    graph = concrete_function.graph
+
+    import networkx as nx
+
+    # Create a directed graph
+    G = nx.DiGraph()
+
+    # Add nodes and edges to the graph
+    for op in graph.get_operations():
+        # Each node is an operation in the TensorFlow graph
+        G.add_node(op.name, op_type=op.type)
+        for input_tensor in op.inputs:
+            # Create an edge from input operation to the current operation
+            G.add_edge(input_tensor.op.name, op.name)
+    print(G.nodes)
+
+
+get_comp_graph()
