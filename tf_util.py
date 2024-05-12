@@ -61,7 +61,7 @@ def profile_train(concrete_function, inputs, targets):
     tf.profiler.experimental.stop()
 
 
-def parse_to_graph(concrete_function):
+def parse_to_comp_graph(concrete_function):
     graph = concrete_function.graph
 
     # Create a directed graph
@@ -101,7 +101,7 @@ def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     targets = tf.TensorSpec(shape=[None], dtype=tf.int32, name="target")
     # to obtain a concrete function from a tf.function
     concrete_function = training_step.get_concrete_function(inputs, targets)
-    parse_to_graph(concrete_function)
+    parse_to_comp_graph(concrete_function)
     # profile_train(concrete_function, inputs, targets)
 
 
