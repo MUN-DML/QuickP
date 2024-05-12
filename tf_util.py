@@ -51,6 +51,7 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 
 
 # https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
+# https://github.com/tensorflow/profiler/issues/24
 def profile_train(concrete_function, inputs, targets):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
