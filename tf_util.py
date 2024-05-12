@@ -8,6 +8,7 @@ from keras.src.datasets import cifar10
 from keras.src.utils import to_categorical
 import tensorflow as tf
 import networkx as nx
+from tensorflow import data as tf_data
 from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.model.graph import visualize_graph, CompGraph
 
@@ -33,7 +34,7 @@ def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_l
 def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
                   loss=keras.losses.SparseCategoricalCrossentropy()):
     model.compile(optimizer=optimizer, loss=loss,
-                  metrics=[keras.metrics.BinaryAccuracy(name="acc")])
+                  metrics=[keras.metrics.SparseCategoricalAccuracy(name="acc")])
 
 
 def testExistModel(model: Sequential, x_test, y_test, test_num):
@@ -49,6 +50,7 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
             print("not match")
 
 
+# https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
 def profile_train(concrete_function, inputs, targets):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
@@ -81,7 +83,6 @@ def parse_to_comp_graph(concrete_function):
 
 def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
                    loss_fn=keras.losses.SparseCategoricalCrossentropy()):
-
     compile_model(model, optimizer, loss_fn)
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
