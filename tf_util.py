@@ -37,9 +37,9 @@ def get_cifar_data_loader(batch_size=200, train=True):
     train_dataset = train_dataset.shuffle(50000).batch(batch_size)
     test_dataset = test_dataset.batch(batch_size)
     if train:
-        return train_dataset
+        return train_dataset.cache().prefetch(tf.data.experimental.AUTOTUNE)
     else:
-        return test_dataset
+        return test_dataset.cache().prefetch(tf.data.experimental.AUTOTUNE)
 
 
 # GPU training: https://www.tensorflow.org/guide/gpu
