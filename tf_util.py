@@ -9,6 +9,8 @@ from keras.src.utils import to_categorical
 import tensorflow as tf
 import networkx as nx
 from tensorflow import data as tf_data
+from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
+
 from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.model.graph import visualize_graph, CompGraph
 
@@ -52,7 +54,7 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 
 # https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
 # https://github.com/tensorflow/profiler/issues/24
-def profile_train(concrete_function, inputs, targets):
+def profile_train(concrete_function: ConcreteFunction, inputs, targets):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
@@ -64,7 +66,7 @@ def profile_train(concrete_function, inputs, targets):
     tf.profiler.experimental.stop()
 
 
-def parse_to_comp_graph(concrete_function):
+def parse_to_comp_graph(concrete_function: ConcreteFunction):
     graph = concrete_function.graph
 
     # Create a directed graph
@@ -108,7 +110,9 @@ def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # shape=[200, 32, 32, 3], 200 is batch size, 32x32x3 is the size for each image
     inputs_constraint = tf.TensorSpec(shape=[batch_size, 32, 32, 3], dtype=tf.float32, name="input")
     targets_constraint = tf.TensorSpec(shape=[batch_size], dtype=tf.int32, name="target")
-    # to obtain a concrete function from a tf.function
+    # to obtain a concrete function from a tf.function.
+    # ConcreteFunctions can be executed just like PolymorphicFunctions,
+    # but their input is restricted to the types to which they're specialized.
     concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
     parse_to_comp_graph(concrete_function)
 
