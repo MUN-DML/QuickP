@@ -86,18 +86,23 @@ def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
                    loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
 
     compile_model(model, optimizer, loss_fn)
+    train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function
     @tf.function
-    def training_step(x, y):
+    def training_step(train_x, train_y):
         # https://www.tensorflow.org/guide/autodiff
         with tf.GradientTape() as tape:
             # Forward pass
-            predictions = model(x, training=True)
-            loss = loss_fn(y, predictions)
+            predictions = model(train_x, training=True)
+            loss = loss_fn(train_y, predictions)
         gradients = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+
+        train_loss(loss)
+        train_accuracy(train_y, predictions)
         return loss
     # tf.TensorSpec constrain the type of inputs accepted by a tf.function
     # shape=[200, 32, 32, 3], 200 is batch size, 32x32x3 is the size for each image

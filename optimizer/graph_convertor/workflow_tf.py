@@ -15,6 +15,7 @@ print(tf.test.gpu_device_name())
 
 # Create a TensorBoard callback
 # profiling: https://www.tensorflow.org/tensorboard/tensorboard_profiling_keras
+# python3 -m tensorboard.main --logdir=~/my/training/dir
 logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
 tboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logs,
                                                  histogram_freq=1,
