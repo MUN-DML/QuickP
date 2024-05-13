@@ -96,8 +96,6 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
 def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
                    loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
     compile_model(model, optimizer, loss_fn)
-    train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
-    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function
