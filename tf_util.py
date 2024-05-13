@@ -68,6 +68,9 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
             print("not match")
 
 
+'''
+Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
+'''
 # https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
@@ -84,18 +87,21 @@ def profile_train(concrete_function: ConcreteFunction, dataloader):
     step = 0
     for (x_train, y_train) in dataloader:
         step += 1
-        if step == 5:
-            # Call only one tf.function when tracing.
-            concrete_function(x_train, y_train)
-            with train_summary_writer.as_default():
-                tf.summary.scalar('loss', train_loss.result(), step=step)
-                tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
+        # Call only one tf.function when tracing.
+        concrete_function(x_train, y_train)
+        with train_summary_writer.as_default():
+            tf.summary.scalar('loss', train_loss.result(), step=step)
+            tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
+            # profiling will end trace_export
+            if step == 5:
+                '''
                 tf.summary.trace_export(
                     name="my_func_trace",
                     step=step,
                     profiler_outdir=log_dir)
-        if step == 6:
-            break
+                '''
+                break
+    tf.profiler.experimental.stop()
 
 
 def parse_to_comp_graph(concrete_function: ConcreteFunction):
