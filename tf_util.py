@@ -24,14 +24,27 @@ def getCifar():
     x_test = x_test.astype('float32')
     x_train /= 255
     x_test /= 255
-    y_train = to_categorical(y_train, 10)
-    y_test = to_categorical(y_test, 10)
+    # make the y value for each single image to be a array of length 10
+    # y_train = to_categorical(y_train, 10)
+    # y_test = to_categorical(y_test, 10)
     return (x_train, y_train), (x_test, y_test)
+
+
+def get_cifar_data_loader(batch_size=200, train=True):
+    (x_train, y_train), (x_test, y_test) = getCifar()
+    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+    test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
+    train_dataset = train_dataset.shuffle(50000).batch(batch_size)
+    test_dataset = test_dataset.batch(batch_size)
+    if train:
+        return train_dataset
+    else:
+        return test_dataset
 
 
 # GPU training: https://www.tensorflow.org/guide/gpu
 def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_list, batch_size=200):
-    print(model.summary())
+    # print(model.summary())
     model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=batch_size, shuffle=True,
               callbacks=call_back_list)
 
@@ -57,7 +70,7 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 
 # https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
 # https://github.com/tensorflow/profiler/issues/24
-def profile_train(concrete_function: ConcreteFunction, inputs, targets):
+def profile_train(concrete_function: ConcreteFunction, dataloader):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
@@ -66,11 +79,13 @@ def profile_train(concrete_function: ConcreteFunction, inputs, targets):
 
     # Start the profiler
     # tf.profiler.experimental.start(log_dir, options=options)
-    for i in range(5):
-        concrete_function(inputs, targets)
+    step = 0
+    for (x_train, y_train) in dataloader:
+        step += 1
+        concrete_function(x_train, y_train)
         with train_summary_writer.as_default():
-            tf.summary.scalar('loss', train_loss.result(), step=i)
-            tf.summary.scalar('accuracy', train_accuracy.result(), step=i)
+            tf.summary.scalar('loss', train_loss.result(), step=step)
+            tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
 
     # tf.profiler.experimental.stop()
 
@@ -116,17 +131,14 @@ def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # tf.TensorSpec constrain the type of inputs accepted by a tf.function
     # shape=[200, 32, 32, 3], 200 is batch size, 32x32x3 is the size for each image
     inputs_constraint = tf.TensorSpec(shape=[batch_size, 32, 32, 3], dtype=tf.float32, name="input")
-    targets_constraint = tf.TensorSpec(shape=[batch_size], dtype=tf.int32, name="target")
+    targets_constraint = tf.TensorSpec(shape=[batch_size, 1], dtype=tf.uint8, name="target")
     # to obtain a concrete function from a tf.function.
     # ConcreteFunctions can be executed just like PolymorphicFunctions,
     # but their input is restricted to the types to which they're specialized.
     concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
     parse_to_comp_graph(concrete_function)
 
-    # random data
-    x_data = tf.random.uniform([batch_size, 32, 32, 3])
-    y_data = tf.random.uniform([batch_size], maxval=9, dtype=tf.int32)
-    profile_train(concrete_function, x_data, y_data)
+    profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
 
 
 get_comp_graph(VGG16_tf())
