@@ -9,4 +9,6 @@ print(torch.cuda.get_device_name(0))
 print(tf.config.list_physical_devices('GPU'))
 print(tf.config.list_physical_devices('CPU'))
 print(tf.test.gpu_device_name())
+# '/device:GPU:0'
+print(tf.config.list_logical_devices())
 

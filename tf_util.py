@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 import keras
 import torch
@@ -13,6 +13,9 @@ from tensorflow.python.eager.polymorphic_function.concrete_function import Concr
 
 from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.model.graph import visualize_graph, CompGraph
+
+train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
 
 
 def getCifar():
@@ -58,12 +61,18 @@ def profile_train(concrete_function: ConcreteFunction, inputs, targets):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
-    log_dir = "logs/profile/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    train_summary_writer = tf.summary.create_file_writer(log_dir)
+
     # Start the profiler
-    tf.profiler.experimental.start(log_dir, options=options)
-    for _ in range(5):
+    # tf.profiler.experimental.start(log_dir, options=options)
+    for i in range(5):
         concrete_function(inputs, targets)
-    tf.profiler.experimental.stop()
+        with train_summary_writer.as_default():
+            tf.summary.scalar('loss', train_loss.result(), step=i)
+            tf.summary.scalar('accuracy', train_accuracy.result(), step=i)
+
+    # tf.profiler.experimental.stop()
 
 
 def parse_to_comp_graph(concrete_function: ConcreteFunction):
@@ -86,7 +95,6 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
 
 def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
                    loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
-
     compile_model(model, optimizer, loss_fn)
     train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
     train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
@@ -106,6 +114,7 @@ def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
         train_loss(loss)
         train_accuracy(train_y, predictions)
         return loss
+
     # tf.TensorSpec constrain the type of inputs accepted by a tf.function
     # shape=[200, 32, 32, 3], 200 is batch size, 32x32x3 is the size for each image
     inputs_constraint = tf.TensorSpec(shape=[batch_size, 32, 32, 3], dtype=tf.float32, name="input")
