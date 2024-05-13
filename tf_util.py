@@ -79,16 +79,23 @@ def profile_train(concrete_function: ConcreteFunction, dataloader):
     train_summary_writer = tf.summary.create_file_writer(log_dir)
 
     # Start the profiler
-    # tf.profiler.experimental.start(log_dir, options=options)
+    tf.summary.trace_on(graph=True, profiler=True)
+    tf.profiler.experimental.start(log_dir, options=options)
     step = 0
     for (x_train, y_train) in dataloader:
         step += 1
-        concrete_function(x_train, y_train)
-        with train_summary_writer.as_default():
-            tf.summary.scalar('loss', train_loss.result(), step=step)
-            tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
-
-    # tf.profiler.experimental.stop()
+        if step == 5:
+            # Call only one tf.function when tracing.
+            concrete_function(x_train, y_train)
+            with train_summary_writer.as_default():
+                tf.summary.scalar('loss', train_loss.result(), step=step)
+                tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
+                tf.summary.trace_export(
+                    name="my_func_trace",
+                    step=step,
+                    profiler_outdir=log_dir)
+        if step == 6:
+            break
 
 
 def parse_to_comp_graph(concrete_function: ConcreteFunction):
