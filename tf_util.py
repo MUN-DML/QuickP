@@ -8,6 +8,10 @@ from keras.src.datasets import cifar10
 from keras.src.utils import to_categorical
 import tensorflow as tf
 import networkx as nx
+from tensorboard.backend.event_processing import event_accumulator, plugin_event_multiplexer
+from tensorboard.data import provider
+from tensorboard.plugins.base_plugin import TBContext
+from tensorboard_plugin_profile.profile_plugin import ProfilePlugin
 from tensorflow import data as tf_data
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 
@@ -46,7 +50,7 @@ def get_cifar_data_loader(batch_size=200, train=True):
 def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_list, batch_size=200):
     # print(model.summary())
     model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=batch_size, shuffle=True,
-              callbacks=call_back_list)
+              callbacks=call_back_list, steps_per_epoch=80)
 
 
 def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
@@ -71,6 +75,8 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 '''
 Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
 '''
+
+
 # https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
@@ -102,6 +108,7 @@ def profile_train(concrete_function: ConcreteFunction, dataloader):
                 '''
                 break
     tf.profiler.experimental.stop()
+    return log_dir
 
 
 def parse_to_comp_graph(concrete_function: ConcreteFunction):
@@ -120,6 +127,38 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     if not nx.is_directed_acyclic_graph(G):
         raise "comp_graph is not directed acyclic"
     visualize_graph(G, show_labels=False)
+
+
+def parse_tensorboard(path):
+    event_acc = event_accumulator.EventAccumulator(path)
+    event_acc.Reload()
+    tags = event_acc.Tags()
+    print("fuck", tags)
+    # Initialize the Event Multiplexer
+    multiplexer = plugin_event_multiplexer.EventMultiplexer({
+        'run1': path
+    })
+
+    # Load the event files
+    multiplexer.Reload()
+
+    # Create a log directory provider
+    # logdir_provider = provider.LogdirDataProvider(path, multiplexer)
+
+    # Initialize the context for the ProfilePlugin
+    context = {
+        'logdir': path,
+        'data_provider': None,
+        'flags': None
+    }
+    context = TBContext(logdir=path)
+    plugin = ProfilePlugin(context)
+    profiles = plugin.profiles()
+    # Load the profile data
+    for profile in profiles:
+        print(f"Profile: {profile}")
+
+    # Extract tensors
 
 
 def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
@@ -150,9 +189,10 @@ def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # ConcreteFunctions can be executed just like PolymorphicFunctions,
     # but their input is restricted to the types to which they're specialized.
     concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
-    parse_to_comp_graph(concrete_function)
+    # parse_to_comp_graph(concrete_function)
 
-    profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
+    path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
+    parse_tensorboard(path)
 
 
 get_comp_graph(VGG16_tf())
