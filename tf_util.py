@@ -37,21 +37,6 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-@tf.function
-def training_step(model_compiled, train_x, train_y):
-    # https://www.tensorflow.org/guide/autodiff
-    with tf.GradientTape() as tape:
-        # Forward pass
-        predictions = model_compiled(train_x, training=True)
-        loss = model_compiled.loss(train_y, predictions)
-    gradients = tape.gradient(loss, model_compiled.trainable_variables)
-    model_compiled.optimizer.apply_gradients(zip(gradients, model_compiled.trainable_variables))
-
-    train_loss(loss)
-    train_accuracy(train_y, predictions)
-    return loss
-
-
 def get_cifar_data_loader(batch_size=200, train=True):
     (x_train, y_train), (x_test, y_test) = getCifar()
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
@@ -98,7 +83,7 @@ Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
 def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
-                  num_prof_step=100):
+                  num_prof_step=150):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
@@ -206,22 +191,23 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
               loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
     compile_model(model, optimizer, loss_fn)
 
-    # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
-    # https://www.tensorflow.org/guide/function
-    # https://www.tensorflow.org/tensorboard/get_started
     @tf.function
-    def training_step(train_x, train_y):
+    def training_step(model_complied, train_x, train_y):
         # https://www.tensorflow.org/guide/autodiff
         with tf.GradientTape() as tape:
             # Forward pass
-            predictions = model(train_x, training=True)
-            loss = model.loss(train_y, predictions)
-        gradients = tape.gradient(loss, model.trainable_variables)
-        model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+            predictions = model_complied(train_x, training=True)
+            loss = model_complied.loss(train_y, predictions)
+        gradients = tape.gradient(loss, model_complied.trainable_variables)
+        model_complied.optimizer.apply_gradients(zip(gradients, model_complied.trainable_variables))
 
         train_loss(loss)
         train_accuracy(train_y, predictions)
         return loss
+
+    # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
+    # https://www.tensorflow.org/guide/function
+    # https://www.tensorflow.org/tensorboard/get_started
 
     # tf.TensorSpec constrain the type of inputs accepted by a tf.function
     # shape=[200, 32, 32, 3], 200 is batch size, 32x32x3 is the size for each image
@@ -230,7 +216,7 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # to obtain a concrete function from a tf.function.
     # ConcreteFunctions can be executed just like PolymorphicFunctions,
     # but their input is restricted to the types to which they're specialized.
-    concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
+    concrete_function = training_step.get_concrete_function(model, inputs_constraint, targets_constraint)
     # parse_to_comp_graph(concrete_function)
 
     path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
