@@ -37,6 +37,21 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
+@tf.function
+def training_step(model_compiled, train_x, train_y):
+    # https://www.tensorflow.org/guide/autodiff
+    with tf.GradientTape() as tape:
+        # Forward pass
+        predictions = model_compiled(train_x, training=True)
+        loss = model_compiled.loss(train_y, predictions)
+    gradients = tape.gradient(loss, model_compiled.trainable_variables)
+    model_compiled.optimizer.apply_gradients(zip(gradients, model_compiled.trainable_variables))
+
+    train_loss(loss)
+    train_accuracy(train_y, predictions)
+    return loss
+
+
 def get_cifar_data_loader(batch_size=200, train=True):
     (x_train, y_train), (x_test, y_test) = getCifar()
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
@@ -51,9 +66,8 @@ def get_cifar_data_loader(batch_size=200, train=True):
 
 # GPU training: https://www.tensorflow.org/guide/gpu
 def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_list, batch_size=200):
-    # print(model.summary())
     model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=batch_size, shuffle=True,
-              callbacks=call_back_list, steps_per_epoch=80)
+              callbacks=call_back_list)
 
 
 def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
@@ -83,7 +97,8 @@ Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
 # https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
-def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2, num_prof_step=10):
+def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
+                  num_prof_step=100):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
@@ -200,9 +215,9 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
         with tf.GradientTape() as tape:
             # Forward pass
             predictions = model(train_x, training=True)
-            loss = loss_fn(train_y, predictions)
+            loss = model.loss(train_y, predictions)
         gradients = tape.gradient(loss, model.trainable_variables)
-        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+        model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
         train_loss(loss)
         train_accuracy(train_y, predictions)
