@@ -187,21 +187,6 @@ def parse_tensorboard(path):
     '''
 
 
-@tf.function
-def training_step(model_complied, train_x, train_y):
-    # https://www.tensorflow.org/guide/autodiff
-    with tf.GradientTape() as tape:
-        # Forward pass
-        predictions = model_complied(train_x, training=True)
-        loss = model_complied.loss(train_y, predictions)
-    gradients = tape.gradient(loss, model_complied.trainable_variables)
-    model_complied.optimizer.apply_gradients(zip(gradients, model_complied.trainable_variables))
-
-    train_loss(loss)
-    train_accuracy(train_y, predictions)
-    return loss
-
-
 def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
               loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
     compile_model(model, optimizer, loss_fn)
@@ -209,6 +194,20 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function
     # https://www.tensorflow.org/tensorboard/get_started
+    @tf.function
+    def training_step(train_x, train_y):
+        # https://www.tensorflow.org/guide/autodiff
+        with tf.GradientTape() as tape:
+            # Forward pass
+            predictions = model(train_x, training=True)
+            loss = loss_fn(train_y, predictions)
+            loss += sum(model.losses)
+        gradients = tape.gradient(loss, model.trainable_weights)
+        optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+
+        train_loss.update_state(loss)
+        train_accuracy.update_state(train_y, predictions)
+        return loss
 
     # tf.TensorSpec constrain the type of inputs accepted by a tf.function
     # shape=[200, 32, 32, 3], 200 is batch size, 32x32x3 is the size for each image
@@ -217,7 +216,7 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # to obtain a concrete function from a tf.function.
     # ConcreteFunctions can be executed just like PolymorphicFunctions,
     # but their input is restricted to the types to which they're specialized.
-    concrete_function = training_step.get_concrete_function(model, inputs_constraint, targets_constraint)
+    concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
     # parse_to_comp_graph(concrete_function)
 
     path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
