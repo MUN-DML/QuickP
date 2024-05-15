@@ -83,7 +83,7 @@ Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
 # https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
-def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2, num_prof_step=3):
+def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2, num_prof_step=10):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
@@ -91,33 +91,34 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
     train_summary_writer = tf.summary.create_file_writer(log_dir)
     # Start the profiler, cannot set the parameter profiler=True
     tf.summary.trace_on(graph=True)
-    # warmup
-    warmup_step = 0
-    for (x_train, y_train) in dataloader.take(num_warmup_step):
-        concrete_function(x_train, y_train)
-        if warmup_step == 0:
-            # TensorFlow Summary Trace API to log autographed functions for visualization in TensorBoard.
-            # https://www.tensorflow.org/tensorboard/graphs
-            # profiling will end trace_export
-            with train_summary_writer.as_default():
-                if warmup_step == 0:
-                    # Call only one tf.function when tracing, so export after 1 iteration
-                    tf.summary.trace_export(
-                        name="my_func_trace",
-                        step=warmup_step,
-                        profiler_outdir=log_dir)
-        warmup_step += 1
-    tf.profiler.experimental.start(log_dir, options=options)
     step = 0
     for (x_train, y_train) in dataloader:
-        if step > 5:
+        # warmup steps
+        if step < num_warmup_step:
+            concrete_function(x_train, y_train)
+            # Call only one tf.function when tracing, so export after 1 iteration
+            if step == 0:
+                with train_summary_writer.as_default():
+                    # TensorFlow Summary Trace API to log autographed functions for visualization in TensorBoard.
+                    # https://www.tensorflow.org/tensorboard/graphs
+                    # profiling will end trace_export
+                    tf.summary.trace_export(
+                        name="my_func_trace",
+                        step=step,
+                        profiler_outdir=log_dir)
+        # Profiling steps
+        elif step < num_warmup_step + num_prof_step:
+            if step == num_warmup_step:
+                tf.profiler.experimental.start(log_dir, options=options)
+            concrete_function(x_train, y_train)
+            with train_summary_writer.as_default():
+                tf.summary.scalar('loss', train_loss.result(), step=step)
+                tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
+        # after profiling
+        else:
+            tf.profiler.experimental.stop()
             break
-        concrete_function(x_train, y_train)
-        with train_summary_writer.as_default():
-            tf.summary.scalar('loss', train_loss.result(), step=step)
-            tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
         step += 1
-    tf.profiler.experimental.stop()
     return log_dir
 
 
