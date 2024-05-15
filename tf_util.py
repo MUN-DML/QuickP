@@ -95,7 +95,8 @@ def profile_train(concrete_function: ConcreteFunction, dataloader):
     tf.profiler.experimental.start(log_dir, options=options)
     step = 0
     for (x_train, y_train) in dataloader:
-        # Call only one tf.function when tracing.
+        if step > 5:
+            break
         concrete_function(x_train, y_train)
         with train_summary_writer.as_default():
             tf.summary.scalar('loss', train_loss.result(), step=step)
@@ -103,12 +104,13 @@ def profile_train(concrete_function: ConcreteFunction, dataloader):
             # TensorFlow Summary Trace API to log autographed functions for visualization in TensorBoard.
             # https://www.tensorflow.org/tensorboard/graphs
             # profiling will end trace_export
-
-            tf.summary.trace_export(
-                name="my_func_trace",
-                step=step,
-                profiler_outdir=log_dir)
-            break
+            if step == 0:
+                # Call only one tf.function when tracing, so export after 1 iteration
+                tf.summary.trace_export(
+                    name="my_func_trace",
+                    step=step,
+                    profiler_outdir=log_dir)
+        step += 1
     tf.profiler.experimental.stop()
     return log_dir
 
