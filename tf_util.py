@@ -91,34 +91,34 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
     train_summary_writer = tf.summary.create_file_writer(log_dir)
     # Start the profiler, cannot set the parameter profiler=True
     tf.summary.trace_on(graph=True)
-    step = 0
-    for (x_train, y_train) in dataloader:
+
+    for index, (x_train, y_train) in enumerate(dataloader):
         # warmup steps
-        if step < num_warmup_step:
+        if index < num_warmup_step:
             concrete_function(x_train, y_train)
             # Call only one tf.function when tracing, so export after 1 iteration
-            if step == 0:
+            if index == 0:
                 with train_summary_writer.as_default():
                     # TensorFlow Summary Trace API to log autographed functions for visualization in TensorBoard.
                     # https://www.tensorflow.org/tensorboard/graphs
                     # profiling will end trace_export
                     tf.summary.trace_export(
                         name="my_func_trace",
-                        step=step,
+                        step=index,
                         profiler_outdir=log_dir)
         # Profiling steps
-        elif step < num_warmup_step + num_prof_step:
-            if step == num_warmup_step:
+        elif index < num_warmup_step + num_prof_step:
+            if index == num_warmup_step:
                 tf.profiler.experimental.start(log_dir, options=options)
             concrete_function(x_train, y_train)
             with train_summary_writer.as_default():
-                tf.summary.scalar('loss', train_loss.result(), step=step)
-                tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
+                tf.summary.scalar('loss', train_loss.result(), step=index)
+                tf.summary.scalar('accuracy', train_accuracy.result(), step=index)
         # after profiling
         else:
             tf.profiler.experimental.stop()
             break
-        step += 1
+
     return log_dir
 
 
