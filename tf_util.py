@@ -193,6 +193,7 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function
+    # https://www.tensorflow.org/tensorboard/get_started
     @tf.function
     def training_step(train_x, train_y):
         # https://www.tensorflow.org/guide/autodiff
