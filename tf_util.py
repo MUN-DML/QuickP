@@ -1,3 +1,5 @@
+import json
+import os
 from datetime import datetime
 
 import keras
@@ -12,6 +14,7 @@ from tensorboard.backend.event_processing import event_accumulator, plugin_event
 from tensorboard.data import provider
 from tensorboard.plugins.base_plugin import TBContext
 from tensorboard_plugin_profile.profile_plugin import ProfilePlugin
+from tensorboard_plugin_profile.protobuf import trace_events_pb2
 from tensorflow import data as tf_data
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 
@@ -87,26 +90,25 @@ def profile_train(concrete_function: ConcreteFunction, dataloader):
     log_dir = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
     train_summary_writer = tf.summary.create_file_writer(log_dir)
 
-    # Start the profiler
-    tf.summary.trace_on(graph=True, profiler=True)
+    # Start the profiler, cannot set the parameter profiler=True
+    tf.summary.trace_on(graph=True)
     tf.profiler.experimental.start(log_dir, options=options)
     step = 0
     for (x_train, y_train) in dataloader:
-        step += 1
         # Call only one tf.function when tracing.
         concrete_function(x_train, y_train)
         with train_summary_writer.as_default():
             tf.summary.scalar('loss', train_loss.result(), step=step)
             tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
+            # TensorFlow Summary Trace API to log autographed functions for visualization in TensorBoard.
+            # https://www.tensorflow.org/tensorboard/graphs
             # profiling will end trace_export
-            if step == 5:
-                '''
-                tf.summary.trace_export(
-                    name="my_func_trace",
-                    step=step,
-                    profiler_outdir=log_dir)
-                '''
-                break
+
+            tf.summary.trace_export(
+                name="my_func_trace",
+                step=step,
+                profiler_outdir=log_dir)
+            break
     tf.profiler.experimental.stop()
     return log_dir
 
@@ -130,10 +132,34 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
 
 
 def parse_tensorboard(path):
-    event_acc = event_accumulator.EventAccumulator(path)
-    event_acc.Reload()
-    tags = event_acc.Tags()
-    print("fuck", tags)
+    def get_log():
+        event_acc = event_accumulator.EventAccumulator(path)
+        event_acc.Reload()
+        tags = event_acc.Tags()
+        print("fuck", tags)
+        # Extract scalar data
+        tensors = {}
+        for tag in tags['tensors']:
+            tensors[tag] = event_acc.Tensors(tag)
+
+        # Convert tensor data to JSON
+        def tensor_to_json(tensor_event):
+            tensor_proto = tensor_event.tensor_proto
+            tensor_dict = {
+                'step': tensor_event.step,
+                'wall_time': tensor_event.wall_time,
+                'tensor': {
+                    'dtype': tensor_proto.dtype,
+                    'tensor_shape': [dim.size for dim in tensor_proto.tensor_shape.dim],
+                    'tensor_content': tensor_proto.tensor_content.hex()
+                }
+            }
+            return tensor_dict
+
+        tensors_json = {tag: [tensor_to_json(t) for t in tensors[tag]] for tag in tensors}
+        print(tensors_json)
+
+    '''
     # Initialize the Event Multiplexer
     multiplexer = plugin_event_multiplexer.EventMultiplexer({
         'run1': path
@@ -142,27 +168,18 @@ def parse_tensorboard(path):
     # Load the event files
     multiplexer.Reload()
 
-    # Create a log directory provider
-    # logdir_provider = provider.LogdirDataProvider(path, multiplexer)
-
-    # Initialize the context for the ProfilePlugin
-    context = {
-        'logdir': path,
-        'data_provider': None,
-        'flags': None
-    }
-    context = TBContext(logdir=path)
+    data_provider = provider.DataProvider()
+    context = TBContext(logdir=path, multiplexer=multiplexer, data_provider=data_provider)
     plugin = ProfilePlugin(context)
     profiles = plugin.profiles()
     # Load the profile data
     for profile in profiles:
         print(f"Profile: {profile}")
+    '''
 
-    # Extract tensors
 
-
-def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
-                   loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
+def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
+              loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
     compile_model(model, optimizer, loss_fn)
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
@@ -192,7 +209,7 @@ def get_comp_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # parse_to_comp_graph(concrete_function)
 
     path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
-    parse_tensorboard(path)
+    # parse_tensorboard(path)
 
 
-get_comp_graph(VGG16_tf())
+work_flow(VGG16_tf())
