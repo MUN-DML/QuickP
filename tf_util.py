@@ -83,7 +83,7 @@ Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
 def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
-                  num_prof_step=150):
+                  num_prof_step=200):
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
@@ -187,23 +187,24 @@ def parse_tensorboard(path):
     '''
 
 
+@tf.function
+def training_step(model_complied, train_x, train_y):
+    # https://www.tensorflow.org/guide/autodiff
+    with tf.GradientTape() as tape:
+        # Forward pass
+        predictions = model_complied(train_x, training=True)
+        loss = model_complied.loss(train_y, predictions)
+    gradients = tape.gradient(loss, model_complied.trainable_variables)
+    model_complied.optimizer.apply_gradients(zip(gradients, model_complied.trainable_variables))
+
+    train_loss(loss)
+    train_accuracy(train_y, predictions)
+    return loss
+
+
 def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
               loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
     compile_model(model, optimizer, loss_fn)
-
-    @tf.function
-    def training_step(model_complied, train_x, train_y):
-        # https://www.tensorflow.org/guide/autodiff
-        with tf.GradientTape() as tape:
-            # Forward pass
-            predictions = model_complied(train_x, training=True)
-            loss = model_complied.loss(train_y, predictions)
-        gradients = tape.gradient(loss, model_complied.trainable_variables)
-        model_complied.optimizer.apply_gradients(zip(gradients, model_complied.trainable_variables))
-
-        train_loss(loss)
-        train_accuracy(train_y, predictions)
-        return loss
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function
