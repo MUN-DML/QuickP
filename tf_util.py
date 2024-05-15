@@ -220,7 +220,6 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # parse_to_comp_graph(concrete_function)
 
     path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
-    # parse_tensorboard(path)
 
 
 work_flow(VGG16_tf())
