@@ -38,15 +38,19 @@ def getCifar():
 
 
 def get_cifar_data_loader(batch_size=200, train=True):
+    def augment_images(image, label):
+        # Data augmentation transformations
+        image = tf.image.random_flip_left_right(image)
+        image = tf.image.random_brightness(image, max_delta=0.1)  # Random brightness
+        image = tf.image.random_contrast(image, lower=0.8, upper=1.2)
+        return image, label
     (x_train, y_train), (x_test, y_test) = getCifar()
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
-    train_dataset = train_dataset.shuffle(50000).batch(batch_size)
-    test_dataset = test_dataset.batch(batch_size)
     if train:
-        return train_dataset.cache().prefetch(tf.data.experimental.AUTOTUNE)
+        return train_dataset.shuffle(50000).map(augment_images).batch(batch_size).cache().prefetch(tf.data.experimental.AUTOTUNE)
     else:
-        return test_dataset.cache().prefetch(tf.data.experimental.AUTOTUNE)
+        return test_dataset.batch(batch_size).cache().prefetch(tf.data.experimental.AUTOTUNE)
 
 
 # GPU training: https://www.tensorflow.org/guide/gpu
