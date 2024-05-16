@@ -144,51 +144,25 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     visualize_graph(G, show_labels=False)
 
 
-def parse_tensorboard(path):
-    def get_log():
-        event_acc = event_accumulator.EventAccumulator(path)
-        event_acc.Reload()
-        tags = event_acc.Tags()
-        print("fuck", tags)
-        # Extract scalar data
-        tensors = {}
-        for tag in tags['tensors']:
-            tensors[tag] = event_acc.Tensors(tag)
+def parse_tensorboard(input_path, output_path):
+    tools = ['framework_op_stats^', 'memory_profile']
 
-        # Convert tensor data to JSON
-        def tensor_to_json(tensor_event):
-            tensor_proto = tensor_event.tensor_proto
-            tensor_dict = {
-                'step': tensor_event.step,
-                'wall_time': tensor_event.wall_time,
-                'tensor': {
-                    'dtype': tensor_proto.dtype,
-                    'tensor_shape': [dim.size for dim in tensor_proto.tensor_shape.dim],
-                    'tensor_content': tensor_proto.tensor_content.hex()
-                }
-            }
-            return tensor_dict
+    # Process the input file
+    print("\033[32mImport TensorFlow...\033[0m")
+    import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
 
-        tensors_json = {tag: [tensor_to_json(t) for t in tensors[tag]] for tag in tensors}
-        print(tensors_json)
+    print("\033[32mXSpace to Tool Data...\033[0m")
+    tv = rttd.xspace_to_tool_data([input_path], "framework_op_stats^", {'tqx': ''})
 
-    '''
-    # Initialize the Event Multiplexer
-    multiplexer = plugin_event_multiplexer.EventMultiplexer({
-        'run1': path
-    })
+    if isinstance(tv, tuple):
+        tv = tv[0]
 
-    # Load the event files
-    multiplexer.Reload()
+    # Write the processed data to the output file
+    print("\033[32mWriting file...\033[0m")
+    with open(output_path, "w") as f:
+        f.write(tv)
 
-    data_provider = provider.DataProvider()
-    context = TBContext(logdir=path, multiplexer=multiplexer, data_provider=data_provider)
-    plugin = ProfilePlugin(context)
-    profiles = plugin.profiles()
-    # Load the profile data
-    for profile in profiles:
-        print(f"Profile: {profile}")
-    '''
+    print("\033[32mDone!\033[0m")
 
 
 def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
@@ -226,4 +200,6 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
 
 
-work_flow(VGG16_tf())
+plane_pb_file = 'logs/20240516-150137/plugins/profile/2024_05_16_15_01_55/hola-Legion-T7-34IAZ7.xplane.pb'
+parse_tensorboard(plane_pb_file, "fuck_op.json")
+
