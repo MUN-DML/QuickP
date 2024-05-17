@@ -2,7 +2,7 @@ import json
 import os
 from collections import defaultdict
 from datetime import datetime
-
+import pandas as pd
 import keras
 import torch
 import numpy as np
@@ -142,7 +142,20 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     visualize_graph(G, show_labels=False)
 
 
+def csv_to_op_prof(path):
+    if not os.path.exists(path):
+        raise FileNotFoundError
+    # from csv to dataframe
+    df = pd.read_csv(path, usecols=['Operation', 'Avg. self-time (us)'])
+    # from dataframe to dict
+    data = {row['Operation']: row['Avg. self-time (us)'] for index, row in df.head(200).iterrows()}
+    print(data)
+
+
 def parse_tensorboard(input_path):
+    if not os.path.exists(input_path):
+        raise FileNotFoundError
+
     def default_entry():
         return {"param": {'tqx': ''}, "output_path": ''}
 
@@ -214,4 +227,5 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
 
 
 plane_pb_file = 'logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb'
-parse_tensorboard(plane_pb_file)
+# parse_tensorboard(plane_pb_file)
+csv_to_op_prof('op_profile.csv')
