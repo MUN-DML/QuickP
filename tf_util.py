@@ -1,5 +1,6 @@
 import json
 import os
+from collections import defaultdict
 from datetime import datetime
 
 import keras
@@ -10,12 +11,7 @@ from keras.src.datasets import cifar10
 from keras.src.utils import to_categorical
 import tensorflow as tf
 import networkx as nx
-from tensorboard.backend.event_processing import event_accumulator, plugin_event_multiplexer
-from tensorboard.data import provider
-from tensorboard.plugins.base_plugin import TBContext
-from tensorboard_plugin_profile.profile_plugin import ProfilePlugin
-from tensorboard_plugin_profile.protobuf import trace_events_pb2
-from tensorflow import data as tf_data
+import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 
 from DNN_model_tf.vgg_tf import VGG16_tf
@@ -44,11 +40,13 @@ def get_cifar_data_loader(batch_size=200, train=True):
         image = tf.image.random_brightness(image, max_delta=0.1)  # Random brightness
         image = tf.image.random_contrast(image, lower=0.8, upper=1.2)
         return image, label
+
     (x_train, y_train), (x_test, y_test) = getCifar()
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
     if train:
-        return train_dataset.shuffle(50000).map(augment_images).batch(batch_size).cache().prefetch(tf.data.experimental.AUTOTUNE)
+        return train_dataset.shuffle(50000).map(augment_images).batch(batch_size).cache().prefetch(
+            tf.data.experimental.AUTOTUNE)
     else:
         return test_dataset.batch(batch_size).cache().prefetch(tf.data.experimental.AUTOTUNE)
 
@@ -144,25 +142,40 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     visualize_graph(G, show_labels=False)
 
 
-def parse_tensorboard(input_path, output_path):
-    tools = ['framework_op_stats^', 'memory_profile']
+def parse_tensorboard(input_path):
+    def default_entry():
+        return {"param": {'tqx': ''}, "output_path": ''}
 
-    # Process the input file
-    print("\033[32mImport TensorFlow...\033[0m")
-    import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
+    # Create a default dict where each value is a list
+    grouped_conf = defaultdict(default_entry)
+    # Simpler input format
+    simple_conf_dict = {
+        'framework_op_stats^': ('out:csv', 'op_profile.csv'),
+        'memory_profile^': ('', 'mem_profile.json')
+    }
+    # Update the grouped_data dict with the values from simple_conf_dict
+    for key, (tqx, output_path) in simple_conf_dict.items():
+        grouped_conf[key]['param']['tqx'] = tqx
+        grouped_conf[key]['output_path'] = output_path
+    grouped_conf = dict(grouped_conf)
 
-    print("\033[32mXSpace to Tool Data...\033[0m")
-    tv = rttd.xspace_to_tool_data([input_path], "framework_op_stats^", {'tqx': ''})
+    def process_pb(tool_name, params, o_path):
+        # Process and convert the input file
+        print("\033[32mImport TensorFlow...\033[0m")
+        print("\033[32mXSpace to Tool Data...\033[0m")
+        # https://github.com/tensorflow/profiler/blob/85dcfd10656d623330b11c3bbb8afed6418ec533/plugin/tensorboard_plugin_profile/convert/raw_to_tool_data.py
+        tv = rttd.xspace_to_tool_data([input_path], tool_name, params)
 
-    if isinstance(tv, tuple):
-        tv = tv[0]
+        if isinstance(tv, tuple):
+            tv = tv[0]
+        # Write the processed data to the output file
+        print("\033[32mWriting file...\033[0m")
+        with open(o_path, "w") as f:
+            f.write(tv)
+        print("\033[32mDone!\033[0m")
 
-    # Write the processed data to the output file
-    print("\033[32mWriting file...\033[0m")
-    with open(output_path, "w") as f:
-        f.write(tv)
-
-    print("\033[32mDone!\033[0m")
+    for (tool, value) in grouped_conf.items():
+        process_pb(tool, value["param"], value['output_path'])
 
 
 def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
@@ -201,5 +214,4 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
 
 
 plane_pb_file = 'logs/20240516-150137/plugins/profile/2024_05_16_15_01_55/hola-Legion-T7-34IAZ7.xplane.pb'
-parse_tensorboard(plane_pb_file, "fuck_op.json")
-
+parse_tensorboard(plane_pb_file)
