@@ -213,5 +213,5 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
 
 
-plane_pb_file = 'logs/20240516-150137/plugins/profile/2024_05_16_15_01_55/hola-Legion-T7-34IAZ7.xplane.pb'
+plane_pb_file = 'logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb'
 parse_tensorboard(plane_pb_file)
