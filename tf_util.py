@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 from collections import defaultdict
 from datetime import datetime
 import pandas as pd
@@ -139,7 +140,8 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
             G.add_new_edge(input_tensor.op.name, op.name)
     if not nx.is_directed_acyclic_graph(G):
         raise "comp_graph is not directed acyclic"
-    visualize_graph(G, show_labels=False)
+    # visualize_graph(G, show_labels=False)
+    return G
 
 
 def csv_to_op_prof(path):
@@ -149,7 +151,18 @@ def csv_to_op_prof(path):
     df = pd.read_csv(path, usecols=['Operation', 'Avg. self-time (us)'])
     # from dataframe to dict
     data = {row['Operation']: row['Avg. self-time (us)'] for index, row in df.head(200).iterrows()}
-    print(data)
+    return data
+
+
+def update_graph_with_prof(graph: CompGraph, prof_dict):
+    device_name = socket.gethostname()
+    for node_id in graph.getOperatorIDs():
+        if node_id in prof_dict.keys():
+            operator_dict = graph.getOperator(node_id)
+            if "comp_cost" not in operator_dict:
+                operator_dict["comp_cost"] = {}
+            operator_dict["comp_cost"][device_name] = prof_dict[node_id]
+    return graph.getAllOperators()
 
 
 def parse_tensorboard(input_path):
@@ -221,11 +234,12 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # ConcreteFunctions can be executed just like PolymorphicFunctions,
     # but their input is restricted to the types to which they're specialized.
     concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
-    # parse_to_comp_graph(concrete_function)
+    graph = parse_to_comp_graph(concrete_function)
+    # plane_pb_file = 'logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb'
+    # path = parse_tensorboard(plane_pb_file)
+    prof_data = csv_to_op_prof('op_profile.csv')
+    print(update_graph_with_prof(graph, prof_data))
+    # path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
 
-    path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
 
-
-plane_pb_file = 'logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb'
-# parse_tensorboard(plane_pb_file)
-csv_to_op_prof('op_profile.csv')
+work_flow(VGG16_tf())
