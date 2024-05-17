@@ -13,6 +13,7 @@ from keras.src.utils import to_categorical
 import tensorflow as tf
 import networkx as nx
 import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
+from pathlib import Path
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 
 from DNN_model_tf.vgg_tf import VGG16_tf
@@ -204,42 +205,8 @@ def parse_tensorboard(input_path):
         process_pb(tool, value["param"], value['output_path'])
 
 
-def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
-              loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
-    compile_model(model, optimizer, loss_fn)
-
-    # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
-    # https://www.tensorflow.org/guide/function
-    # https://www.tensorflow.org/tensorboard/get_started
-    @tf.function
-    def training_step(train_x, train_y):
-        # https://www.tensorflow.org/guide/autodiff
-        with tf.GradientTape() as tape:
-            # Forward pass
-            predictions = model(train_x, training=True)
-            loss = loss_fn(train_y, predictions)
-            loss += sum(model.losses)
-        gradients = tape.gradient(loss, model.trainable_weights)
-        optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-
-        train_loss.update_state(loss)
-        train_accuracy.update_state(train_y, predictions)
-        return loss
-
-    # tf.TensorSpec constrain the type of inputs accepted by a tf.function
-    # shape=[200, 32, 32, 3], 200 is batch size, 32x32x3 is the size for each image
-    inputs_constraint = tf.TensorSpec(shape=[batch_size, 32, 32, 3], dtype=tf.float32, name="input")
-    targets_constraint = tf.TensorSpec(shape=[batch_size, 1], dtype=tf.uint8, name="target")
-    # to obtain a concrete function from a tf.function.
-    # ConcreteFunctions can be executed just like PolymorphicFunctions,
-    # but their input is restricted to the types to which they're specialized.
-    concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
-    graph = parse_to_comp_graph(concrete_function)
-    # plane_pb_file = 'logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb'
-    # path = parse_tensorboard(plane_pb_file)
-    prof_data = csv_to_op_prof('op_profile.csv')
-    print(update_graph_with_prof(graph, prof_data))
-    # path = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
-
-
-work_flow(VGG16_tf())
+def find_specific_pb_file(parent_dir, file_suffix):
+    parent_path = Path(parent_dir)
+    for file in parent_path.rglob(f'*{file_suffix}'):
+        return str(file)
+    return None
