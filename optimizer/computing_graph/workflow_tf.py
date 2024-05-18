@@ -8,6 +8,7 @@ import tensorflow as tf
 from keras import Sequential
 from pathlib import Path
 from DNN_model_tf.vgg_tf import VGG16_tf
+from optimizer.computing_graph.tool import Conf_TB, CONF
 from tf_util import train_model, getCifar, compile_model, train_loss, train_accuracy, parse_to_comp_graph, \
     csv_to_op_prof, update_graph_with_prof, profile_train, get_cifar_data_loader, parse_tensorboard, \
     find_specific_pb_file
@@ -63,8 +64,8 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     # plane_pb_file = 'logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb'
     parent_directory = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
     plane_pb_file = find_specific_pb_file(parent_directory, "xplane.pb")
-    path = parse_tensorboard(plane_pb_file)
-    prof_data = csv_to_op_prof('op_profile.csv')
+    path = parse_tensorboard(plane_pb_file, Conf_TB(CONF.OP))
+    prof_data = csv_to_op_prof(path)
     print(update_graph_with_prof(graph, prof_data))
 
 

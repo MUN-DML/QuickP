@@ -17,6 +17,7 @@ from pathlib import Path
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 
 from DNN_model_tf.vgg_tf import VGG16_tf
+from optimizer.computing_graph.tool import Conf_TB
 from optimizer.model.graph import visualize_graph, CompGraph
 
 train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
@@ -166,25 +167,9 @@ def update_graph_with_prof(graph: CompGraph, prof_dict):
     return graph.getAllOperators()
 
 
-def parse_tensorboard(input_path):
+def parse_tensorboard(input_path, conf: Conf_TB):
     if not os.path.exists(input_path):
         raise FileNotFoundError
-
-    def default_entry():
-        return {"param": {'tqx': ''}, "output_path": ''}
-
-    # Create a default dict where each value is a list
-    grouped_conf = defaultdict(default_entry)
-    # Simpler input format
-    simple_conf_dict = {
-        'framework_op_stats^': ('out:csv', 'op_profile.csv'),
-        'memory_profile^': ('', 'mem_profile.json')
-    }
-    # Update the grouped_data dict with the values from simple_conf_dict
-    for key, (tqx, output_path) in simple_conf_dict.items():
-        grouped_conf[key]['param']['tqx'] = tqx
-        grouped_conf[key]['output_path'] = output_path
-    grouped_conf = dict(grouped_conf)
 
     def process_pb(tool_name, params, o_path):
         # Process and convert the input file
@@ -201,8 +186,10 @@ def parse_tensorboard(input_path):
             f.write(tv)
         print("\033[32mDone!\033[0m")
 
-    for (tool, value) in grouped_conf.items():
-        process_pb(tool, value["param"], value['output_path'])
+    process_pb(conf.tool, conf.params, conf.output_path)
+
+    # return the output path
+    return conf.output_path
 
 
 def find_specific_pb_file(parent_dir, file_suffix):

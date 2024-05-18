@@ -1,7 +1,7 @@
 import networkx as nx
 import torch
 
-from optimizer.graph_convertor.onnx_util import model_to_onnx, onnx_to_dict, to_json, generate_prof_json, \
+from optimizer.computing_graph.onnx_util import model_to_onnx, onnx_to_dict, to_json, generate_prof_json, \
     load_prof_result, get_comp_graph, update_graph_with_prof
 from DNN_model_ptytorch.vgg import vgg11
 from py_util import getStdCifar10DataLoader
