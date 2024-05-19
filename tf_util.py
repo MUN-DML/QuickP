@@ -154,8 +154,19 @@ def process_op_df(df: DataFrame):
     # from csv to dataframe
     df = df[['Operation', 'Avg. self-time (us)']]
     # from dataframe to dict
-    data = {row['Operation']: row['Avg. self-time (us)'] for index, row in df.head(200).iterrows()}
-    return data
+    return {row['Operation']: row['Avg. self-time (us)'] for index, row in df.iterrows()}
+
+
+def process_mem_dict(mem_dict: dict):
+    if "memoryProfilePerAllocator" not in mem_dict:
+        raise ValueError("input dict does not contain memory profile per-allocator")
+    mem_dict = mem_dict["memoryProfilePerAllocator"]
+    if "GPU_0_bfc" not in mem_dict:
+        raise ValueError("input dict does not contain GPU_0_bfc")
+    # gpu_host_bfc, GPU_0_bfc, mklcpu
+    # ['memoryProfileSnapshots', 'profileSummary', 'activeAllocations', 'specialAllocations', 'sampledTimelineSnapshots']
+
+    print(mem_dict['memoryProfileSnapshots'])
 
 
 def update_graph_with_prof(graph: CompGraph, prof_dict):
@@ -180,11 +191,19 @@ def parse_tensorboard(input_path, conf: Conf_TB):
         # https://github.com/tensorflow/profiler/blob/85dcfd10656d623330b11c3bbb8afed6418ec533/plugin/tensorboard_plugin_profile/convert/raw_to_tool_data.py
         tv = rttd.xspace_to_tool_data([input_path], tool_name, params)
         if isinstance(tv, tuple):
-            tv = str(tv[0])
-        data_io = StringIO(tv)
+            tv = tv[0]
         if conf.get_tool_type() == CONF.OP:
+            data_io = StringIO(tv)
             df = pd.read_csv(data_io)
             return df
+        elif conf.get_tool_type() == CONF.MEM:
+            # Decode bytes to string
+            json_str = tv.decode('utf-8')
+            # Convert JSON string to dictionary
+            data_dict = json.loads(json_str)
+            return data_dict
+        else:
+            raise ValueError("tool type not supported yet")
 
     return process_pb(conf.tool, conf.params)
 
@@ -202,3 +221,9 @@ def find_specific_pb_file(parent_dir, file_suffix):
     for file in parent_path.rglob(f'*{file_suffix}'):
         return str(file)
     return None
+
+
+data = parse_tensorboard(
+    'optimizer/computing_graph/logs/20240519-185213/plugins/profile/2024_05_19_18_52_30/hola-Legion-T7-34IAZ7.xplane.pb',
+    Conf_TB(CONF.MEM))
+process_mem_dict(data)
