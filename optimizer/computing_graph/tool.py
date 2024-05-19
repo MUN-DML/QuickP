@@ -24,11 +24,15 @@ class CONF(Enum):
 
 class Conf_TB:
     def __init__(self, conf: CONF):
+        self.conf = conf
         assert len(conf.value) == 1
-        for tool, dict_info in conf.value.items():
+        for tool, dict_info in self.conf.value.items():
             self.tool = tool
             self.params = {'tqx': dict_info[0], 'host': dict_info[1]}
             self.output_path = dict_info[2]
 
     def __str__(self):
         return str(self.tool) + ' ' + str(self.params) + ' ' + str(self.output_path)
+
+    def get_tool_type(self):
+        return self.conf

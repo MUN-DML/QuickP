@@ -3,6 +3,8 @@ import os
 import socket
 from collections import defaultdict
 from datetime import datetime
+from io import StringIO
+
 import pandas as pd
 import keras
 import torch
@@ -14,6 +16,8 @@ import tensorflow as tf
 import networkx as nx
 import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
 from pathlib import Path
+
+from pandas import DataFrame
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 
 from DNN_model_tf.vgg_tf import VGG16_tf
@@ -146,11 +150,9 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     return G
 
 
-def csv_to_op_prof(path):
-    if not os.path.exists(path):
-        raise FileNotFoundError
+def process_op_df(df: DataFrame):
     # from csv to dataframe
-    df = pd.read_csv(path, usecols=['Operation', 'Avg. self-time (us)'])
+    df = df[['Operation', 'Avg. self-time (us)']]
     # from dataframe to dict
     data = {row['Operation']: row['Avg. self-time (us)'] for index, row in df.head(200).iterrows()}
     return data
@@ -171,7 +173,7 @@ def parse_tensorboard(input_path, conf: Conf_TB):
     if not os.path.exists(input_path):
         raise FileNotFoundError
 
-    def process_pb(tool_name, params, o_path):
+    def process_pb(tool_name, params):
         # Process and convert the input file
         print("\033[32mImport TensorFlow...\033[0m")
         print("\033[32mXSpace to Tool Data...\033[0m")
@@ -179,16 +181,20 @@ def parse_tensorboard(input_path, conf: Conf_TB):
         tv = rttd.xspace_to_tool_data([input_path], tool_name, params)
         if isinstance(tv, tuple):
             tv = str(tv[0])
-        # Write the processed data to the output file
-        print("\033[32mWriting file...\033[0m")
-        with open(o_path, "w") as f:
-            f.write(tv)
-        print("\033[32mDone!\033[0m")
+        data_io = StringIO(tv)
+        if conf.get_tool_type() == CONF.OP:
+            df = pd.read_csv(data_io)
+            return df
 
-    process_pb(conf.tool, conf.params, conf.output_path)
+    return process_pb(conf.tool, conf.params)
 
-    # return the output path
-    return conf.output_path
+
+def write(data, o_path):
+    # Write the processed data to the output file
+    print("\033[32mWriting file...\033[0m")
+    with open(o_path, "w") as f:
+        f.write(data)
+    print("\033[32mDone!\033[0m")
 
 
 def find_specific_pb_file(parent_dir, file_suffix):
@@ -196,6 +202,3 @@ def find_specific_pb_file(parent_dir, file_suffix):
     for file in parent_path.rglob(f'*{file_suffix}'):
         return str(file)
     return None
-
-
-# parse_tensorboard('logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb', Conf_TB(CONF.MEM))
