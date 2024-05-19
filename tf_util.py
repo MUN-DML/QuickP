@@ -17,7 +17,7 @@ from pathlib import Path
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 
 from DNN_model_tf.vgg_tf import VGG16_tf
-from optimizer.computing_graph.tool import Conf_TB
+from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import visualize_graph, CompGraph
 
 train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
@@ -177,9 +177,8 @@ def parse_tensorboard(input_path, conf: Conf_TB):
         print("\033[32mXSpace to Tool Data...\033[0m")
         # https://github.com/tensorflow/profiler/blob/85dcfd10656d623330b11c3bbb8afed6418ec533/plugin/tensorboard_plugin_profile/convert/raw_to_tool_data.py
         tv = rttd.xspace_to_tool_data([input_path], tool_name, params)
-
         if isinstance(tv, tuple):
-            tv = tv[0]
+            tv = str(tv[0])
         # Write the processed data to the output file
         print("\033[32mWriting file...\033[0m")
         with open(o_path, "w") as f:
@@ -197,3 +196,6 @@ def find_specific_pb_file(parent_dir, file_suffix):
     for file in parent_path.rglob(f'*{file_suffix}'):
         return str(file)
     return None
+
+
+# parse_tensorboard('logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb', Conf_TB(CONF.MEM))
