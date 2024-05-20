@@ -2,7 +2,7 @@ from zipfile import ZipFile
 
 import keras
 import os
-from keras.src.layers import Dense, Conv2D, Flatten, MaxPooling2D
+from keras.src.layers import Dense, Conv2D, Flatten, MaxPooling2D, BatchNormalization
 from keras.src.models import Sequential
 from keras.src.layers import Dropout
 
@@ -17,26 +17,39 @@ def VGG16_tf():
     # ignore the input layer
     # input_shape is the single image size of the suitable dataset. For Cifar_10 => input_shape=(32, 32, 3)
     model.add(Conv2D(input_shape=(32, 32, 3), filters=64, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(Conv2D(filters=64, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 
     model.add(Conv2D(filters=128, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(Conv2D(filters=128, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 
     model.add(Conv2D(filters=256, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(Conv2D(filters=256, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(Conv2D(filters=256, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 
     model.add(Conv2D(filters=512, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(Conv2D(filters=512, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(Conv2D(filters=512, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 
     model.add(Conv2D(filters=512, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(Conv2D(filters=512, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(Conv2D(filters=512, kernel_size=(3, 3), padding="same", activation="relu"))
+    model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 
     model.add(Flatten())
