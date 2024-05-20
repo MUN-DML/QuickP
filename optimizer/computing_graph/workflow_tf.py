@@ -11,7 +11,7 @@ from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from tf_util import train_model, getCifar, compile_model, train_loss, train_accuracy, parse_to_comp_graph, \
     process_op_df, update_graph_with_prof, profile_train, get_cifar_data_loader, parse_tensorboard, \
-    find_specific_pb_file
+    find_specific_pb_file, process_mem_dict
 
 '''
 model = VGG16_tf()
@@ -65,8 +65,10 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     parent_directory = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
     plane_pb_file = find_specific_pb_file(parent_directory, "xplane.pb")
     dataframe = parse_tensorboard(plane_pb_file, Conf_TB(CONF.OP))
-    df_simplified = process_op_df(dataframe)
-    print(update_graph_with_prof(graph, df_simplified))
+    mem_data = parse_tensorboard(plane_pb_file, Conf_TB(CONF.MEM))
+    op_dict = process_op_df(dataframe)
+    mem_dict = process_mem_dict(mem_data)
+    print(update_graph_with_prof(graph, op_dict, mem_dict))
 
 
 model = VGG16_tf()

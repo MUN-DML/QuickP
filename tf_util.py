@@ -150,26 +150,42 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     return G
 
 
-def process_op_df(df: DataFrame):
+def process_op_df(df: DataFrame) -> dict:
     # from csv to dataframe
     df = df[['Operation', 'Avg. self-time (us)']]
     # from dataframe to dict
     return {row['Operation']: row['Avg. self-time (us)'] for index, row in df.iterrows()}
 
 
-def process_mem_dict(mem_dict: dict):
-    if "memoryProfilePerAllocator" not in mem_dict:
+def process_mem_dict(mem_data: dict) -> dict:
+    new_dict = {}
+    if "memoryProfilePerAllocator" not in mem_data:
         raise ValueError("input dict does not contain memory profile per-allocator")
-    mem_dict = mem_dict["memoryProfilePerAllocator"]
-    if "GPU_0_bfc" not in mem_dict:
+    mem_data = mem_data["memoryProfilePerAllocator"]
+    if "GPU_0_bfc" not in mem_data:
         raise ValueError("input dict does not contain GPU_0_bfc")
+    mem_data = mem_data["GPU_0_bfc"]
     # gpu_host_bfc, GPU_0_bfc, mklcpu
+    if "memoryProfileSnapshots" not in mem_data:
+        raise ValueError("input dict does not contain memoryProfileSnapshots")
     # ['memoryProfileSnapshots', 'profileSummary', 'activeAllocations', 'specialAllocations', 'sampledTimelineSnapshots']
+    mem_data = mem_data["memoryProfileSnapshots"]
+    if type(mem_data) is not list:
+        raise ValueError("should be a list")
+    # extract "memoryActivity" from each obj in the list
+    mem_data = [item['activityMetadata'] for item in mem_data]
+    if type(mem_data) is not list:
+        raise ValueError("should be a list")
+    for dt in mem_data:
+        if type(dt) is not dict:
+            raise ValueError("each value should be a dict")
+        if "tfOpName" not in dt or "allocationBytes" not in dt:
+            raise ValueError("input dict does not contain tfOpName")
+        new_dict[dt["tfOpName"]] = dt["allocationBytes"]
+    return new_dict
 
-    print(mem_dict['memoryProfileSnapshots'])
 
-
-def update_graph_with_prof(graph: CompGraph, prof_dict):
+def update_graph_with_prof(graph: CompGraph, prof_dict, mem_dict):
     device_name = socket.gethostname()
     for node_id in graph.getOperatorIDs():
         if node_id in prof_dict.keys():
@@ -177,6 +193,11 @@ def update_graph_with_prof(graph: CompGraph, prof_dict):
             if "comp_cost" not in operator_dict:
                 operator_dict["comp_cost"] = {}
             operator_dict["comp_cost"][device_name] = prof_dict[node_id]
+        if node_id in mem_dict.keys():
+            operator_dict = mem_dict.getOperator(node_id)
+            if "mem" not in operator_dict:
+                operator_dict["mem"] = 0
+            operator_dict["mem"] = mem_dict[node_id]
     return graph.getAllOperators()
 
 
@@ -221,9 +242,3 @@ def find_specific_pb_file(parent_dir, file_suffix):
     for file in parent_path.rglob(f'*{file_suffix}'):
         return str(file)
     return None
-
-
-data = parse_tensorboard(
-    'optimizer/computing_graph/logs/20240519-185213/plugins/profile/2024_05_19_18_52_30/hola-Legion-T7-34IAZ7.xplane.pb',
-    Conf_TB(CONF.MEM))
-process_mem_dict(data)
