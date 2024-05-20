@@ -30,10 +30,8 @@ train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
 
 def getCifar():
     (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-    x_train = x_train.astype('float32')
-    x_test = x_test.astype('float32')
-    x_train /= 255
-    x_test /= 255
+    x_train = x_train.astype('float32') / 255.0
+    x_test = x_test.astype('float32') / 255.0
     # make the y value for each single image to be a array of length 10
     # y_train = to_categorical(y_train, 10)
     # y_test = to_categorical(y_test, 10)
@@ -64,7 +62,7 @@ def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_l
               callbacks=call_back_list)
 
 
-def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
+def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(),
                   loss=keras.losses.SparseCategoricalCrossentropy()):
     model.compile(optimizer=optimizer, loss=loss,
                   metrics=[keras.metrics.SparseCategoricalAccuracy(name="acc")])

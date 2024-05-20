@@ -13,22 +13,6 @@ from tf_util import train_model, getCifar, compile_model, train_loss, train_accu
     process_op_df, update_graph_with_prof, profile_train, get_cifar_data_loader, parse_tensorboard, \
     find_specific_pb_file, process_mem_dict
 
-'''
-model = VGG16_tf()
-compile_model(model)
-
-# Create a TensorBoard callback
-# profiling: https://www.tensorflow.org/tensorboard/tensorboard_profiling_keras
-# python3 -m tensorboard.main --logdir=~/my/training/dir
-logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
-tboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logs,
-                                                 # a range of batches
-                                                 profile_batch='50,55')
-
-(x_train, y_train), (x_test, y_test) = getCifar()
-train_model(model, x_train, y_train, x_test, y_test, [tboard_callback], batch_size=200)
-'''
-
 
 def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
               loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
