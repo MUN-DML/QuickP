@@ -194,7 +194,7 @@ def update_graph_with_prof(graph: CompGraph, prof_dict, mem_dict):
                 operator_dict["comp_cost"] = {}
             operator_dict["comp_cost"][device_name] = prof_dict[node_id]
         if node_id in mem_dict.keys():
-            operator_dict = mem_dict.getOperator(node_id)
+            operator_dict = graph.getOperator(node_id)
             if "mem" not in operator_dict:
                 operator_dict["mem"] = 0
             operator_dict["mem"] = mem_dict[node_id]
