@@ -196,7 +196,8 @@ def update_graph_with_prof(graph, prof_dict, mem_dict):
         # Update computation cost if available
         if node_id in prof_dict:
             operator_dict["comp_cost"][device_name] = prof_dict[node_id]
-
+        else:
+            operator_dict["comp_cost"][device_name] = 0
         # Update memory cost if available
         if node_id in mem_dict:
             operator_dict["mem"] = mem_dict[node_id]

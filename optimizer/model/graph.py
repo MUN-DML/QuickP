@@ -50,6 +50,15 @@ class CompGraph(DiGraph):
     def getEdgeObjs(self):
         return list(self.edges.values())
 
+    def __str__(self):
+        nodes_str = "\n".join(
+            [f"Operator ID: {node_id}, Attributes: {attrs}" for node_id, attrs in self.nodes(data=True)])
+        edges_str = "\n".join(
+            [f"Edge from {src} to {dest}, Attributes: {attrs}" for src, dest, attrs in self.edges(data=True)])
+        return f"CompGraph with {self.number_of_nodes()} operators and {self.number_of_edges()} edges.\n" \
+               f"Operators:\n{nodes_str}\n\n" \
+               f"Edges:\n{edges_str}"
+
 
 # Undirected Graph
 class DeviceGraph(Graph):

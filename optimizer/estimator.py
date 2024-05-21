@@ -9,8 +9,8 @@ from optimizer.computing_graph.workflow_tf import get_computation_graph
 
 model = VGG16_tf()
 comp_graph = get_computation_graph(model=model)
+print(comp_graph)
 comp_graph.random_rebuild(8)
-print(comp_graph.getAllOperators())
 if not nx.is_directed_acyclic_graph(comp_graph):
     raise "comp_graph is not directed acyclic"
 visualize_graph(comp_graph)
