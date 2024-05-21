@@ -149,6 +149,7 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
 
 
 def process_op_df(df: DataFrame) -> dict:
+    df = df[df['Host/device'] == 'Device']
     # from csv to dataframe
     df = df[['Operation', 'Avg. self-time (us)']]
     # from dataframe to dict
@@ -200,7 +201,7 @@ def update_graph_with_prof(graph, prof_dict, mem_dict):
             operator_dict["comp_cost"][device_name] = 0
         # Update memory cost if available
         if node_id in mem_dict:
-            operator_dict["mem"] = mem_dict[node_id]
+            operator_dict["mem"] = int(mem_dict[node_id])
 
 
 def parse_tensorboard(input_path, conf: Conf_TB):
