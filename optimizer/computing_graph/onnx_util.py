@@ -151,7 +151,7 @@ def load_prof_result(prof_json_path: str, warm_up_end_step=3):
 def get_comp_graph(dict):
     graph = CompGraph()
     for node in dict["nodes"]:
-        graph.add_new_node(operator_id=node["name"], mem=0, op_type=node["type"])
+        graph.add_new_node(operator_id=node["name"], op_type=node["type"])
     for edge in dict["edges"]:
         graph.add_new_edge(source_id=edge["from"], dest_id=edge["to"])
     return graph

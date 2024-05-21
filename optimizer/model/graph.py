@@ -9,13 +9,13 @@ class CompGraph(DiGraph):
     def random_rebuild(self, operator_num):
         G = gnp_random_graph(operator_num, 0.5, directed=True)
         for i in G.nodes():
-            self.add_new_node(operator_id=i, mem=random.randint(50, 200), op_type="not specified")
+            self.add_new_node(operator_id=i, op_type="not specified")
         for (u, v) in G.edges():
             if u < v:
                 self.add_new_edge(u, v)
 
-    def add_new_node(self, operator_id, mem, op_type):
-        super().add_node(node_for_adding=operator_id, mem=mem, op_type=op_type)
+    def add_new_node(self, operator_id, op_type):
+        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={})
 
     def add_new_nodes_from(self, operator_list):
         super().add_edges_from(ebunch_to_add=operator_list)

@@ -138,7 +138,7 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     # Add nodes and edges to the graph
     for op in graph.get_operations():
         # Each node is an operation in the TensorFlow graph
-        G.add_new_node(op.name, 0, op_type=op.type)
+        G.add_new_node(op.name, op_type=op.type)
         for input_tensor in op.inputs:
             # Create an edge from input operation to the current operation
             G.add_new_edge(input_tensor.op.name, op.name)
@@ -196,7 +196,6 @@ def update_graph_with_prof(graph: CompGraph, prof_dict, mem_dict):
             if "mem" not in operator_dict:
                 operator_dict["mem"] = 0
             operator_dict["mem"] = mem_dict[node_id]
-    return graph.getAllOperators()
 
 
 def parse_tensorboard(input_path, conf: Conf_TB):

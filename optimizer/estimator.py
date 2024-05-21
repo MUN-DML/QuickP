@@ -3,11 +3,12 @@ import json
 import networkx as nx
 from gurobipy import *
 
+from DNN_model_tf.vgg_tf import VGG16_tf
 from model.graph import DeviceGraph, CompGraph, CompCostMatrix, visualize_graph
+from optimizer.computing_graph.workflow_tf import get_computation_graph
 
-# Load input
-# graph = json.load(sys.stdin)  # operator graph in JSON format
-comp_graph = CompGraph()
+model = VGG16_tf()
+comp_graph = get_computation_graph(model=model)
 comp_graph.random_rebuild(8)
 print(comp_graph.getAllOperators())
 if not nx.is_directed_acyclic_graph(comp_graph):
@@ -19,9 +20,6 @@ deviceTopo.random_rebuild(4)
 print(deviceTopo.getAllDevices())
 visualize_graph(deviceTopo)
 standard_tensor_size = 1000
-
-comp_cost_matrix = CompCostMatrix(operator_ids=comp_graph.getOperatorIDs(), device_ids=deviceTopo.getDeviceIDs())
-print(comp_cost_matrix.cost_matrix)
 
 # Init solver
 model = Model("minimize_maxload")
@@ -86,8 +84,8 @@ for node_id in list(comp_graph.getOperatorIDs()):
     comp_cost = LinExpr()
     # since there is one placement, only one x[node_id, device_id] will be 1
     for device_id in deviceTopo.getDeviceIDs():
-        # comp_cost_matrix consider the device heterogeneity
-        comp_cost += x[node_id, device_id] * comp_cost_matrix.cost_matrix[node_id, device_id]
+        # consider the device heterogeneity
+        comp_cost += x[node_id, device_id] * comp_graph.getOperator(node_id)["comp_cost"][device_id]
     model.addConstr(finish[node_id] == start[node_id] + comp_cost, "finish == start + process")
 
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):

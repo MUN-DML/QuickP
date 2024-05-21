@@ -14,8 +14,8 @@ from tf_util import train_model, getCifar, compile_model, train_loss, train_accu
     find_specific_pb_file, process_mem_dict
 
 
-def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
-              loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
+def get_computation_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
+                          loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
     compile_model(model, optimizer, loss_fn)
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
@@ -52,8 +52,6 @@ def work_flow(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
     mem_data = parse_tensorboard(plane_pb_file, Conf_TB(CONF.MEM))
     op_dict = process_op_df(dataframe)
     mem_dict = process_mem_dict(mem_data)
-    print(update_graph_with_prof(graph, op_dict, mem_dict))
-
-
-model = VGG16_tf()
-work_flow(model)
+    update_graph_with_prof(graph, op_dict, mem_dict)
+    print(graph.getAllOperators())
+    return graph
