@@ -1,13 +1,8 @@
-import os
-from datetime import datetime
-
 import keras
 # it is weird that on my server, have to import torch to activate tensorflow
 import torch
 import tensorflow as tf
 from keras import Sequential
-from pathlib import Path
-from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import CompGraph
 from tf_util import train_model, getCifar, compile_model, train_loss, train_accuracy, parse_to_comp_graph, \
@@ -46,8 +41,7 @@ def get_computation_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-
     # but their input is restricted to the types to which they're specialized.
     concrete_function = training_step.get_concrete_function(inputs_constraint, targets_constraint)
     graph = parse_to_comp_graph(concrete_function)
-    # plane_pb_file = 'logs/20240515-214906/plugins/profile/2024_05_15_21_49_20/hola-Legion-T7-34IAZ7.xplane.pb'
-    parent_directory = profile_train(concrete_function, get_cifar_data_loader(batch_size, True))
+    parent_directory = profile_train(concrete_function, get_cifar_data_loader(batch_size, True), num_prof_step=20)
     plane_pb_file = find_specific_pb_file(parent_directory, "xplane.pb")
     dataframe = parse_tensorboard(plane_pb_file, Conf_TB(CONF.OP))
     mem_data = parse_tensorboard(plane_pb_file, Conf_TB(CONF.MEM))

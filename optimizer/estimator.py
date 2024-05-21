@@ -4,7 +4,7 @@ import networkx as nx
 from gurobipy import *
 
 from DNN_model_tf.vgg_tf import VGG16_tf
-from model.graph import DeviceGraph, CompGraph, CompCostMatrix, visualize_graph
+from model.graph import DeviceGraph, CompGraph, visualize_graph
 from optimizer.computing_graph.workflow_tf import get_computation_graph
 
 model = VGG16_tf()

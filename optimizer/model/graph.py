@@ -122,15 +122,6 @@ class DeviceGraph(Graph):
         return ""
 
 
-class CompCostMatrix:
-    def __init__(self, operator_ids, device_ids):
-        self.cost_matrix = {}
-        for operator_id in operator_ids:
-            for device_id in device_ids:
-                # self.cost_matrix[operator_id, device_id] means the computing cost of this operator on this device
-                self.cost_matrix[operator_id, device_id] = random.randint(50, 300)
-
-
 def visualize_graph(graph, show_labels=True):
     pos = spring_layout(graph, seed=225)  # Seed for reproducible layout
     draw(graph, pos, with_labels=show_labels, node_size=20)
