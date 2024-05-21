@@ -9,13 +9,14 @@ from keras import Sequential
 from pathlib import Path
 from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.computing_graph.tool import Conf_TB, CONF
+from optimizer.model.graph import CompGraph
 from tf_util import train_model, getCifar, compile_model, train_loss, train_accuracy, parse_to_comp_graph, \
     process_op_df, update_graph_with_prof, profile_train, get_cifar_data_loader, parse_tensorboard, \
     find_specific_pb_file, process_mem_dict
 
 
 def get_computation_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
-                          loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200):
+                          loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200) -> CompGraph:
     compile_model(model, optimizer, loss_fn)
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
@@ -53,5 +54,4 @@ def get_computation_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-
     op_dict = process_op_df(dataframe)
     mem_dict = process_mem_dict(mem_data)
     update_graph_with_prof(graph, op_dict, mem_dict)
-    print(graph.getAllOperators())
     return graph

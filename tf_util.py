@@ -183,18 +183,22 @@ def process_mem_dict(mem_data: dict) -> dict:
     return new_dict
 
 
-def update_graph_with_prof(graph: CompGraph, prof_dict, mem_dict):
+def update_graph_with_prof(graph, prof_dict, mem_dict):
     device_name = socket.gethostname()
+
     for node_id in graph.getOperatorIDs():
-        if node_id in prof_dict.keys():
-            operator_dict = graph.getOperator(node_id)
-            if "comp_cost" not in operator_dict:
-                operator_dict["comp_cost"] = {}
+        operator_dict = graph.getOperator(node_id)
+
+        # Initialize keys if they do not exist
+        operator_dict.setdefault("comp_cost", {})
+        operator_dict.setdefault("mem", 0)
+
+        # Update computation cost if available
+        if node_id in prof_dict:
             operator_dict["comp_cost"][device_name] = prof_dict[node_id]
-        if node_id in mem_dict.keys():
-            operator_dict = graph.getOperator(node_id)
-            if "mem" not in operator_dict:
-                operator_dict["mem"] = 0
+
+        # Update memory cost if available
+        if node_id in mem_dict:
             operator_dict["mem"] = mem_dict[node_id]
 
 
