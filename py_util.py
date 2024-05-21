@@ -6,13 +6,10 @@ from pippy import annotate_split_points, SplitPoint
 from torch.profiler import profile, record_function, ProfilerActivity
 from torchvision import transforms
 
-from optimizer.computing_graph.onnx_util import to_json
-
 # This guide can only be run with the torch backend. must write when using both keras and pytorch
 # sudo apt install python3-packaging
 os.environ["KERAS_BACKEND"] = "torch"
 
-import socket
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
