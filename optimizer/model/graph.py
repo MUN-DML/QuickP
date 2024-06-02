@@ -14,8 +14,8 @@ class CompGraph(DiGraph):
             if u < v:
                 self.add_new_edge(u, v)
 
-    def add_new_node(self, operator_id, op_type):
-        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={})
+    def add_new_node(self, operator_id, op_type, output_size=0):
+        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size)
 
     def add_new_nodes_from(self, operator_list):
         super().add_edges_from(ebunch_to_add=operator_list)

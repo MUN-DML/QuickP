@@ -137,8 +137,9 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
 
     # Add nodes and edges to the graph
     for op in graph.get_operations():
+        shape = op.outputs[0].shape if op.outputs else tf.TensorShape([])
         # Each node is an operation in the TensorFlow graph
-        G.add_new_node(op.name, op_type=op.type)
+        G.add_new_node(op.name, op_type=op.type, output_size=shape)
         for input_tensor in op.inputs:
             # Create an edge from input operation to the current operation
             G.add_new_edge(input_tensor.op.name, op.name)
