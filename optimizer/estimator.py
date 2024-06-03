@@ -17,7 +17,7 @@ visualize_graph(comp_graph)
 
 deviceTopo = DeviceGraph()
 for i in range(4):
-    deviceTopo.add_node(i)
+    deviceTopo.add_new_node(i, 100000)
 print(deviceTopo.getAllDevices())
 visualize_graph(deviceTopo)
 standard_tensor_size = 1000

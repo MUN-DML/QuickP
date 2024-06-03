@@ -57,11 +57,9 @@ class CompGraph(DiGraph):
 # Undirected Graph
 class DeviceGraph(Graph):
 
-    def add_new_node(self, device_id, comp_sp, capacity):
-        super().add_node(node_for_adding=device_id, computing_speed=comp_sp,
-                         memory_capacity=capacity)
+    def add_new_node(self, device_id, capacity):
+        super().add_node(node_for_adding=device_id, memory_capacity=capacity)
         for existing_node_id in self.getDeviceIDs():
-            print(existing_node_id)
             if existing_node_id != device_id:  # Avoid self-loop
                 self.add_new_edge(device_id, existing_node_id, 1)
 
