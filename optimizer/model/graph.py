@@ -63,8 +63,8 @@ class DeviceGraph(Graph):
             if existing_node_id != device_id:  # Avoid self-loop
                 self.add_new_edge(device_id, existing_node_id, 1)
 
-    def add_new_edge(self, source_id, dest_id, com_sp):
-        super().add_edge(u_of_edge=source_id, v_of_edge=dest_id, communication_speed=com_sp)
+    def add_new_edge(self, source_id, dest_id, bandwidth):
+        super().add_edge(u_of_edge=source_id, v_of_edge=dest_id, bandwidth=bandwidth)
 
     def getDevice(self, node_id):
         return self.nodes[node_id]
@@ -90,12 +90,9 @@ class DeviceGraph(Graph):
     def getEdgeObjs(self):
         return list(self.edges.values())
 
-    def calculateCommunicationCost(self, tensor_size, path_list):
-        cost = 0
-        for i in range(len(path_list) - 1):
-            speed = self.getConnection(path_list[i], path_list[i + 1])["communication_speed"]
-            cost += tensor_size / speed
-        return cost
+    def calculateCommunicationCost(self, tensor_size, source_id, dest_id):
+        speed = self.getConnection(source_id, dest_id)["bandwidth"]
+        return tensor_size/speed
 
     def __str__(self):
         return ""
