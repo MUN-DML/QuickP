@@ -16,7 +16,8 @@ if not nx.is_directed_acyclic_graph(comp_graph):
 visualize_graph(comp_graph)
 
 deviceTopo = DeviceGraph()
-deviceTopo.random_rebuild(4)
+for i in range(4):
+    deviceTopo.add_node(i)
 print(deviceTopo.getAllDevices())
 visualize_graph(deviceTopo)
 standard_tensor_size = 1000
