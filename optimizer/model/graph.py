@@ -61,7 +61,7 @@ class DeviceGraph(Graph):
         super().add_node(node_for_adding=device_id, memory_capacity=capacity)
         for existing_node_id in self.getDeviceIDs():
             if existing_node_id != device_id:  # Avoid self-loop
-                self.add_new_edge(device_id, existing_node_id, 1)
+                self.add_new_edge(device_id, existing_node_id, None)
 
     def add_new_edge(self, source_id, dest_id, bandwidth):
         super().add_edge(u_of_edge=source_id, v_of_edge=dest_id, bandwidth=bandwidth)
@@ -71,6 +71,10 @@ class DeviceGraph(Graph):
 
     def getConnection(self, source_id, dest_id):
         return self.edges[source_id, dest_id]
+
+    def update_link_bandwidth(self, source_id, dest_id, bandwidth):
+        link = self.getConnection(source_id, dest_id)
+        link["bandwidth"] = bandwidth
 
     def getAllDevices(self):
         return list(self.nodes(data=True))
@@ -92,7 +96,13 @@ class DeviceGraph(Graph):
 
     def calculateCommunicationCost(self, tensor_size, source_id, dest_id):
         speed = self.getConnection(source_id, dest_id)["bandwidth"]
-        return tensor_size/speed
+        return tensor_size / speed
+
+    def check_all_link_bandwidth(self):
+        # sample edge is (1, 2, {'bandwidth': None})
+        for edge in self.edges.data():
+            if not edge[2]["bandwidth"]:
+                raise ValueError(f"Bandwidth from {edge[0]} to {edge[1]} is not valid")
 
     def __str__(self):
         return ""
