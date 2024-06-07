@@ -113,3 +113,23 @@ def visualize_graph(graph, show_labels=True):
     pos = spring_layout(graph, seed=225)  # Seed for reproducible layout
     draw(graph, pos, with_labels=show_labels, node_size=20)
     plt.show()
+
+
+def combine_graphs(GList: [DiGraph]) -> DiGraph:
+    # Create a new directed graph to combine G1 and G2
+    G_combined = DiGraph()
+
+    # Add all nodes and edges from G1 and G2 to G_combined
+    for graph in GList:
+        G_combined.add_nodes_from(graph.nodes())
+        G_combined.add_edges_from(graph.edges())
+
+    # Connect every node in G1 to every node in G2
+    for i in range(len(GList)):
+        for j in range(len(GList)):
+            if i != j:
+                for node_i in GList[i].nodes():
+                    for node_j in GList[j].nodes():
+                        G_combined.add_edge(node_i, node_j)
+
+    return G_combined
