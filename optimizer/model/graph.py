@@ -2,7 +2,7 @@ import networkx
 import random
 
 from matplotlib import pyplot as plt
-from networkx import DiGraph, Graph, gnp_random_graph, spring_layout, draw
+from networkx import DiGraph, draw_networkx_labels, gnp_random_graph, spring_layout, draw
 
 
 class CompGraph(DiGraph):
@@ -109,9 +109,15 @@ class DeviceGraph(DiGraph):
         return ""
 
 
-def visualize_graph(graph, show_labels=True):
+def visualize_graph(graph: DiGraph, show_labels=True):
     pos = spring_layout(graph, seed=500)  # Seed for reproducible layout
-    draw(graph, pos, with_labels=show_labels, node_size=10, font_size=5)
+    draw(graph, pos, with_labels=show_labels, node_size=10, font_size=8)
+    if show_labels:
+        # Create a dictionary with node labels including their attributes
+        labels = {node: '\n'.join([f"{key}: {value}" for key, value in graph.nodes[node].items()]) for node in
+                  graph.nodes()}
+        draw_networkx_labels(graph, pos, labels, font_size=8)
+
     plt.show()
 
 
@@ -121,8 +127,10 @@ def combine_graphs(GList: [DiGraph]) -> DiGraph:
 
     # Add all nodes and edges from G1 and G2 to G_combined
     for graph in GList:
-        G_combined.add_nodes_from(graph.nodes())
-        G_combined.add_edges_from(graph.edges())
+        for node, data in graph.nodes(data=True):
+            G_combined.add_node(node, **data)
+        for u, v, data in graph.edges(data=True):
+            G_combined.add_edge(u, v, **data)
 
     # Connect every node in G1 to every node in G2
     for i in range(len(GList)):
@@ -131,5 +139,4 @@ def combine_graphs(GList: [DiGraph]) -> DiGraph:
                 for node_i in GList[i].nodes():
                     for node_j in GList[j].nodes():
                         G_combined.add_edge(node_i, node_j)
-
     return G_combined
