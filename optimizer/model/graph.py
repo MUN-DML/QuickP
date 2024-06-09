@@ -110,8 +110,8 @@ class DeviceGraph(DiGraph):
 
 
 def visualize_graph(graph, show_labels=True):
-    pos = spring_layout(graph, seed=225)  # Seed for reproducible layout
-    draw(graph, pos, with_labels=show_labels, node_size=20)
+    pos = spring_layout(graph, seed=500)  # Seed for reproducible layout
+    draw(graph, pos, with_labels=show_labels, node_size=10, font_size=5)
     plt.show()
 
 
