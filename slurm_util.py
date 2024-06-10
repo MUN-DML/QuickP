@@ -41,3 +41,18 @@ def get_server_ips():
         if ip_address:
             node_ips[node] = ip_address
     return node_ips
+
+
+def get_slurm_available_nodes():
+    try:
+        # Run sinfo command to get the number of idle nodes
+        result = subprocess.run(['sinfo', '--noheader', '--states=idle', '--format=%D'],
+                                stdout=subprocess.PIPE, text=True, check=True)
+
+        # Parse the output to get the total number of available nodes
+        available_nodes = sum(int(x) for x in result.stdout.split())
+
+        return available_nodes
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while running sinfo: {e}")
+        return 0
