@@ -1,3 +1,5 @@
+from typing import Union
+
 from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, gnp_random_graph, spring_layout, draw, draw_networkx_edge_labels
 
@@ -121,9 +123,14 @@ def visualize_graph(graph: DiGraph, show_labels=True):
     plt.show()
 
 
-def combine_graphs(GList: [DiGraph]) -> DiGraph:
+def combine_graphs(GList: [DiGraph]) -> Union[DiGraph, DeviceGraph, CompGraph]:
     # Create a new directed graph to combine G1 and G2
-    G_combined = DiGraph()
+    if any(isinstance(graph, DeviceGraph) for graph in GList):
+        G_combined = DeviceGraph()
+    elif any(isinstance(graph, CompGraph) for graph in GList):
+        G_combined = CompGraph()
+    else:
+        G_combined = DiGraph()
 
     # Add all nodes and edges from G1 and G2 to G_combined
     for graph in GList:
