@@ -3,6 +3,8 @@ import os
 import subprocess
 from enum import Enum
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
 
 def get_idle_nodes():
     try:
@@ -63,21 +65,23 @@ def get_slurm_available_nodes():
 
 # Define an enumeration
 class SLURM_RUN_CONF(Enum):
-    INTRA_NODE = {"path": 'intra_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
-    INTER_NODE = {"path": 'intel_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
-    COMPUTING_COST = {"path": 'computing_cost_parallel.py', "time": "1:30", "mem": '3G'}
+    INTRA_NODE = {"path": 'optimizer/device_topo/intra_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
+    INTER_NODE = {"path": 'optimizer/device_topo/intel_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
+    COMPUTING_COST = {"path": 'optimizer/computing_cost_parallel.py', "time": "1:30", "mem": '3G'}
 
     def __init__(self, value):
         if not isinstance(value, dict):
             raise ValueError(f"Value of {self.name} must be a dictionary")
         if 'path' not in value or 'time' not in value or 'mem' not in value:
             raise ValueError(f"Value of {self.name} must contain 'path, mem, and time' keys")
-        if not isinstance(value['path'], str) or not isinstance(value['mem'], str) or not isinstance(value['time'], str):
+        if not isinstance(value['path'], str) or not isinstance(value['mem'], str) or not isinstance(value['time'],
+                                                                                                     str):
             raise ValueError(f"The 'path, mem, and time' values of {self.name} must be strings")
 
 
 def run_srun_command(num_nodes: int, command_type: SLURM_RUN_CONF):
-    path = os.path.abspath(command_type.value['path'])
+    global script_dir
+    path = os.path.join(script_dir, command_type.value['path'])
     time = command_type.value['time']
     mem = command_type.value['mem']
     command = [
