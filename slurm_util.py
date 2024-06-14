@@ -62,34 +62,36 @@ def get_slurm_available_nodes():
 
 # Define an enumeration
 class SLURM_RUN_CONF(Enum):
-    INTRA_NODE = {"path": 'optimizer/device_topo/intra_node_topo_parallel.py', "time": "", "mem": ""}
-    INTER_NODE = {"path": 'optimizer/device_topo/inter_node_topo_parallel.py', "time": "", "mem": ""}
-    COMPUTING_COST = {"path": 'optimizer/computing_graph/computing_cost_parallel.py', "time": "", "mem": ""}
+    INTRA_NODE = {"path": 'optimizer/device_topo/intra_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
+    INTER_NODE = {"path": 'optimizer/device_topo/inter_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
+    COMPUTING_COST = {"path": 'optimizer/computing_graph/computing_cost_parallel.py', "time": "1:30", "mem": '3G'}
 
     def __init__(self, value):
         if not isinstance(value, dict):
             raise ValueError(f"Value of {self.name} must be a dictionary")
         if 'path' not in value or 'time' not in value or 'mem' not in value:
             raise ValueError(f"Value of {self.name} must contain 'path, mem, and time' keys")
-        if not isinstance(value['path'], str) or not isinstance(value['mem'], str):
-            raise ValueError(f"The 'path' and 'conf' values of {self.name} must be strings")
+        if not isinstance(value['path'], str) or not isinstance(value['mem'], str) or not isinstance(value['time'], str):
+            raise ValueError(f"The 'path, mem, and time' values of {self.name} must be strings")
 
 
-def run_srun_command(num_nodes: int, type: SLURM_RUN_CONF):
-    path = type.value['path']
+def run_srun_command(num_nodes: int, command_type: SLURM_RUN_CONF):
+    path = command_type.value['path']
+    time = command_type.value['time']
+    mem = command_type.value['mem']
     command = [
         'srun',
         '--job-name=All_Device_Intra_Node_Bandwidth',
-        '--time=00:30',
+        f'--time={time}',
         f'--gpus={num_nodes}',
         '--gpus-per-node=1',
         f'--nodes={num_nodes}',
         '--ntasks-per-node=1',
         '--cpus-per-task=12',
-        '--mem=1000',
+        f'--mem={mem}',
         'python3', f'{path}'
     ]
-    if type == SLURM_RUN_CONF.INTER_NODE:
+    if command_type == SLURM_RUN_CONF.INTER_NODE:
         # # Serialize the dictionary to a JSON string
         command.extend(['--dict', json.dumps(get_server_ips())])
     try:
