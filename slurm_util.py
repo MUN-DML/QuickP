@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from enum import Enum
 
@@ -76,7 +77,7 @@ class SLURM_RUN_CONF(Enum):
 
 
 def run_srun_command(num_nodes: int, command_type: SLURM_RUN_CONF):
-    path = command_type.value['path']
+    path = os.path.abspath(command_type.value['path'])
     time = command_type.value['time']
     mem = command_type.value['mem']
     command = [
