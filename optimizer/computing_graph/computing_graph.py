@@ -3,6 +3,8 @@ import keras
 import torch
 import tensorflow as tf
 from keras import Sequential
+from networkx import is_directed_acyclic_graph
+
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import CompGraph
 from tf_util import train_model, getCifar, compile_model, train_loss, train_accuracy, parse_to_comp_graph, \
@@ -48,4 +50,6 @@ def get_computation_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-
     op_dict = process_op_df(dataframe)
     mem_dict = process_mem_dict(mem_data)
     update_graph_with_prof(graph, op_dict, mem_dict)
+    if not is_directed_acyclic_graph(graph):
+        raise "comp_graph is not directed acyclic"
     return graph

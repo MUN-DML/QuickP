@@ -64,7 +64,7 @@ def get_slurm_available_nodes():
 class SLURM_RUN_CONF(Enum):
     INTRA_NODE = {"path": 'intra_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
     INTER_NODE = {"path": 'intel_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
-    COMPUTING_COST = {"path": 'optimizer/computing_graph/computing_cost_parallel.py', "time": "1:30", "mem": '3G'}
+    COMPUTING_COST = {"path": 'computing_cost_parallel.py', "time": "1:30", "mem": '3G'}
 
     def __init__(self, value):
         if not isinstance(value, dict):

@@ -6,20 +6,13 @@ from gurobipy import *
 from DNN_model_tf.vgg_tf import VGG16_tf
 from model.graph import DeviceGraph, CompGraph, visualize_graph
 from optimizer.computing_graph.computing_graph import get_computation_graph
+from optimizer.device_topo.device_graph import get_device_topo
 
 model = VGG16_tf()
 comp_graph = get_computation_graph(model=model)
-print(comp_graph)
-comp_graph.random_rebuild(8)
-if not nx.is_directed_acyclic_graph(comp_graph):
-    raise "comp_graph is not directed acyclic"
 visualize_graph(comp_graph)
 
-deviceTopo = DeviceGraph()
-for i in range(4):
-    deviceTopo.add_new_node(i, 100000)
-print(deviceTopo.getAllDevices())
-visualize_graph(deviceTopo)
+deviceTopo = get_device_topo()
 standard_tensor_size = 1000
 
 # Init solver
