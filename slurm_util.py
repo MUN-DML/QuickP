@@ -62,8 +62,8 @@ def get_slurm_available_nodes():
 
 # Define an enumeration
 class SLURM_RUN_CONF(Enum):
-    INTRA_NODE = {"path": 'optimizer/device_topo/intra_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
-    INTER_NODE = {"path": 'optimizer/device_topo/inter_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
+    INTRA_NODE = {"path": 'intra_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
+    INTER_NODE = {"path": 'inter_node_topo_parallel.py', "time": '00:30', "mem": '2000'}
     COMPUTING_COST = {"path": 'optimizer/computing_graph/computing_cost_parallel.py', "time": "1:30", "mem": '3G'}
 
     def __init__(self, value):
@@ -81,7 +81,7 @@ def run_srun_command(num_nodes: int, command_type: SLURM_RUN_CONF):
     mem = command_type.value['mem']
     command = [
         'srun',
-        '--job-name=All_Device_Intra_Node_Bandwidth',
+        '--job-name=Bandwidth_parallel',
         f'--time={time}',
         f'--gpus={num_nodes}',
         '--gpus-per-node=1',
