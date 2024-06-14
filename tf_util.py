@@ -32,9 +32,6 @@ def getCifar():
     (x_train, y_train), (x_test, y_test) = cifar10.load_data()
     x_train = x_train.astype('float32') / 255.0
     x_test = x_test.astype('float32') / 255.0
-    # make the y value for each single image to be a array of length 10
-    # y_train = to_categorical(y_train, 10)
-    # y_test = to_categorical(y_test, 10)
     return (x_train, y_train), (x_test, y_test)
 
 
@@ -81,12 +78,7 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
             print("not match")
 
 
-'''
-Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
-'''
-
-
-# https://github.com/eval-submissions/HeteroG/blob/heterog/profiler.py tf profiling example
+# Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
 def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
@@ -246,3 +238,45 @@ def find_specific_pb_file(parent_dir, file_suffix):
     for file in parent_path.rglob(f'*{file_suffix}'):
         return str(file)
     return None
+
+
+def distribute_profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
+                             num_prof_step=200):
+    # https://www.tensorflow.org/api_docs/python/tf/profiler/experimental/client/trace
+
+    options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
+                                                       python_tracer_level=1,
+                                                       device_tracer_level=1)
+    log_dir = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    train_summary_writer = tf.summary.create_file_writer(log_dir)
+    # Start the profiler, cannot set the parameter profiler=True
+    tf.summary.trace_on(graph=True)
+
+    for index, (x_train, y_train) in enumerate(dataloader):
+        # warmup steps
+        if index < num_warmup_step:
+            concrete_function(x_train, y_train)
+            # Call only one tf.function when tracing, so export after 1 iteration
+            if index == 0:
+                with train_summary_writer.as_default():
+                    # TensorFlow Summary Trace API to log autographed functions for visualization in TensorBoard.
+                    # https://www.tensorflow.org/tensorboard/graphs
+                    # profiling will end trace_export
+                    tf.summary.trace_export(
+                        name="my_func_trace",
+                        step=index,
+                        profiler_outdir=log_dir)
+        # Profiling steps
+        elif index < num_warmup_step + num_prof_step:
+            if index == num_warmup_step:
+                tf.profiler.experimental.start(log_dir, options=options)
+            concrete_function(x_train, y_train)
+            with train_summary_writer.as_default():
+                tf.summary.scalar('loss', train_loss.result(), step=index)
+                tf.summary.scalar('accuracy', train_accuracy.result(), step=index)
+        # after profiling
+        else:
+            tf.profiler.experimental.stop()
+            break
+
+    return log_dir
