@@ -79,8 +79,10 @@ class SLURM_RUN_CONF(Enum):
             raise ValueError(f"The 'path, mem, and time' values of {self.name} must be strings")
 
 
-def run_srun_command(num_nodes: int, command_type: SLURM_RUN_CONF):
+def run_srun_command(num_nodes: int, command_type: SLURM_RUN_CONF, model_type: str):
     global script_dir
+    if command_type == SLURM_RUN_CONF.COMPUTING_COST and not model_type:
+        raise ValueError("model_type should not be None if getting COMPUTING_COST")
     path = os.path.join(script_dir, command_type.value['path'])
     time = command_type.value['time']
     mem = command_type.value['mem']
@@ -99,6 +101,8 @@ def run_srun_command(num_nodes: int, command_type: SLURM_RUN_CONF):
     if command_type == SLURM_RUN_CONF.INTER_NODE:
         # # Serialize the dictionary to a JSON string
         command.extend(['--dict', json.dumps(get_server_ips())])
+    elif command_type == SLURM_RUN_CONF.COMPUTING_COST:
+        command.extend(['--model', model_type])
     try:
         result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
