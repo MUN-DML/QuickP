@@ -14,6 +14,7 @@ from keras.src.datasets import cifar10
 from keras.src.utils import to_categorical
 import tensorflow as tf
 import networkx as nx
+# pip install tensorboard-plugin-profile
 import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
 from pathlib import Path
 
