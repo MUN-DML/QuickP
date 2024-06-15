@@ -1,13 +1,12 @@
 import keras
 # it is weird that on my server, have to import torch to activate tensorflow
-import torch
 import tensorflow as tf
 from keras import Sequential
 from networkx import is_directed_acyclic_graph
 
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import CompGraph
-from tf_util import train_model, getCifar, compile_model, train_loss, train_accuracy, parse_to_comp_graph, \
+from optimizer.computing_graph.op_graph_util import compile_model, train_loss, train_accuracy, parse_to_comp_graph, \
     process_op_df, update_graph_with_prof, profile_train, get_cifar_data_loader, parse_tensorboard, \
     find_specific_pb_file, process_mem_dict
 
