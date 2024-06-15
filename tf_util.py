@@ -243,11 +243,11 @@ def find_specific_pb_file(parent_dir, file_suffix):
 def distribute_profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
                              num_prof_step=200):
     # https://www.tensorflow.org/api_docs/python/tf/profiler/experimental/client/trace
-
+    log_dir = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
-    log_dir = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+
     train_summary_writer = tf.summary.create_file_writer(log_dir)
     # Start the profiler, cannot set the parameter profiler=True
     tf.summary.trace_on(graph=True)
@@ -269,14 +269,15 @@ def distribute_profile_train(concrete_function: ConcreteFunction, dataloader: tf
         # Profiling steps
         elif index < num_warmup_step + num_prof_step:
             if index == num_warmup_step:
-                tf.profiler.experimental.start(log_dir, options=options)
+                tf.profiler.experimental.server.start(6009)
+                tf.profiler.experimental.client.trace(
+                    'grpc://192.168.0.66:6009',
+                    log_dir,
+                    5000,
+                    options=options)
             concrete_function(x_train, y_train)
             with train_summary_writer.as_default():
                 tf.summary.scalar('loss', train_loss.result(), step=index)
                 tf.summary.scalar('accuracy', train_accuracy.result(), step=index)
-        # after profiling
-        else:
-            tf.profiler.experimental.stop()
-            break
 
     return log_dir
