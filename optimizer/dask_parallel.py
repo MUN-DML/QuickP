@@ -75,7 +75,6 @@ if __name__ == "__main__":
 
 
     client.register_plugin(UploadDirectory(os.path.join(project_root, "optimizer")))
-    upload_files(client, project_root)
     # Wrap the function with Dask delayed
     task = dask.delayed(get_intra_node_topo)()
 
