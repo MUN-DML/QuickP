@@ -26,7 +26,12 @@ def main():
         print(f"Running on {size} nodes")
 
     # Execute the function on each node
-    bandwidths, devices = get_intra_node_topo()
+    try:
+        bandwidths, devices = get_intra_node_topo()
+        print(f"Process {rank} got bandwidths: {bandwidths}, devices: {devices}")
+    except Exception as e:
+        print(f"Error on process {rank}: {e}", file=sys.stderr)
+        bandwidths, devices = None, None
 
     # Gather results from all nodes
     all_bandwidths = comm.gather(bandwidths, root=0)
@@ -36,5 +41,6 @@ def main():
     print("Result:", json.dumps(result, indent=2))
 
 
+# mpirun -np 1 --allow-run-as-root --host localhost python3 mpi4py_parallel.py
 if __name__ == "__main__":
     main()
