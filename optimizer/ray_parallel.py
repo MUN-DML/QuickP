@@ -1,4 +1,6 @@
 # ray_parallel.py
+import json
+
 import torch
 import tensorflow as tf
 import os
@@ -43,4 +45,11 @@ if __name__ == "__main__":
     ray.init(address='auto')
     check_cluster()
     # Run the function in parallel on the Ray cluster
-    print(ray.get(remote_setup_and_run.remote()))
+    # Run the function in parallel on the Ray cluster
+    futures = [remote_setup_and_run.remote() for _ in range(len(ray.nodes()))]
+    results = ray.get(futures)
+    for result in results:
+        if result is not None:
+            print("Result:", json.dumps({"bandwidths": result[0], "devices": result[1]}, indent=2))
+        else:
+            print("Result: None")
