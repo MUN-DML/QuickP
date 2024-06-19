@@ -52,7 +52,6 @@ if __name__ == "__main__":
     )
 
     client = Client(cluster)
-    client.run(set_pythonpath_on_worker)
 
     # Upload the necessary files to all workers
     files_to_upload = [
