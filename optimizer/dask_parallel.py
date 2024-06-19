@@ -15,22 +15,14 @@ warnings.filterwarnings("ignore")
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
-# Export PYTHONPATH environment variable to include the project root
-os.environ['PYTHONPATH'] = f"{project_root}:{os.environ.get('PYTHONPATH', '')}"
 # Import the function from intra_node_topo_parallel.py
 from optimizer.device_topo.intra_node_topo_parallel import get_intra_node_topo
-
-
-def set_pythonpath_on_worker():
-    import os
-    project_root = '/home/hola/Desktop/DNN'
-    os.environ['PYTHONPATH'] = f"{project_root}:{os.environ.get('PYTHONPATH', '')}"
 
 
 if __name__ == "__main__":
     # Set up a local Dask cluster
     # Define the list of hostnames or IP addresses
-    hosts = ["localhost", "localhost"]  # Replace with your actual hosts
+    hosts = ["localhost"]  # Replace with your actual hosts
 
     # Define connection options
     connect_options = {
@@ -62,17 +54,14 @@ if __name__ == "__main__":
     client = Client(cluster)
     client.run(set_pythonpath_on_worker)
 
-
     # Upload the necessary files to all workers
-    def upload_files(client, project_root):
-        files_to_upload = [
-            'optimizer/model/graph.py',
-            'optimizer/device_topo/intra_node_util.py',
-            'optimizer/device_topo/intra_node_topo_parallel.py'
-        ]
-        for file in files_to_upload:
-            client.upload_file(os.path.join(project_root, file))
-
+    files_to_upload = [
+        'optimizer/model/graph.py',
+        'optimizer/device_topo/intra_node_util.py',
+        'optimizer/device_topo/intra_node_topo_parallel.py'
+    ]
+    for file in files_to_upload:
+        client.upload_file(os.path.join(project_root, file))
 
     client.register_plugin(UploadDirectory(os.path.join(project_root, "optimizer")))
     # Wrap the function with Dask delayed
