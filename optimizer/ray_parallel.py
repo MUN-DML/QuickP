@@ -1,5 +1,6 @@
 # ray_parallel.py
 import json
+from enum import Enum
 
 import torch
 import tensorflow as tf
@@ -25,9 +26,13 @@ def check_cluster():
 # ray job submit --working-dir /home/hola/Desktop/DNN -- python3 ray_parallel.py
 # If project not on all servers: RAY_ADDRESS='http://127.0.0.1:8265' ray job submit --working-dir . -- python3 ray_parallel.py
 # If project already on all servers: RAY_ADDRESS='http://127.0.0.1:8265' ray job submit -- python3 ray_parallel.py
+class TaskType(Enum):
+    INTRA_NODE = 1
+    INTER_NODE = 2
+
+
 @ray.remote
-def remote_setup_and_run():
-    # The following two lines must be present
+def run_parallel_task(task_type, target_ip=None, local_hostname=None, target_name=None):
     import torch
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
@@ -35,20 +40,26 @@ def remote_setup_and_run():
     project_root = os.path.abspath(os.path.join(script_dir, '..'))
     sys.path.append(project_root)
 
-    # Import the function
-    from optimizer.device_topo.intra_node_topo_parallel import get_intra_node_topo
-    return get_intra_node_topo()
+    if task_type == TaskType.INTRA_NODE:
+        # Import and run intra-node task
+        from optimizer.device_topo.intra_node_topo_parallel import get_intra_node_topo
+        return get_intra_node_topo()
+    elif task_type == TaskType.INTER_NODE:
+        # Import and run inter-node task
+        from optimizer.device_topo.intel_node_topo_parallel import get_intel_node_topo
+        return get_intel_node_topo(target_ip, from_node=local_hostname, to_node=target_name)
+    else:
+        raise ValueError("Invalid task type")
 
 
 if __name__ == "__main__":
     # Initialize Ray
     ray.init(address='auto')
     check_cluster()
-    # Run the function in parallel on the Ray cluster
-    # Run the function in parallel on the Ray cluster
-    futures = [remote_setup_and_run.remote() for _ in range(len(ray.nodes()))]
-    results = ray.get(futures)
-    for result in results:
+    intra_future = run_parallel_task.remote(TaskType.INTRA_NODE)
+    intra_result = ray.get(intra_future)
+    print("Intra-node task result:", intra_result)
+    for result in intra_result:
         if result is not None:
             print("Result:", json.dumps({"bandwidths": result[0], "devices": result[1]}, indent=2))
         else:
