@@ -9,12 +9,6 @@ import shutil
 
 warnings.filterwarnings("ignore")
 
-# Ensure the parent directory is in the Python path
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(script_dir, '..'))
-sys.path.append(project_root)
-from optimizer.device_topo.intra_node_topo_parallel import get_intra_node_topo
-
 
 @ray.remote
 def remote_setup_and_run():
