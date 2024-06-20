@@ -25,7 +25,7 @@ def check_cluster():
 # worker node: ray start --address='192.168.0.66:6379'
 # ray job submit --working-dir /home/hola/Desktop/DNN -- python3 ray_parallel.py
 # If project not on all servers: RAY_ADDRESS='http://127.0.0.1:8265' ray job submit --working-dir . -- python3 ray_parallel.py
-# If project already on all servers: RAY_ADDRESS='http://127.0.0.1:8265' ray job submit -- python3 ray_parallel.py
+# If project already on all servers: RAY_ADDRESS='http://192.168.0.66:6379' ray job submit -- python3 ray_parallel.py
 class TaskType(Enum):
     INTRA_NODE = 1
     INTER_NODE = 2
