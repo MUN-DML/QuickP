@@ -64,7 +64,7 @@ if __name__ == "__main__":
     execute_commands_on_server({"ip": "192.168.0.66", "username": "hola", "password": "1314520"}, ["ray stop", "ray start --head --node-ip-address=192.168.0.66 --port=6379 --dashboard-port=8265 --num-gpus=1"], timeout=35)
     execute_commands_on_server({"ip": "192.168.0.6", "username": "hola", "password": "1314520"}, ["ray stop", "ray start --address=192.168.0.66:6379"], timeout=35)
     # Initialize Ray
-    ray.init(_node_ip_address='192.168.0.6')
+    ray.init()
     cluster_info = get_cluster_info()
     intra_future = run_parallel_task.remote(TaskType.INTRA_NODE, None, None, None)
     intra_result = ray.get(intra_future)
