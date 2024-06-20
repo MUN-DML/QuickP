@@ -21,7 +21,7 @@ app.conf.update(
 )
 
 
-@app.task
+@app.task(name='tasks.run_function')
 def run_function(node_id):
     import torch
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
