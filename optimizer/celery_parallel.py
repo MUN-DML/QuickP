@@ -30,7 +30,7 @@ def run_function(node_id):
     from optimizer.device_topo.intra_node_topo_parallel import get_intra_node_topo
 
     result = get_intra_node_topo()
-    return result
+    return {'node_id': node_id, 'result': result}
 
 
 def send_task(node_id):
