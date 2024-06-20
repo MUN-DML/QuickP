@@ -17,13 +17,15 @@ from optimizer.ssh_parallel import execute_command_on_server, execute_commands_o
 warnings.filterwarnings("ignore")
 
 
-def check_cluster():
+def get_cluster_info():
     nodes = ray.nodes()
-    for node in nodes:
-        print(f"Node {node['NodeID']} with IP {node['NodeManagerAddress']}")
-        print(f" - Resources: {node['Resources']}")
-        print(f" - Alive: {node['Alive']}")
+    hostname_ip_mapping = {}
 
+    for node in nodes:
+        node_info = node["NodeManagerAddress"]
+        hostname = node["NodeManagerHostname"]
+        hostname_ip_mapping[hostname] = node_info
+    return hostname_ip_mapping
 
 # ray stop; ray status
 # head node: ray start --head --node-ip-address=192.168.0.66 --port=6379 --dashboard-port=8265 --num-gpus=1
@@ -62,7 +64,7 @@ if __name__ == "__main__":
     execute_commands_on_server({"ip": "192.168.0.6", "username": "hola", "password": "1314520"}, ["ray stop", "ray start --address=192.168.0.66:6379"], timeout=35)
     # Initialize Ray
     ray.init(_node_ip_address='192.168.0.6')
-    check_cluster()
+    print(get_cluster_info())
     intra_future = run_parallel_task.remote(TaskType.INTRA_NODE)
     intra_result = ray.get(intra_future)
     print("Intra-node task result:", intra_result)
