@@ -1,5 +1,6 @@
 # ray_parallel.py
 import json
+import socket
 from enum import Enum
 
 import torch
@@ -39,7 +40,7 @@ class TaskType(Enum):
 
 
 @ray.remote
-def run_parallel_task(task_type, target_ip=None, local_hostname=None, target_name=None):
+def run_parallel_task(task_type, target_ip, local_hostname, target_name):
     import torch
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
@@ -64,12 +65,13 @@ if __name__ == "__main__":
     execute_commands_on_server({"ip": "192.168.0.6", "username": "hola", "password": "1314520"}, ["ray stop", "ray start --address=192.168.0.66:6379"], timeout=35)
     # Initialize Ray
     ray.init(_node_ip_address='192.168.0.6')
-    print(get_cluster_info())
-    intra_future = run_parallel_task.remote(TaskType.INTRA_NODE)
+    cluster_info = get_cluster_info()
+    intra_future = run_parallel_task.remote(TaskType.INTRA_NODE, None, None, None)
     intra_result = ray.get(intra_future)
+    local_hostname = socket.gethostname()
+    other_servers = {key: value for key, value in cluster_info.items() if key != local_hostname}
+    for target_name, target_ip in other_servers.items():
+        intel_future = run_parallel_task.remote(TaskType.INTER_NODE, target_ip, local_hostname, target_name)
+    intel_result = ray.get(intel_future)
     print("Intra-node task result:", intra_result)
-    for result in intra_result:
-        if result is not None:
-            print("Result:", json.dumps({"bandwidths": result[0], "devices": result[1]}, indent=2))
-        else:
-            print("Result: None")
+
