@@ -58,6 +58,11 @@ def run_parallel_task(task_type, target_ip=None, local_hostname=None, target_nam
 
 
 if __name__ == "__main__":
+    execute_command_on_server({"ip": "192.168.0.66", "username": "hola", "password": "1314520"},
+                              "ray stop",
+                              timeout=30)
+    execute_command_on_server({"ip": "192.168.0.6", "username": "hola", "password": "1314520"}, "ray stop", timeout=30)
+
     execute_command_on_server({"ip": "192.168.0.66", "username": "hola", "password": "1314520"}, "ray start --head --node-ip-address=192.168.0.66 --port=6379 --dashboard-port=8265 --num-gpus=1", timeout=30)
     execute_command_on_server({"ip": "192.168.0.6", "username": "hola", "password": "1314520"}, "ray start --address=192.168.0.66:6379", timeout=30)
     # Initialize Ray
