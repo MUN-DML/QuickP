@@ -54,7 +54,7 @@ def run_parallel_task(task_type, target_ip=None, local_hostname=None, target_nam
 
 if __name__ == "__main__":
     # Initialize Ray
-    ray.init(address='auto')
+    ray.init(_node_ip_address='192.168.0.66')
     check_cluster()
     intra_future = run_parallel_task.remote(TaskType.INTRA_NODE)
     intra_result = ray.get(intra_future)
