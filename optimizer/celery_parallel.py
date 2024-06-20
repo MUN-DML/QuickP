@@ -10,7 +10,7 @@ from celery import Celery
 # celery -A celery_parallel worker --loglevel=INFO
 # backend: RPC (RabbitMQ/AMQP),
 # broker specifying the URL of the message broker you want to use. Here we are using RabbitMQ (also the default option).
-app = Celery('tasks', broker='pyamqp://guest@localhost//', backend='rpc://')
+app = Celery('celery_parallel', broker='pyamqp://guest@localhost//', backend='rpc://')
 
 app.conf.update(
     task_serializer='json',
