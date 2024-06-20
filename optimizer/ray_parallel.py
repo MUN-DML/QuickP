@@ -74,4 +74,5 @@ if __name__ == "__main__":
         intel_future = run_parallel_task.remote(TaskType.INTER_NODE, target_ip, local_hostname, target_name)
     intel_result = ray.get(intel_future)
     print("Intra-node task result:", intra_result)
+    print("Intel-node task result:", intel_result)
 
