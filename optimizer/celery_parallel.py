@@ -24,15 +24,8 @@ app.conf.update(
 @app.task
 def run_function(node_id):
     import torch
-    os.environ['CUDA_VISIBLE_DEVICES'] = "0"
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.abspath(script_dir)
-    sys.path.append(project_root)
 
-    from optimizer.device_topo.intra_node_topo_parallel import get_intra_node_topo
-
-    result = get_intra_node_topo()
-    return {'node_id': node_id, 'result': result}
+    return f"fuck, {node_id}"
 
 
 def send_task(node_id):
