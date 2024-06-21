@@ -1,6 +1,7 @@
 # ray_parallel.py
 import json
 import socket
+import time
 from enum import Enum
 
 import torch
@@ -28,6 +29,7 @@ def get_cluster_info():
         hostname_ip_mapping[hostname] = node_info
     return hostname_ip_mapping
 
+
 # ray stop; ray status
 # head node: ray start --head --node-ip-address=192.168.0.66 --port=6379 --dashboard-port=8265 --num-gpus=1
 # worker node: ray start --address='192.168.0.66:6379'
@@ -37,6 +39,12 @@ def get_cluster_info():
 class TaskType(Enum):
     INTRA_NODE = 1
     INTER_NODE = 2
+
+
+@ray.remote
+def f():
+    time.sleep(0.01)
+    return ray.services.get_node_ip_address()
 
 
 @ray.remote
@@ -61,11 +69,12 @@ def run_parallel_task(task_type, target_ip, local_hostname, target_name):
 
 
 if __name__ == "__main__":
-    execute_commands_on_server({"ip": "192.168.0.66", "username": "hola", "password": "1314520"}, ["ray stop", "ray start --head --node-ip-address=192.168.0.66 --port=6379 --dashboard-port=8265 --num-gpus=1"], timeout=35)
-    execute_commands_on_server({"ip": "192.168.0.6", "username": "hola", "password": "1314520"}, ["ray stop", "ray start --address=192.168.0.66:6379"], timeout=35)
+    # execute_commands_on_server({"ip": "192.168.0.66", "username": "hola", "password": "1314520"}, ["ray stop", "ray start --head --node-ip-address=192.168.0.66 --port=6379 --dashboard-port=8265 --num-gpus=1"], timeout=35)
+    # execute_commands_on_server({"ip": "192.168.0.6", "username": "hola", "password": "1314520"}, ["ray stop", "ray start --address=192.168.0.66:6379"], timeout=35)
     # Initialize Ray
-    ray.init()
+    ray.init(address="auto")
     cluster_info = get_cluster_info()
+    print(set(ray.get([f.remote() for _ in range(1000)])))
     intra_future = run_parallel_task.remote(TaskType.INTRA_NODE, None, None, None)
     intra_result = ray.get(intra_future)
     local_hostname = socket.gethostname()
@@ -75,4 +84,3 @@ if __name__ == "__main__":
     intel_result = ray.get(intel_future)
     print("Intra-node task result:", intra_result)
     print("Intel-node task result:", intel_result)
-
