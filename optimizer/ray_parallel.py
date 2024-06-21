@@ -44,7 +44,7 @@ class TaskType(Enum):
 @ray.remote
 def f():
     time.sleep(0.01)
-    return ray.services.get_node_ip_address()
+    return "hello world"
 
 
 @ray.remote
