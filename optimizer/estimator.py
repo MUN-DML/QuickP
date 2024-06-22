@@ -6,13 +6,13 @@ from gurobipy import *
 from DNN_model_tf.vgg_tf import VGG16_tf
 from model.graph import DeviceGraph, CompGraph, visualize_graph
 from optimizer.computing_graph.computing_graph import get_computation_graph
-from optimizer.device_topo.device_graph import get_device_topo
+from optimizer.device_topo.device_graph import get_device_topo, get_device_topo_ssh
 
 model = VGG16_tf()
 comp_graph = get_computation_graph(model=model)
 visualize_graph(comp_graph)
 
-deviceTopo = get_device_topo()
+deviceTopo = get_device_topo_ssh()
 standard_tensor_size = 1000
 
 # Init solver
