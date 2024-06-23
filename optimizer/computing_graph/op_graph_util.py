@@ -178,8 +178,7 @@ def process_mem_dict(mem_data: dict) -> dict:
     return new_dict
 
 
-def update_graph_with_prof(graph, prof_dict, mem_dict):
-    device_name = socket.gethostname()
+def update_graph_with_prof(graph, prof_dict, mem_dict, device_host_name):
 
     for node_id in graph.getOperatorIDs():
         operator_dict = graph.getOperator(node_id)
@@ -190,9 +189,9 @@ def update_graph_with_prof(graph, prof_dict, mem_dict):
 
         # Update computation cost if available
         if node_id in prof_dict:
-            operator_dict["comp_cost"][device_name] = int(prof_dict[node_id])
+            operator_dict["comp_cost"][device_host_name] = int(prof_dict[node_id])
         else:
-            operator_dict["comp_cost"][device_name] = 0
+            operator_dict["comp_cost"][device_host_name] = 0
         # Update memory cost if available
         if node_id in mem_dict:
             operator_dict["mem"] = int(mem_dict[node_id])

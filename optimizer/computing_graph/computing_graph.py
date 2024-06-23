@@ -1,3 +1,5 @@
+import socket
+
 import keras
 # it is weird that on my server, have to import torch to activate tensorflow
 import tensorflow as tf
@@ -48,7 +50,7 @@ def get_computation_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-
     mem_data = parse_tensorboard(plane_pb_file, Conf_TB(CONF.MEM))
     op_dict = process_op_df(dataframe)
     mem_dict = process_mem_dict(mem_data)
-    update_graph_with_prof(graph, op_dict, mem_dict)
+    update_graph_with_prof(graph, op_dict, mem_dict, socket.gethostname())
     if not is_directed_acyclic_graph(graph):
         raise "comp_graph is not directed acyclic"
     return graph
