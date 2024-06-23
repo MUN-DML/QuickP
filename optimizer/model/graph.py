@@ -1,3 +1,4 @@
+import random
 from typing import Union
 
 from matplotlib import pyplot as plt
@@ -5,13 +6,13 @@ from networkx import DiGraph, draw_networkx_labels, gnp_random_graph, spring_lay
 
 
 class CompGraph(DiGraph):
-    def random_rebuild(self, operator_num):
-        G = gnp_random_graph(operator_num, 0.5, directed=True)
-        for i in G.nodes():
-            self.add_new_node(operator_id=i, op_type="not specified")
-        for (u, v) in G.edges():
-            if u < v:
-                self.add_new_edge(u, v)
+    def generata_random_cost(self, device_number):
+        for node in self.nodes:
+            for i in range(device_number):
+                assert node["comp_cost"]
+                base = node["comp_cost"].values()
+                random_cost = random.random()
+                node["comp_cost"][device_number] = random_cost
 
     def add_new_node(self, operator_id, op_type, output_size=0):
         super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size)
