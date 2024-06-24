@@ -2,6 +2,9 @@ import json
 
 from gurobipy import *
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, '..'))
+sys.path.append(project_root)
 from DNN_model_tf.vgg_tf import VGG16_tf
 from model.graph import visualize_graph
 from optimizer.computing_graph.computing_graph import get_computation_graph
