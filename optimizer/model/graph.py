@@ -10,9 +10,12 @@ class CompGraph(DiGraph):
         for node in self.getOperatorObjs():
             assert node["comp_cost"] is not None
             for i in range(device_number):
+                device_name = f"mock_device_{i}"
                 base = node["comp_cost"].values()
-                print(base)
-                base_num = sum(base) / len(base)
+                if sum(base) == 0:
+                    base_num = 100
+                else:
+                    base_num = sum(base) / len(base)
                 adjustment_range = 0.05 * base_num
 
                 # Generate a random adjustment within the range [-5%, 5%]
@@ -21,7 +24,7 @@ class CompGraph(DiGraph):
                 # Apply the adjustment to the number
                 adjusted_number = base_num + adjustment
 
-                node["comp_cost"][device_number] = adjusted_number
+                node["comp_cost"][device_name] = adjusted_number
 
     def add_new_node(self, operator_id, op_type, output_size=0):
         super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size)
@@ -84,21 +87,25 @@ class DeviceGraph(DiGraph):
 
             # Add intra-node edges
             for device_id in range(start_device_id, end_device_id):
-                self.add_new_node(device_id, 1000000)
+                device_id_name = f"mock_device_{device_id}"
+                self.add_new_node(device_id_name, 1000000)
                 for other_device_id in range(start_device_id, end_device_id):
                     if device_id != other_device_id:
-                        self.add_new_edge(device_id, other_device_id, intra_node_band)
+                        other_device_id_name = f"mock_device_{other_device_id}"
+                        self.add_new_edge(device_id_name, other_device_id_name, intra_node_band)
 
         # Add inter-node edges
         for node_index in range(num_nodes):
             start_device_id = node_index * max_num_device_per_node
             end_device_id = min((node_index + 1) * max_num_device_per_node, device_number)
             for device_id in range(start_device_id, end_device_id):
+                device_id_name = f"mock_device_{device_id}"
                 for other_node_index in range(node_index + 1, num_nodes):
                     other_start_device_id = other_node_index * max_num_device_per_node
                     other_end_device_id = min((other_node_index + 1) * max_num_device_per_node, device_number)
                     for other_device_id in range(other_start_device_id, other_end_device_id):
-                        self.add_new_edge(device_id, other_device_id, inter_node_band)
+                        other_device_id_name = f"mock_device_{other_device_id}"
+                        self.add_new_edge(device_id_name, other_device_id_name, inter_node_band)
 
     def add_new_node(self, device_id, capacity):
         super().add_node(node_for_adding=device_id, memory_capacity=capacity)
