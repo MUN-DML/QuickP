@@ -10,9 +10,11 @@ from optimizer.cluster_info import servers
 
 model = VGG16_tf()
 comp_graph = get_computation_graph(model=model)
-visualize_graph(comp_graph)
-
 deviceTopo = get_device_topo_ssh(servers)
+
+# init fake data
+comp_graph.generata_random_cost(100)
+deviceTopo.generata_random_nodes(100)
 
 # Init solver
 model = Model("minimize_maxload")

@@ -11,8 +11,16 @@ class CompGraph(DiGraph):
             for i in range(device_number):
                 assert node["comp_cost"]
                 base = node["comp_cost"].values()
-                random_cost = random.random()
-                node["comp_cost"][device_number] = random_cost
+                base_num = sum(base) / len(base)
+                adjustment_range = 0.05 * base_num
+
+                # Generate a random adjustment within the range [-5%, 5%]
+                adjustment = random.uniform(-adjustment_range, adjustment_range)
+
+                # Apply the adjustment to the number
+                adjusted_number = base_num + adjustment
+
+                node["comp_cost"][device_number] = adjusted_number
 
     def add_new_node(self, operator_id, op_type, output_size=0):
         super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size)
@@ -56,6 +64,10 @@ class CompGraph(DiGraph):
 
 # Undirected Graph
 class DeviceGraph(DiGraph):
+
+    def generata_random_nodes(self, device_number):
+        for i in device_number:
+            self.add_new_node(device_number, 1000000)
 
     def add_new_node(self, device_id, capacity):
         super().add_node(node_for_adding=device_id, memory_capacity=capacity)
