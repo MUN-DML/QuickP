@@ -7,15 +7,15 @@ from networkx import DiGraph, draw_networkx_labels, gnp_random_graph, spring_lay
 
 class CompGraph(DiGraph):
     def generata_random_cost(self, device_number):
+        if len(self.getOperatorIDs()) == 0:
+            raise ValueError("need to profile the real DNN first")
         for node in self.getOperatorObjs():
             assert node["comp_cost"] is not None
             for i in range(device_number):
                 device_name = f"mock_device_{i}"
                 base = node["comp_cost"].values()
-                if sum(base) == 0:
-                    base_num = 100
-                else:
-                    base_num = sum(base) / len(base)
+
+                base_num = sum(base) / len(base)
                 adjustment_range = 0.05 * base_num
 
                 # Generate a random adjustment within the range [-5%, 5%]
