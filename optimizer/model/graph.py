@@ -82,11 +82,9 @@ class DeviceGraph(DiGraph):
             start_device_id = node_index * max_num_device_per_node
             end_device_id = min((node_index + 1) * max_num_device_per_node, device_number)
 
+            # Add intra-node edges
             for device_id in range(start_device_id, end_device_id):
                 self.add_new_node(device_id, 1000000)
-
-            # Add intra-node edges, incorrect
-            for device_id in range(start_device_id, end_device_id):
                 for other_device_id in range(start_device_id, end_device_id):
                     if device_id != other_device_id:
                         self.add_new_edge(device_id, other_device_id, intra_node_band)
@@ -103,6 +101,9 @@ class DeviceGraph(DiGraph):
                         self.add_new_edge(device_id, other_device_id, inter_node_band)
 
     def add_new_node(self, device_id, capacity):
+        super().add_node(node_for_adding=device_id, memory_capacity=capacity)
+
+    def add_new_fully_connected_node(self, device_id, capacity):
         super().add_node(node_for_adding=device_id, memory_capacity=capacity)
         for existing_node_id in self.getDeviceIDs():
             if existing_node_id != device_id:  # Avoid self-loop
