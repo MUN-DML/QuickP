@@ -3,6 +3,7 @@ import os
 
 import torchvision
 from pippy import annotate_split_points, SplitPoint
+from tensorflow.python.framework.dtypes import DType
 from torch.profiler import profile, record_function, ProfilerActivity
 from torchvision import transforms
 
@@ -11,6 +12,7 @@ from torchvision import transforms
 os.environ["KERAS_BACKEND"] = "torch"
 
 import torch
+import tensorflow as tf
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
@@ -259,3 +261,33 @@ def print_communication_cost(table_str):
 
     for line in filtered_lines:
         print(line)
+
+
+def tensor_shape_to_bits(tensor_shape, dtype: DType):
+    """
+    Convert a TensorShape to the total number of bits.
+
+    :param tensor_shape: A TensorShape object or a list/tuple of dimensions.
+    :param dtype: The data type of the tensor elements (e.g., tf.float32, tf.float64).
+    :return: Total size in bits.
+    """
+    # Get the total number of elements
+    total_elements = tf.reduce_prod(tensor_shape).numpy()
+
+    # Determine the number of bits per element based on dtype
+    if dtype == tf.float32 or dtype == tf.int32:
+        bits_per_element = 32
+    elif dtype == tf.float64 or dtype == tf.int64:
+        bits_per_element = 64
+    elif dtype == tf.float16:
+        bits_per_element = 16
+    elif dtype == tf.int16:
+        bits_per_element = 16
+    elif dtype == tf.int8 or dtype == tf.uint8:
+        bits_per_element = 8
+    else:
+        raise ValueError(f"Unsupported data type: {dtype}")
+
+    # Calculate the total size in bits
+    total_bits = total_elements * bits_per_element
+    return total_bits
