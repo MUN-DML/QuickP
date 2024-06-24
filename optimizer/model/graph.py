@@ -1,5 +1,6 @@
 import random
 from typing import Union
+import tensorflow as tf
 
 from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, gnp_random_graph, spring_layout, draw, draw_networkx_edge_labels
@@ -26,7 +27,7 @@ class CompGraph(DiGraph):
 
                 node["comp_cost"][device_name] = adjusted_number
 
-    def add_new_node(self, operator_id, op_type, output_size=0):
+    def add_new_node(self, operator_id, op_type, output_size: tf.TensorShape):
         super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size)
 
     def add_new_edge(self, source_id, dest_id):

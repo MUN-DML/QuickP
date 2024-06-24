@@ -1,7 +1,5 @@
 import json
 import os
-import socket
-from collections import defaultdict
 from datetime import datetime
 from io import StringIO
 
@@ -11,7 +9,6 @@ import torch
 import numpy as np
 from keras import Sequential
 from keras.src.datasets import cifar10
-from keras.src.utils import to_categorical
 import tensorflow as tf
 import networkx as nx
 # pip install tensorboard-plugin-profile
@@ -21,7 +18,6 @@ from pathlib import Path
 from pandas import DataFrame
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 
-from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import visualize_graph, CompGraph
 
@@ -130,7 +126,7 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
 
     # Add nodes and edges to the graph
     for op in graph.get_operations():
-        shape = op.outputs[0].shape if op.outputs else tf.TensorShape([])
+        shape: tf.TensorShape = op.outputs[0].shape if op.outputs else tf.TensorShape([])
         # Each node is an operation in the TensorFlow graph
         G.add_new_node(op.name, op_type=op.type, output_size=shape)
         for input_tensor in op.inputs:
