@@ -158,15 +158,16 @@ class DeviceGraph(DiGraph):
         return ""
 
 
-def visualize_graph(graph: DiGraph, show_labels=True):
+def visualize_graph(graph: DiGraph, show_node_labels=True, show_edge_labels=True):
     pos = spring_layout(graph, seed=500)  # Seed for reproducible layout
     draw(graph, pos, with_labels=False, node_size=10, font_size=8)
-    if show_labels:
+    if show_node_labels:
         # Create a dictionary with node labels including their attributes
         node_labels = {node: f"{node}\n" + '\n'.join([f"{key}: {value}" for key, value in graph.nodes[node].items()])
                        for node in graph.nodes()}
         draw_networkx_labels(graph, pos, node_labels, font_size=8)
         # Create a dictionary with edge labels including their attributes
+    if show_edge_labels:
         edge_labels = {(u, v): '\n'.join([f"{key}: {value}" for key, value in data.items()]) for u, v, data in
                        graph.edges(data=True)}
         draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, font_size=8)
