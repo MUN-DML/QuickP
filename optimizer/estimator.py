@@ -1,3 +1,4 @@
+# python3 estimator.py
 import json
 
 from gurobipy import *
@@ -17,7 +18,7 @@ deviceTopo = get_device_topo_ssh(servers)
 
 # init fake data
 comp_graph.generata_random_cost(100)
-deviceTopo.generata_random_nodes(100)
+deviceTopo.generata_fat_tree_topo(100, 30, 20, 5)
 
 # Init solver
 model = Model("minimize_maxload")
