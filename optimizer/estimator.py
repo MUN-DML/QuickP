@@ -4,7 +4,6 @@ import json
 from gurobipy import *
 import torch
 import tensorflow as tf
-from py_util import tensor_shape_to_bits
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
@@ -13,14 +12,15 @@ from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.device_topo.device_graph import get_device_topo_ssh
 from optimizer.cluster_info import servers
+from py_util import tensor_shape_to_bits
 
 model = VGG16_tf()
 comp_graph = get_computation_graph(model=model)
 deviceTopo = get_device_topo_ssh(servers)
 
 # init fake data
-comp_graph.generata_random_cost(30)
-deviceTopo.generata_fat_tree_topo(30, 30, 20, 5)
+comp_graph.generata_random_cost(4)
+deviceTopo.generata_fat_tree_topo(4, 30, 20, 2)
 
 # Init solver
 model = Model("minimize_maxload")
