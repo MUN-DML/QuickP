@@ -57,10 +57,10 @@ class CompGraph(DiGraph):
     def getEdgeItems(self):
         return self.edges.items()
 
-    def getEdgeIDs(self):
+    def getEdgeIDs(self) -> list[tuple]:
         return list(self.edges.keys())
 
-    def getEdgeObjs(self):
+    def getEdgeObjs(self) -> list[dict]:
         return list(self.edges.values())
 
     def __str__(self):
@@ -137,10 +137,10 @@ class DeviceGraph(DiGraph):
     def getDeviceItems(self):
         return self.nodes.items()
 
-    def getDeviceIDs(self):
+    def getDeviceIDs(self) -> list[any]:
         return list(self.nodes.keys())
 
-    def getDeviceObjs(self):
+    def getDeviceObjs(self) -> list[dict]:
         return list(self.nodes.values())
 
     def getAllEdges(self):
@@ -149,7 +149,7 @@ class DeviceGraph(DiGraph):
     def getEdgeIDs(self):
         return list(self.edges.keys())
 
-    def getEdgeObjs(self):
+    def getEdgeObjs(self) -> list[dict]:
         return list(self.edges.values())
 
     def calculateCommunicationCost(self, tensor_size, source_id, dest_id):
