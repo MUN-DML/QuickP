@@ -157,10 +157,16 @@ class DeviceGraph(DiGraph):
     def getEdgeObjs(self) -> list[dict]:
         return list(self.edges.values())
 
-    def calculateCommunicationCost(self, tensor_size, source_id, dest_id):
+    def calculateCommunicationCost(self, tensor_size, source_id, dest_id, device_mapping):
+        def find_key_by_value(d, value):
+            for key, val in d.items():
+                if val == value:
+                    return key
+            return None
+        # the source_id and dest_id are integers. Need to remap to the real device ip
         if source_id == dest_id:
             return 0
-        speed = self.getConnection(source_id, dest_id)["bandwidth"]
+        speed = self.getConnection(find_key_by_value(device_mapping, source_id), find_key_by_value(device_mapping, dest_id))["bandwidth"]
         return tensor_size / speed
 
     def check_all_link_bandwidth(self):
