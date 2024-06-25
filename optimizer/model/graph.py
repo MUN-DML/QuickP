@@ -94,7 +94,7 @@ class DeviceGraph(DiGraph):
             # Add intra-node edges
             for device_id in range(start_device_id, end_device_id):
                 device_id_name = f"mock_device_{device_id}"
-                self.add_new_node(device_id_name, 1000000)
+                self.add_new_node(device_id_name, 10000000000)
                 for other_device_id in range(start_device_id, end_device_id):
                     if device_id != other_device_id:
                         other_device_id_name = f"mock_device_{other_device_id}"
