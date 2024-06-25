@@ -2,12 +2,14 @@
 import json
 
 from gurobipy import *
+import torch
+import tensorflow as tf
+from py_util import tensor_shape_to_bits
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
 from DNN_model_tf.vgg_tf import VGG16_tf
-from model.graph import visualize_graph
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.device_topo.device_graph import get_device_topo_ssh
 from optimizer.cluster_info import servers
@@ -17,8 +19,8 @@ comp_graph = get_computation_graph(model=model)
 deviceTopo = get_device_topo_ssh(servers)
 
 # init fake data
-comp_graph.generata_random_cost(100)
-deviceTopo.generata_fat_tree_topo(100, 30, 20, 5)
+comp_graph.generata_random_cost(30)
+deviceTopo.generata_fat_tree_topo(30, 30, 20, 5)
 
 # Init solver
 model = Model("minimize_maxload")
@@ -33,8 +35,8 @@ model.setParam("MIPFocus", 1)
 model.setParam("IntFeasTol", 1e-6)
 
 # Define variables
-x = {}  # key will be (node_id, machine_id), value will be 1 or 0
-d = {}  # key will be (node_id_1, node_id_2), value will be 1 or 0
+x = {}  # key will be (operator_id, machine_id), value will be 1 or 0; x[3, 1] = 1 means operator 3 get allocated to device 1
+d = {}  # key will be (operator_id_1, operator_id_2), value will be 1 or 0; d[3, 7] = 1 means operator 3 and 7 are placed on different device
 x1 = model.addVar(vtype=GRB.BINARY, name="w1")
 x2 = model.addVar(vtype=GRB.BINARY, name="w2")
 for node_id in comp_graph.getOperatorIDs():
@@ -90,17 +92,14 @@ for node_id in list(comp_graph.getOperatorIDs()):
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     sourceID = edge_id_tuple[0]
     destID = edge_id_tuple[1]
+    tensor_size = tensor_shape_to_bits(comp_graph.getOperator(sourceID)["output_size"], dtype=tf.float32)
     source_placement = model.addVar(vtype=GRB.INTEGER, name="w1")
     dest_placement = model.addVar(vtype=GRB.INTEGER, name="w1")
     # https://support.gurobi.com/hc/en-us/articles/360039628832-Constraint-has-no-bool-value-are-you-trying-lb-expr-ub
     # https://support.gurobi.com/hc/en-us/community/posts/360077951791-if-statement-in-constraint
-    for device_id in deviceTopo.getDeviceIDs():
-        model.addConstr((x[sourceID, device_id] == 1) >> (source_placement == device_id))
-        model.addConstr((x[destID, device_id] == 1) >> (dest_placement == device_id))
-    # model.update()
-    # path = nx.shortest_path(deviceTopo, source=source_placement, target=dest_placement)
-    # communication_cost = deviceTopo.calculateCommunicationCost(standard_tensor_size, path_list=path)
-    model.addConstr(start[destID] >= finish[sourceID] + d[sourceID, destID] * 0, "data dependency between source and destination nodes")
+
+    # if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
+    model.addConstr(start[destID] >= finish[sourceID] + d[sourceID, destID] * tensor_size, "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
