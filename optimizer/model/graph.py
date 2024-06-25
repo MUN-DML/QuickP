@@ -12,6 +12,7 @@ class CompGraph(DiGraph):
             raise ValueError("need to profile the real DNN first")
         for node in self.getOperatorObjs():
             assert node["comp_cost"] is not None
+            existing_real_device = list(node["comp_cost"].keys())
             for i in range(device_number):
                 device_name = f"mock_device_{i}"
                 base = node["comp_cost"].values()
@@ -26,6 +27,10 @@ class CompGraph(DiGraph):
                 adjusted_number = base_num + adjustment
 
                 node["comp_cost"][device_name] = adjusted_number
+
+            # Delete keys after iteration
+            for key in existing_real_device:
+                del node["comp_cost"][key]
 
     def add_new_node(self, operator_id, op_type, output_size: tf.TensorShape):
         super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size)
@@ -48,7 +53,7 @@ class CompGraph(DiGraph):
     def getOperatorIDs(self):
         return list(self.nodes.keys())
 
-    def getOperatorObjs(self):
+    def getOperatorObjs(self) -> list[dict]:
         return list(self.nodes.values())
 
     def getAllEdges(self):

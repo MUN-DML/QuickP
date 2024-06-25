@@ -10,18 +10,18 @@ project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
 from DNN_model_tf.vgg_tf import VGG16_tf
 from optimizer.computing_graph.computing_graph import get_computation_graph
+from optimizer.model.graph import DeviceGraph
 from optimizer.device_topo.device_graph import get_device_topo_ssh
 from optimizer.cluster_info import servers
 from py_util import tensor_shape_to_bits
 
 model = VGG16_tf()
 comp_graph = get_computation_graph(model=model)
-deviceTopo = get_device_topo_ssh(servers)
+deviceTopo = DeviceGraph()
 
 # init fake data
-comp_graph.generata_random_cost(4)
-deviceTopo.generata_fat_tree_topo(4, 30, 20, 2)
-
+comp_graph.generata_random_cost(100)
+deviceTopo.generata_fat_tree_topo(100, 30, 20, 5)
 # Init solver
 model = Model("minimize_maxload")
 model.setParam("LogToConsole", 0)
