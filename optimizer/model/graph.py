@@ -158,6 +158,8 @@ class DeviceGraph(DiGraph):
         return list(self.edges.values())
 
     def calculateCommunicationCost(self, tensor_size, source_id, dest_id):
+        if source_id == dest_id:
+            return 0
         speed = self.getConnection(source_id, dest_id)["bandwidth"]
         return tensor_size / speed
 
