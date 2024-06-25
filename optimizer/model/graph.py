@@ -57,7 +57,7 @@ class CompGraph(DiGraph):
     def getEdgeItems(self):
         return self.edges.items()
 
-    def getEdgeIDs(self) -> list[tuple]:
+    def getEdgeIDs(self) -> list[tuple[any, any]]:
         return list(self.edges.keys())
 
     def getEdgeObjs(self) -> list[dict]:
@@ -146,7 +146,7 @@ class DeviceGraph(DiGraph):
     def getAllEdges(self):
         return list(self.edges(data=True))
 
-    def getEdgeIDs(self):
+    def getEdgeIDs(self) -> list[tuple[any, any]]:
         return list(self.edges.keys())
 
     def getEdgeObjs(self) -> list[dict]:
