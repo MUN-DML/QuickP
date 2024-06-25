@@ -36,23 +36,11 @@ model.setParam("IntFeasTol", 1e-6)
 
 # Define variables
 x = {}  # key will be (operator_id, machine_id), value will be 1 or 0; x[3, 1] = 1 means operator 3 get allocated to device 1
-d = {}  # key will be (operator_id_1, operator_id_2), value will be 1 or 0; d[3, 7] = 1 means operator 3 and 7 are placed on different device
 x1 = model.addVar(vtype=GRB.BINARY, name="w1")
 x2 = model.addVar(vtype=GRB.BINARY, name="w2")
 for node_id in comp_graph.getOperatorIDs():
     for machine_id in deviceTopo.getDeviceIDs():
         x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY)
-for source_id in comp_graph.getOperatorIDs():
-    for dest_id in comp_graph.getOperatorIDs():
-        d[source_id, dest_id] = model.addVar(vtype=GRB.BINARY)
-        # If two nodes do not have dependency relationship
-        if (source_id, dest_id) not in comp_graph.getEdgeIDs():
-            model.addConstr(d[source_id, dest_id] == 0)
-        else:
-            for device_id in deviceTopo.getDeviceIDs():
-                model.addConstr((x[source_id, device_id] == 1) >> (x1 == 1), "source node is placed on the device")
-                model.addConstr((x[dest_id, device_id] == 1) >> (x2 == 1), "dest node is placed on the device")
-                model.addGenConstrAnd(d[source_id, dest_id], [x1, x2], "andconstr")
 
 # Add constraints that schedule every node on exactly one machine
 for node_id in comp_graph.getOperatorIDs():
@@ -92,14 +80,8 @@ for node_id in list(comp_graph.getOperatorIDs()):
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     sourceID = edge_id_tuple[0]
     destID = edge_id_tuple[1]
-    tensor_size = tensor_shape_to_bits(comp_graph.getOperator(sourceID)["output_size"], dtype=tf.float32)
-    source_placement = model.addVar(vtype=GRB.INTEGER, name="w1")
-    dest_placement = model.addVar(vtype=GRB.INTEGER, name="w1")
-    # https://support.gurobi.com/hc/en-us/articles/360039628832-Constraint-has-no-bool-value-are-you-trying-lb-expr-ub
-    # https://support.gurobi.com/hc/en-us/community/posts/360077951791-if-statement-in-constraint
-
     # if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
-    model.addConstr(start[destID] >= finish[sourceID] + d[sourceID, destID] * tensor_size, "data dependency between source and destination nodes")
+    model.addConstr(start[destID] >= finish[sourceID], "data dependency between source and destination nodes")
 
 # TotalLatency that we are minimizing
 TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
