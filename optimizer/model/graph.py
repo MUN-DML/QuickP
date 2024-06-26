@@ -183,9 +183,6 @@ class DeviceGraph(DiGraph):
         # the source_id and dest_id are integers. Need to remap to the real device ip
         if source_id == dest_id:
             return 0
-        print("source", source_id, "dest", dest_id)
-        print("source", find_key_by_value(device_mapping, source_id), "dest",
-              find_key_by_value(device_mapping, dest_id))
         speed = \
         self.getConnection(find_key_by_value(device_mapping, source_id), find_key_by_value(device_mapping, dest_id))[
             "bandwidth"]
