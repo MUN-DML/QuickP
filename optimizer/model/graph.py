@@ -113,6 +113,22 @@ class DeviceGraph(DiGraph):
                         other_device_id_name = f"mock_device_{other_device_id}"
                         self.add_new_edge(device_id_name, other_device_id_name, inter_node_band)
 
+    def is_fully_connected_bidirectional(self):
+        """
+        Check if every node in the directed graph is fully connected with all other nodes bidirectionally.
+
+        :param digraph: A NetworkX directed graph (DiGraph)
+        :return: True if every node is fully connected bidirectionally, False otherwise.
+        """
+        nodes = list(self.nodes)
+        for i in range(len(nodes)):
+            for j in range(i + 1, len(nodes)):
+                u = nodes[i]
+                v = nodes[j]
+                if not (self.has_edge(u, v) and self.has_edge(v, u)):
+                    return False
+        return True
+
     def add_new_node(self, device_id, capacity):
         super().add_node(node_for_adding=device_id, memory_capacity=capacity)
 
@@ -163,10 +179,16 @@ class DeviceGraph(DiGraph):
                 if val == value:
                     return key
             return None
+
         # the source_id and dest_id are integers. Need to remap to the real device ip
         if source_id == dest_id:
             return 0
-        speed = self.getConnection(find_key_by_value(device_mapping, source_id), find_key_by_value(device_mapping, dest_id))["bandwidth"]
+        print("source", source_id, "dest", dest_id)
+        print("source", find_key_by_value(device_mapping, source_id), "dest",
+              find_key_by_value(device_mapping, dest_id))
+        speed = \
+        self.getConnection(find_key_by_value(device_mapping, source_id), find_key_by_value(device_mapping, dest_id))[
+            "bandwidth"]
         return tensor_size / speed
 
     def check_all_link_bandwidth(self):
