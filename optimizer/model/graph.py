@@ -82,14 +82,15 @@ class CompGraph(DiGraph):
 class DeviceGraph(DiGraph):
 
     def generata_fat_tree_topo(self, device_number, intra_node_band, inter_node_band, max_num_device_per_node):
+        # num_nodes mean the number of servers where each server might have multiple devices
         num_nodes = device_number // max_num_device_per_node
         if device_number % max_num_device_per_node != 0:
-            num_nodes += 1
+            raise ValueError("device_number % max_num_device_per_node should be == 0")
 
-        # Add devices and create nodes
+        # Create nodes and make all devices within each node fully connected
         for node_index in range(num_nodes):
             start_device_id = node_index * max_num_device_per_node
-            end_device_id = min((node_index + 1) * max_num_device_per_node, device_number)
+            end_device_id = (node_index + 1) * max_num_device_per_node
 
             # Add intra-node edges
             for device_id in range(start_device_id, end_device_id):
@@ -102,16 +103,15 @@ class DeviceGraph(DiGraph):
 
         # Add inter-node edges
         for node_index in range(num_nodes):
-            start_device_id = node_index * max_num_device_per_node
-            end_device_id = min((node_index + 1) * max_num_device_per_node, device_number)
-            for device_id in range(start_device_id, end_device_id):
-                device_id_name = f"mock_device_{device_id}"
-                for other_node_index in range(node_index + 1, num_nodes):
-                    other_start_device_id = other_node_index * max_num_device_per_node
-                    other_end_device_id = min((other_node_index + 1) * max_num_device_per_node, device_number)
-                    for other_device_id in range(other_start_device_id, other_end_device_id):
-                        other_device_id_name = f"mock_device_{other_device_id}"
-                        self.add_new_edge(device_id_name, other_device_id_name, inter_node_band)
+            current_node_start_device_id = node_index * max_num_device_per_node
+            current_node_end_device_id = (node_index + 1) * max_num_device_per_node
+            for current_device_id in range(current_node_start_device_id, current_node_end_device_id):
+                device_id_name = f"mock_device_{current_device_id}"
+                current_device_id_list = list(range(current_node_start_device_id, current_node_end_device_id))
+                other_device_id_list = [element for element in list(range(device_number)) if element not in current_device_id_list]
+                for other_device_id in other_device_id_list:
+                    other_device_id_name = f"mock_device_{other_device_id}"
+                    self.add_new_edge(device_id_name, other_device_id_name, inter_node_band)
 
     def is_fully_connected_bidirectional(self):
         """
