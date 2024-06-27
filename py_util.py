@@ -321,6 +321,13 @@ def convert_data_size(value, from_unit, to_unit):
         'bytes': 1,
         'B': 1,
     }
+    # Convert the input value to bytes
+    bytes_value = value * conversion_factors[from_unit]
+
+    # Convert the bytes value to the target unit
+    converted_value = bytes_value / conversion_factors[to_unit]
+
+    return converted_value
 
 
 def convert_time(value, from_unit, to_unit):

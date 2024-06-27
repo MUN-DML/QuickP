@@ -181,6 +181,7 @@ class DeviceGraph(DiGraph):
         if source_id == dest_id:
             return 0
         speed = convert_data_size(self.getConnection(source_id, dest_id)["bandwidth"], 'GB', 'bit')
+        print('from', source_id, 'to', dest_id, 'speed', speed)
         return convert_time(tensor_size / speed, 's', 'us')
 
     def check_all_link_bandwidth(self):
