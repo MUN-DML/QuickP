@@ -291,3 +291,65 @@ def tensor_shape_to_bits(tensor_shape, dtype: DType):
     # Calculate the total size in bits
     total_bits = total_elements * bits_per_element
     return total_bits
+
+
+def convert_data_size(value, from_unit, to_unit):
+    """
+    Convert between different data size units.
+
+    :param value: The numerical value to convert.
+    :param from_unit: The unit of the input value (e.g., 'GB', 'Mb', 'bytes', etc.).
+    :param to_unit: The unit to convert to (e.g., 'GB', 'Mb', 'bytes', etc.).
+    :return: The converted value.
+    """
+
+    # Define conversion factors relative to bytes
+    conversion_factors = {
+        'bit': 1 / 8,
+        'kb': 1000,
+        'kB': 1000 * 8,
+        'Kb': 1024,
+        'KB': 1024 * 8,
+        'Mb': 1024 ** 2,
+        'MB': 1024 ** 2 * 8,
+        'Gb': 1024 ** 3,
+        'GB': 1024 ** 3 * 8,
+        'Tb': 1024 ** 4,
+        'TB': 1024 ** 4 * 8,
+        'Pb': 1024 ** 5,
+        'PB': 1024 ** 5 * 8,
+        'bytes': 1,
+        'B': 1,
+    }
+
+
+def convert_time(value, from_unit, to_unit):
+    """
+    Convert between different time units.
+
+    :param value: The numerical value to convert.
+    :param from_unit: The unit of the input value (e.g., 's', 'ms', 'min', etc.).
+    :param to_unit: The unit to convert to (e.g., 's', 'ms', 'min', etc.).
+    :return: The converted value.
+    """
+
+    # Define conversion factors relative to seconds
+    conversion_factors = {
+        'ns': 1e-9,  # Nanoseconds to seconds
+        'µs': 1e-6,  # Microseconds to seconds
+        'us': 1e-6,  # Microseconds to seconds (alternative symbol)
+        'ms': 1e-3,  # Milliseconds to seconds
+        's': 1,  # Seconds to seconds
+        'min': 60,  # Minutes to seconds
+        'h': 3600,  # Hours to seconds
+        'd': 86400,  # Days to seconds
+        'w': 604800  # Weeks to seconds
+    }
+
+    # Convert the input value to seconds
+    seconds_value = value * conversion_factors[from_unit]
+
+    # Convert the seconds value to the target unit
+    converted_value = seconds_value / conversion_factors[to_unit]
+
+    return converted_value
