@@ -305,22 +305,21 @@ def convert_data_size(value, from_unit, to_unit):
 
     # Define conversion factors relative to bytes
     conversion_factors = {
-        'bit': 1 / 8,
-        'kb': 1000,
-        'kB': 1000 * 8,
-        'Kb': 1024,
-        'KB': 1024 * 8,
-        'Mb': 1024 ** 2,
-        'MB': 1024 ** 2 * 8,
-        'Gb': 1024 ** 3,
-        'GB': 1024 ** 3 * 8,
-        'Tb': 1024 ** 4,
-        'TB': 1024 ** 4 * 8,
-        'Pb': 1024 ** 5,
-        'PB': 1024 ** 5 * 8,
-        'bytes': 1,
-        'B': 1,
+        'bit': 1 / 8,  # 1 bit is 1/8 bytes
+        'byte': 1,  # 1 byte is 1 byte
+        'B': 1,  # 1 byte is 1 byte
+        'KB': 1024,  # 1 kilobyte is 1024 bytes
+        'MB': 1024 ** 2,  # 1 megabyte is 1024^2 bytes
+        'GB': 1024 ** 3,  # 1 gigabyte is 1024^3 bytes
+        'TB': 1024 ** 4,  # 1 terabyte is 1024^4 bytes
+        'PB': 1024 ** 5,  # 1 petabyte is 1024^5 bytes
+        'kbit': 128,  # 1 kilobit is 128 bytes (1024 / 8)
+        'Mbit': 128 * 1024,  # 1 megabit is 128 * 1024 bytes
+        'Gbit': 128 * 1024 ** 2,  # 1 gigabit is 128 * 1024^2 bytes
+        'Tbit': 128 * 1024 ** 3,  # 1 terabit is 128 * 1024^3 bytes
+        'Pbit': 128 * 1024 ** 4  # 1 petabit is 128 * 1024^4 bytes
     }
+
     # Convert the input value to bytes
     bytes_value = value * conversion_factors[from_unit]
 
