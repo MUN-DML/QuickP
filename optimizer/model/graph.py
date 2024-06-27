@@ -3,7 +3,9 @@ from typing import Union
 import tensorflow as tf
 
 from matplotlib import pyplot as plt
-from networkx import DiGraph, draw_networkx_labels, gnp_random_graph, spring_layout, draw, draw_networkx_edge_labels
+from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels
+
+from py_util import convert_data_size, convert_time
 
 
 class CompGraph(DiGraph):
@@ -173,13 +175,13 @@ class DeviceGraph(DiGraph):
     def getEdgeObjs(self) -> list[dict]:
         return list(self.edges.values())
 
-    def calculateCommunicationCost(self, tensor_size, source_id, dest_id):
+    def calculateCommunicationCostInUS(self, tensor_size, source_id, dest_id):
 
         # the source_id and dest_id are integers. Need to remap to the real device ip
         if source_id == dest_id:
             return 0
-        speed = self.getConnection(source_id, dest_id)["bandwidth"]
-        return tensor_size / speed
+        speed = convert_data_size(self.getConnection(source_id, dest_id)["bandwidth"], 'GB', 'bit')
+        return convert_time(tensor_size / speed, 's', 'us')
 
     def check_all_link_bandwidth(self):
         # sample edge is (1, 2, {'bandwidth': None})
