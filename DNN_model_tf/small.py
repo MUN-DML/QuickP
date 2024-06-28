@@ -16,8 +16,6 @@ https://keras.io/examples/vision/image_classification_from_scratch/
 def small_tf():
     model = models.Sequential()
     model.add(layers.Flatten(input_shape=(32, 32, 3)))  # Flatten the input images to 1D
-    model.add(layers.Dense(128, activation='relu'))  # First dense layer with 128 neurons
-    model.add(layers.Dense(64, activation='relu'))  # Second dense layer with 64 neurons
     model.add(layers.Dense(10, activation='softmax'))  # Output layer with 10 neurons for 10 classes
 
     return model
