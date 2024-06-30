@@ -43,11 +43,12 @@ def get_cifar_data_loader(batch_size=200, train=True):
     (x_train, y_train), (x_test, y_test) = getCifar()
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
+    num_batches = 10
     if train:
-        return train_dataset.shuffle(50000).map(augment_images).batch(batch_size).cache().prefetch(
-            tf.data.experimental.AUTOTUNE)
+        return (train_dataset.shuffle(50000).map(augment_images).batch(batch_size).take(num_batches).cache().repeat()
+                .prefetch(tf.data.experimental.AUTOTUNE))
     else:
-        return test_dataset.batch(batch_size).cache().prefetch(tf.data.experimental.AUTOTUNE)
+        return test_dataset.batch(batch_size).take(num_batches).cache().repeat().prefetch(tf.data.experimental.AUTOTUNE)
 
 
 # GPU training: https://www.tensorflow.org/guide/gpu
