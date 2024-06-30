@@ -150,6 +150,9 @@ class DeviceGraph(DiGraph):
     def getConnection(self, source_id, dest_id):
         return self.edges[source_id, dest_id]
 
+    def get_link_bandwidth(self, source_id, dest_id):
+        return self.getConnection(source_id, dest_id)["bandwidth"]
+
     def update_link_bandwidth(self, source_id, dest_id, bandwidth):
         link = self.getConnection(source_id, dest_id)
         link["bandwidth"] = bandwidth
@@ -180,7 +183,7 @@ class DeviceGraph(DiGraph):
         # the source_id and dest_id are integers. Need to remap to the real device ip
         if source_id == dest_id:
             return 0
-        speed = convert_data_size(self.getConnection(source_id, dest_id)["bandwidth"], 'GB', 'bit')
+        speed = convert_data_size(self.get_link_bandwidth(source_id, dest_id), 'GB', 'bit')
         return convert_time(1 / speed, 's', 'us')
 
     def check_all_link_bandwidth(self):
