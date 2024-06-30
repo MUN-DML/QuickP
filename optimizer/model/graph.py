@@ -46,6 +46,9 @@ class CompGraph(DiGraph):
     def getConnection(self, source_id, dest_id):
         return self.edges[source_id, dest_id]
 
+    def getOperatorOutputSize(self, node_id):
+        return self.nodes[node_id]["output_size"]
+
     def getAllOperators(self):
         return list(self.nodes(data=True))
 
