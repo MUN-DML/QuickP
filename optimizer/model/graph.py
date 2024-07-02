@@ -1,14 +1,72 @@
+import json
+import os
 import random
 from typing import Union
 import tensorflow as tf
 
 from matplotlib import pyplot as plt
-from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels
+from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels, node_link_graph, \
+    node_link_data
 
 from py_util import convert_data_size, convert_time
 
 
 class CompGraph(DiGraph):
+    @staticmethod
+    def from_json(json_data):
+        """
+        Static method to convert JSON data to a CompGraph object.
+
+        Parameters:
+        json_data (str): JSON data as a string.
+
+        Returns:
+        CompGraph: A CompGraph object.
+        """
+        data = json.loads(json_data)
+        graph = node_link_graph(data, directed=True)
+        return CompGraph(graph)
+
+    @staticmethod
+    def load_from_file(file_path):
+        """
+        Static method to load a CompGraph object from a JSON file.
+
+        Parameters:
+        file_path (str): The file path to load the JSON data from.
+
+        Returns:
+        CompGraph: A CompGraph object, or None if the file does not exist.
+        """
+        if not os.path.exists(file_path):
+            print(f"File {file_path} does not exist.")
+            return None
+
+        with open(file_path, 'r') as f:
+            json_data = f.read()
+        return CompGraph.from_json(json_data)
+
+    def to_json(self):
+        """
+        Instance method to convert the current CompGraph object to JSON data.
+
+        Returns:
+        str: JSON data as a string.
+        """
+        data = node_link_data(self)
+        return json.dumps(data)
+
+    def save_to_file(self, file_path):
+        """
+        Instance method to save the current CompGraph object to a JSON file.
+
+        Parameters:
+        file_path (str): The file path to save the JSON data.
+        """
+        json_data = self.to_json()
+        with open(file_path, 'w') as f:
+            f.write(json_data)
+
     def generata_random_cost(self, device_number):
         if len(self.getOperatorIDs()) == 0:
             raise ValueError("need to profile the real DNN first")
@@ -35,7 +93,8 @@ class CompGraph(DiGraph):
                 del node["comp_cost"][key]
 
     def add_new_node(self, operator_id, op_type, output_size: tf.TensorShape, output_type):
-        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size, output_type=output_type)
+        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size,
+                         output_type=output_type)
 
     def add_new_edge(self, source_id, dest_id):
         super().add_edge(u_of_edge=source_id, v_of_edge=dest_id)
@@ -113,7 +172,8 @@ class DeviceGraph(DiGraph):
             for current_device_id in range(current_node_start_device_id, current_node_end_device_id):
                 device_id_name = f"mock_device_{current_device_id}"
                 current_device_id_list = list(range(current_node_start_device_id, current_node_end_device_id))
-                other_device_id_list = [element for element in list(range(device_number)) if element not in current_device_id_list]
+                other_device_id_list = [element for element in list(range(device_number)) if
+                                        element not in current_device_id_list]
                 for other_device_id in other_device_id_list:
                     other_device_id_name = f"mock_device_{other_device_id}"
                     self.add_new_edge(device_id_name, other_device_id_name, inter_node_band)
