@@ -285,6 +285,11 @@ def tensor_shape_to_bits(tensor_shape, dtype: DType):
         bits_per_element = 16
     elif dtype == tf.int8 or dtype == tf.uint8:
         bits_per_element = 8
+    elif dtype == tf.bool:
+        bits_per_element = 1
+    elif dtype == tf.resource:
+        # Hypothetical placeholder size for resource handles
+        bits_per_element = 0  # Example placeholder, change as appropriate
     else:
         raise ValueError(f"Unsupported data type: {dtype}")
 

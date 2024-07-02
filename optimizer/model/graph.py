@@ -34,8 +34,8 @@ class CompGraph(DiGraph):
             for key in existing_real_device:
                 del node["comp_cost"][key]
 
-    def add_new_node(self, operator_id, op_type, output_size: tf.TensorShape):
-        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size)
+    def add_new_node(self, operator_id, op_type, output_size: tf.TensorShape, output_type):
+        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size, output_type=output_type)
 
     def add_new_edge(self, source_id, dest_id):
         super().add_edge(u_of_edge=source_id, v_of_edge=dest_id)
@@ -46,8 +46,8 @@ class CompGraph(DiGraph):
     def getConnection(self, source_id, dest_id):
         return self.edges[source_id, dest_id]
 
-    def getOperatorOutputSize(self, node_id):
-        return self.nodes[node_id]["output_size"]
+    def getOperatorOutputSizeAndType(self, node_id):
+        return self.nodes[node_id]["output_size"], self.nodes[node_id]["output_type"]
 
     def getAllOperators(self):
         return list(self.nodes(data=True))

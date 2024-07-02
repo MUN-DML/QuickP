@@ -14,9 +14,9 @@ import networkx as nx
 # pip install tensorboard-plugin-profile
 import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
 from pathlib import Path
-
 from pandas import DataFrame
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
+from tensorflow.python.framework.dtypes import DType
 
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import visualize_graph, CompGraph
@@ -128,8 +128,9 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     # Add nodes and edges to the graph
     for op in graph.get_operations():
         shape: tf.TensorShape = op.outputs[0].shape if op.outputs else tf.TensorShape([])
+        dtype: DType = op.outputs[0].dtype if op.outputs else tf.float32
         # Each node is an operation in the TensorFlow graph
-        G.add_new_node(op.name, op_type=op.type, output_size=shape)
+        G.add_new_node(op.name, op_type=op.type, output_size=shape, output_type=dtype)
         for input_tensor in op.inputs:
             # Create an edge from input operation to the current operation
             G.add_new_edge(input_tensor.op.name, op.name)
