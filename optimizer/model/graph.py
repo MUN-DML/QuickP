@@ -121,6 +121,12 @@ class CompGraph(DiGraph):
         return self.nodes[node_id]["output_size"], self.nodes[node_id]["output_type"]
 
     def getOperatorCompCostByDevice(self, node_id, device_id):
+        if self.nodes[node_id] is None:
+            raise ValueError("node {0} does not exist".format(node_id))
+        if self.nodes[node_id]["comp_cost"] is None:
+            raise ValueError("no comp_cost found")
+        if device_id not in self.nodes[node_id]["comp_cost"].keys():
+            raise ValueError(f"no {device_id} found")
         return self.nodes[node_id]["comp_cost"][device_id]
 
     def getAllOperators(self):
