@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels, node_link_graph, \
-    node_link_data
+    node_link_data, number_weakly_connected_components
 
 from py_util import convert_data_size, convert_time
 
@@ -320,3 +320,31 @@ def combine_graphs(GList: [DiGraph]) -> Union[DiGraph, DeviceGraph, CompGraph]:
                     for node_j in GList[j].nodes():
                         G_combined.add_edge(node_i, node_j)
     return G_combined
+
+
+def has_more_than_one_component(digraph):
+    # Calculate the number of weakly connected components
+    num_components = number_weakly_connected_components(digraph)
+
+    if num_components > 1:
+        return True
+    else:
+        return False
+
+
+def keep_largest_component(digraph):
+    import networkx as nx
+    # Find all weakly connected components
+    weakly_connected_components = list(nx.weakly_connected_components(digraph))
+
+    if len(weakly_connected_components) <= 1:
+        print("The graph already has one or no weakly connected components.")
+        return digraph
+
+    # Find the largest component
+    largest_component = max(weakly_connected_components, key=len)
+
+    # Create a subgraph containing only the largest component
+    largest_component_subgraph = digraph.subgraph(largest_component).copy()
+
+    return largest_component_subgraph
