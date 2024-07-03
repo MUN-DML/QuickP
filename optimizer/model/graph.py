@@ -120,6 +120,9 @@ class CompGraph(DiGraph):
     def getOperatorOutputSizeAndType(self, node_id):
         return self.nodes[node_id]["output_size"], self.nodes[node_id]["output_type"]
 
+    def getOperatorCompCostByDevice(self, node_id, device_id):
+        return self.nodes[node_id]["comp_cost"][device_id]
+
     def getAllOperators(self):
         return list(self.nodes(data=True))
 
