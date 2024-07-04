@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels, node_link_graph, \
-    node_link_data, number_weakly_connected_components
+    node_link_data, number_weakly_connected_components, has_path, NetworkXError, topological_sort
 
 from py_util import convert_data_size, convert_time
 
@@ -348,3 +348,38 @@ def keep_largest_component(digraph):
     largest_component_subgraph = digraph.subgraph(largest_component).copy()
 
     return largest_component_subgraph
+
+
+def determine_node_order(graph, node1, node2):
+    """
+    Determines if node1 is prior or later than node2 in the topologically sorted order.
+
+    Parameters:
+    graph (nx.DiGraph): The directed graph.
+    node1: The first node to check.
+    node2: The second node to check.
+
+    Returns:
+    int: 1 if node1 is prior to node2,
+         2 if node1 is later than node2,
+         "not found" if either of the nodes is not in the graph.
+    """
+    try:
+        # Perform topological sort
+        sorted_nodes = list(topological_sort(graph))
+
+        # Get the positions of the nodes
+        pos_node1 = sorted_nodes.index(node1)
+        pos_node2 = sorted_nodes.index(node2)
+
+        if pos_node1 < pos_node2:
+            return 1
+        else:
+            return 2
+    except NetworkXError as e:
+        # Handle case where the graph is not a DAG
+        print(f"Error: {e}")
+        return "not found"
+    except ValueError:
+        # Handle case where node1 or node2 is not in the graph
+        return "not found"
