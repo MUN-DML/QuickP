@@ -231,6 +231,9 @@ class DeviceGraph(DiGraph):
     def getDevice(self, node_id):
         return self.nodes[node_id]
 
+    def getDeviceMaxMem(self, node_id):
+        return self.nodes[node_id]['memory_capacity']
+
     def getConnection(self, source_id, dest_id):
         return self.edges[source_id, dest_id]
 
