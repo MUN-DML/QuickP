@@ -375,14 +375,16 @@ def determine_node_order(graph, node1, node2):
         pos_node1 = sorted_nodes.index(node1)
         pos_node2 = sorted_nodes.index(node2)
 
+        # if node1 is ancestor to node2
         if pos_node1 < pos_node2:
             return 1
+        # if node1 is successor of node2
         else:
             return 2
     except NetworkXError as e:
         # Handle case where the graph is not a DAG
         print(f"Error: {e}")
-        return "not found"
+        return None
     except ValueError:
         # Handle case where node1 or node2 is not in the graph
-        return "not found"
+        return None
