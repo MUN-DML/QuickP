@@ -305,6 +305,3 @@ def distribute_profile_train(concrete_function: ConcreteFunction, dataloader: tf
                 tf.summary.scalar('accuracy', train_accuracy.result(), step=index)
 
     return log_dir
-
-
-getGpt_data_loader()
