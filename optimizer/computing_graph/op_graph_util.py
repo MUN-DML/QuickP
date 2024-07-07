@@ -10,7 +10,11 @@ import numpy as np
 from keras import Sequential
 from keras.src.datasets import cifar10
 import tensorflow as tf
+import tensorflow.data as tf_data
+import tensorflow.strings as tf_strings
 import networkx as nx
+# pip install -q --upgrade keras-nlp
+import keras_nlp
 # pip install tensorboard-plugin-profile
 import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
 from pathlib import Path
@@ -30,6 +34,113 @@ def getCifar():
     x_train = x_train.astype('float32') / 255.0
     x_test = x_test.astype('float32') / 255.0
     return (x_train, y_train), (x_test, y_test)
+
+def getGpt_data_loader():
+    #https://keras.io/examples/generative/text_generation_gpt/
+    BATCH_SIZE = 64
+    MIN_STRING_LEN = 512  # Strings shorter than this will be discarded
+    SEQ_LEN = 128  # Length of training sequences, in tokens
+
+    # Model
+    EMBED_DIM = 256
+    FEED_FORWARD_DIM = 128
+    NUM_HEADS = 3
+    NUM_LAYERS = 2
+    VOCAB_SIZE = 5000  # Limits parameters in model.
+
+    # Training
+    EPOCHS = 5
+
+    # Inference
+    NUM_TOKENS_TO_GENERATE = 80
+    keras.utils.get_file(
+        origin="https://dldata-public.s3.us-east-2.amazonaws.com/simplebooks.zip",
+        extract=True,
+    )
+    dir = os.path.expanduser("~/.keras/datasets/simplebooks/")
+
+    # Load simplebooks-92 train set and filter out short lines.
+    raw_train_ds = (
+        tf_data.TextLineDataset(dir + "simplebooks-92-raw/train.txt")
+        .filter(lambda x: tf_strings.length(x) > MIN_STRING_LEN)
+        .batch(BATCH_SIZE)
+        .shuffle(buffer_size=256)
+    )
+
+    # Load simplebooks-92 validation set and filter out short lines.
+    raw_val_ds = (
+        tf_data.TextLineDataset(dir + "simplebooks-92-raw/valid.txt")
+        .filter(lambda x: tf_strings.length(x) > MIN_STRING_LEN)
+        .batch(BATCH_SIZE)
+    )
+
+    """
+    ## Train the tokenizer
+
+    We train the tokenizer from the training dataset for a vocabulary size of `VOCAB_SIZE`,
+    which is a tuned hyperparameter. We want to limit the vocabulary as much as possible, as
+    we will see later on
+    that it has a large effect on the number of model parameters. We also don't want to include
+    *too few* vocabulary terms, or there would be too many out-of-vocabulary (OOV) sub-words. In
+    addition, three tokens are reserved in the vocabulary:
+
+    - `"[PAD]"` for padding sequences to `SEQ_LEN`. This token has index 0 in both
+    `reserved_tokens` and `vocab`, since `WordPieceTokenizer` (and other layers) consider
+    `0`/`vocab[0]` as the default padding.
+    - `"[UNK]"` for OOV sub-words, which should match the default `oov_token="[UNK]"` in
+    `WordPieceTokenizer`.
+    - `"[BOS]"` stands for beginning of sentence, but here technically it is a token
+    representing the beginning of each line of training data.
+    """
+
+    # Train tokenizer vocabulary
+    vocab = keras_nlp.tokenizers.compute_word_piece_vocabulary(
+        raw_train_ds,
+        vocabulary_size=VOCAB_SIZE,
+        lowercase=True,
+        reserved_tokens=["[PAD]", "[UNK]", "[BOS]"],
+    )
+
+    """
+    ## Load tokenizer
+
+    We use the vocabulary data to initialize
+    `keras_nlp.tokenizers.WordPieceTokenizer`. WordPieceTokenizer is an efficient
+    implementation of the WordPiece algorithm used by BERT and other models. It will strip,
+    lower-case and do other irreversible preprocessing operations.
+    """
+
+    tokenizer = keras_nlp.tokenizers.WordPieceTokenizer(
+        vocabulary=vocab,
+        sequence_length=SEQ_LEN,
+        lowercase=True,
+    )
+
+    """
+    ## Tokenize data
+
+    We preprocess the dataset by tokenizing and splitting it into `features` and `labels`.
+    """
+
+    # packer adds a start token
+    start_packer = keras_nlp.layers.StartEndPacker(
+        sequence_length=SEQ_LEN,
+        start_value=tokenizer.token_to_id("[BOS]"),
+    )
+
+    def preprocess(inputs):
+        outputs = tokenizer(inputs)
+        features = start_packer(outputs)
+        labels = outputs
+        return features, labels
+
+    # Tokenize and split into train and label sequences.
+    train_ds = raw_train_ds.map(preprocess, num_parallel_calls=tf_data.AUTOTUNE).prefetch(
+        tf_data.AUTOTUNE
+    )
+    val_ds = raw_val_ds.map(preprocess, num_parallel_calls=tf_data.AUTOTUNE).prefetch(
+        tf_data.AUTOTUNE
+    )
 
 
 def get_cifar_data_loader(batch_size=200, train=True):
