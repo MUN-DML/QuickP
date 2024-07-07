@@ -36,7 +36,7 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def getGpt_data_loader():
+def getGpt_data_loader(batch_size=200):
     import tensorflow_datasets as tfds
     # Load the Wikipedia dataset from TFDS
     dataset = tfds.load('imdb_reviews', split='train')
@@ -50,13 +50,9 @@ def getGpt_data_loader():
                                        num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     # Batch and prefetch the dataset for efficient training
-    train_dataset = preprocessed_dataset.shuffle(10000).batch(32).prefetch(tf.data.experimental.AUTOTUNE)
+    train_dataset = preprocessed_dataset.shuffle(10000).batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
-    # Display a few examples
-    for batch_index, (texts, labels) in enumerate(train_dataset):
-        if batch_index == 0:
-            print("Text:", texts.numpy())
-            print("Label:", labels.numpy())
+    return train_dataset
 
 
 def get_cifar_data_loader(batch_size=200, train=True):
