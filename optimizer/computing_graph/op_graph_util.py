@@ -36,10 +36,12 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def getGpt_data_loader(batch_size=200):
+def get_gpt_data_loader(batch_size=200, if_train=True):
     import tensorflow_datasets as tfds
+    split_mode = 'train' if if_train else 'test'
+    num_batches = 10
     # Load the Wikipedia dataset from TFDS
-    dataset = tfds.load('imdb_reviews', split='train')
+    dataset = tfds.load('imdb_reviews', split=split_mode)
 
     # Function to preprocess the text data and labels
     def preprocess_example(example):
