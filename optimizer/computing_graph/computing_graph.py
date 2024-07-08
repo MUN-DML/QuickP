@@ -5,6 +5,7 @@ import keras
 import tensorflow as tf
 from keras import Sequential
 from networkx import is_directed_acyclic_graph
+from transformers import TFGPT2LMHeadModel
 
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import CompGraph
@@ -13,7 +14,7 @@ from optimizer.computing_graph.op_graph_util import compile_model, train_loss, t
     find_specific_pb_file, process_mem_dict
 
 
-def get_computation_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-4),
+def get_computation_graph(model: tf.keras.Model, optimizer=keras.optimizers.Adam(3e-4),
                           loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200) -> CompGraph:
     compile_model(model, optimizer, loss_fn)
 
@@ -21,13 +22,19 @@ def get_computation_graph(model: Sequential, optimizer=keras.optimizers.Adam(3e-
     # https://www.tensorflow.org/guide/function
     # https://www.tensorflow.org/tensorboard/get_started
     @tf.function
-    def training_step(train_x, train_y):
+    def training_step(train_x, train_y, attention_mask=None):
         # https://www.tensorflow.org/guide/autodiff
         with tf.GradientTape() as tape:
             # Forward pass
-            predictions = model(train_x, training=True)
-            loss = loss_fn(train_y, predictions)
-            loss += sum(model.losses)
+            if isinstance(model, TFGPT2LMHeadModel):
+                if attention_mask is None:
+                    raise ValueError("attention_mask cannot be None")
+                outputs = model(train_x, attention_mask=attention_mask, labels=train_y)
+                loss = outputs.loss
+            else:
+                predictions = model(train_x, training=True)
+                loss = loss_fn(train_y, predictions)
+                loss += sum(model.losses)
         gradients = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
 
