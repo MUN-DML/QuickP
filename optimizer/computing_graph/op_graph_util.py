@@ -10,8 +10,6 @@ import numpy as np
 from keras import Sequential
 from keras.src.datasets import cifar10
 import tensorflow as tf
-import tensorflow.data as tf_data
-import tensorflow.strings as tf_strings
 import networkx as nx
 # pip install -q --upgrade keras-nlp
 import keras_nlp
@@ -36,7 +34,7 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def get_gpt_data_loader(batch_size=200, if_train=True):
+def get_gpt_data_loader(batch_size=200, if_train=True) -> tf.data.Dataset:
     import tensorflow_datasets as tfds
     split_mode = 'train' if if_train else 'test'
     num_batches = 10
@@ -53,11 +51,14 @@ def get_gpt_data_loader(batch_size=200, if_train=True):
 
     # Batch and prefetch the dataset for efficient training
     train_dataset = preprocessed_dataset.shuffle(10000).batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
-
+    '''
+    for index, (text, label) in enumerate(get_gpt_data_loader().take(10)):
+        print(type(text), type(label))
+    '''
     return train_dataset
 
 
-def get_cifar_data_loader(batch_size=200, train=True):
+def get_cifar_data_loader(batch_size=200, train=True) -> tf.data.Dataset:
     def augment_images(image, label):
         # Data augmentation transformations
         image = tf.image.random_flip_left_right(image)

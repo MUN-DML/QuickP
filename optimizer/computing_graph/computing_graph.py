@@ -15,21 +15,24 @@ from optimizer.computing_graph.op_graph_util import compile_model, train_loss, t
 
 
 def get_computation_graph(model: tf.keras.Model, optimizer=keras.optimizers.Adam(3e-4),
-                          loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200) -> CompGraph:
+                          loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200, tokenizer=None, max_len=128) -> CompGraph:
     compile_model(model, optimizer, loss_fn)
-
+    if (not tokenizer or not max_len) and isinstance(model, TFGPT2LMHeadModel):
+        raise ValueError("tokenizer must be set when using TFGPT2LMHeadModel")
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function
     # https://www.tensorflow.org/tensorboard/get_started
     @tf.function
-    def training_step(train_x, train_y, attention_mask=None):
+    def training_step(train_x, train_y):
         # https://www.tensorflow.org/guide/autodiff
         with tf.GradientTape() as tape:
             # Forward pass
             if isinstance(model, TFGPT2LMHeadModel):
-                if attention_mask is None:
-                    raise ValueError("attention_mask cannot be None")
-                outputs = model(train_x, attention_mask=attention_mask, labels=train_y)
+                # Make the tensor size unique 128. If < 128, use padding to fill the rest
+                inputs = tokenizer(train_x, padding="max_length", truncation=True, max_length=max_len, return_tensors='tf')
+                input_ids = inputs['input_ids']
+                attention_mask = inputs['attention_mask']
+                outputs = model(input_ids, attention_mask=attention_mask, labels=train_y)
                 loss = outputs.loss
             else:
                 predictions = model(train_x, training=True)
@@ -49,9 +52,9 @@ def get_computation_graph(model: tf.keras.Model, optimizer=keras.optimizers.Adam
         ]
     elif isinstance(model, TFGPT2LMHeadModel):
         inputs_spec = [
-            tf.TensorSpec(shape=[batch_size, 128], dtype=tf.int32, name="input_ids"),
-            tf.TensorSpec(shape=[batch_size, 128], dtype=tf.int32, name="labels"),
-            tf.TensorSpec(shape=[batch_size, 128], dtype=tf.int32, name="attention_mask")
+            tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="input_ids"),
+            tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="labels"),
+            tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="attention_mask")
         ]
     else:
         raise ValueError("Unsupported model type")
