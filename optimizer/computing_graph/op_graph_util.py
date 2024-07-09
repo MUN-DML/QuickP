@@ -11,14 +11,13 @@ from keras import Sequential
 from keras.src.datasets import cifar10
 import tensorflow as tf
 import networkx as nx
-# pip install -q --upgrade keras-nlp
-import keras_nlp
 # pip install tensorboard-plugin-profile
 import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
 from pathlib import Path
 from pandas import DataFrame
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 from tensorflow.python.framework.dtypes import DType
+from transformers import TFGPT2LMHeadModel
 
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import visualize_graph, CompGraph
@@ -83,10 +82,12 @@ def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_l
               callbacks=call_back_list)
 
 
-def compile_model(model: Sequential, optimizer=keras.optimizers.Adam(),
+def compile_model(model: keras.Model, optimizer=keras.optimizers.Adam(),
                   loss=keras.losses.SparseCategoricalCrossentropy()):
-    model.compile(optimizer=optimizer, loss=loss,
-                  metrics=[keras.metrics.SparseCategoricalAccuracy(name="acc")])
+    loss_fun = model.compute_loss if isinstance(model, TFGPT2LMHeadModel) else loss
+    matrix = [keras.metrics.SparseCategoricalAccuracy(name="acc")] if isinstance(model, Sequential) else None
+    model.compile(optimizer=optimizer, loss=loss_fun,
+                  metrics=matrix)
 
 
 def testExistModel(model: Sequential, x_test, y_test, test_num):
