@@ -50,10 +50,7 @@ def get_gpt_data_loader(batch_size=200, if_train=True) -> tf.data.Dataset:
 
     # Batch and prefetch the dataset for efficient training
     train_dataset = preprocessed_dataset.shuffle(10000).batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
-    '''
-    for index, (text, label) in enumerate(get_gpt_data_loader().take(10)):
-        print(type(text), type(label))
-    '''
+
     return train_dataset
 
 
