@@ -17,7 +17,7 @@ from pathlib import Path
 from pandas import DataFrame
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 from tensorflow.python.framework.dtypes import DType
-from transformers import TFGPT2LMHeadModel
+from transformers import TFGPT2LMHeadModel, GPT2Tokenizer
 
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import visualize_graph, CompGraph
@@ -108,7 +108,13 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
 def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
-                  num_prof_step=200):
+                  num_prof_step=200, tokenizer: GPT2Tokenizer = None):
+    def tokenize_GPT_dataset(texts):
+        if tokenizer is None:
+            raise ValueError("tokenizer must be provided")
+        tokenized = tokenizer(texts, padding="max_length", truncation=True, max_length=128, return_tensors='tf')
+        return tokenized['input_ids'], tokenized['attention_mask']
+
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
@@ -120,7 +126,12 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
     for index, (x_train, y_train) in enumerate(dataloader):
         # warmup steps
         if index < num_warmup_step:
-            concrete_function(x_train, y_train)
+            # LLM model need attention_mask
+            if tokenizer:
+                x_train, attention_mask = tokenize_GPT_dataset(x_train)
+                concrete_function(x_train, y_train, attention_mask)
+            else:
+                concrete_function(x_train, y_train)
             # Call only one trace_export when tracing, so export after 1 iteration
             if index == 0:
                 with train_summary_writer.as_default():
