@@ -4,6 +4,8 @@ from gurobipy import *
 import torch
 import tensorflow as tf
 
+from optimizer.computing_graph.op_graph_util import get_proper_optimizer
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
@@ -16,7 +18,8 @@ from DNN_model_tf.small import small_tf
 # init fake data
 if not os.path.exists('comp_graph.json'):
     model = small_tf()
-    comp_graph = get_computation_graph(model=model)
+    optimizer = get_proper_optimizer(model)
+    comp_graph = get_computation_graph(model=model, optimizer=optimizer)
     comp_graph.generata_random_cost(2)
     comp_graph.save_to_file('comp_graph.json')
 
