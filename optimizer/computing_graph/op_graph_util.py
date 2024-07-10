@@ -19,6 +19,7 @@ from tensorflow.python.eager.polymorphic_function.concrete_function import Concr
 from tensorflow.python.framework.dtypes import DType
 from transformers import TFGPT2LMHeadModel, GPT2Tokenizer
 
+from DNN_model_tf.openai_gpt2 import get_openai_gpt2_tokenizer
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import visualize_graph, CompGraph
 
@@ -108,11 +109,11 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
 def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
-                  num_prof_step=200, tokenizer: GPT2Tokenizer = None):
+                  num_prof_step=200, if_LLM: bool = False, max_len: int = 128):
+    tokenizer = get_openai_gpt2_tokenizer()
+
     def tokenize_GPT_dataset(texts):
-        if tokenizer is None:
-            raise ValueError("tokenizer must be provided")
-        tokenized = tokenizer(texts, padding="max_length", truncation=True, max_length=128, return_tensors='tf')
+        tokenized = tokenizer(texts, padding="max_length", truncation=True, max_length=max_len, return_tensors='tf')
         return tokenized['input_ids'], tokenized['attention_mask']
 
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
@@ -127,7 +128,7 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
         # warmup steps
         if index < num_warmup_step:
             # LLM model need attention_mask
-            if tokenizer:
+            if if_LLM:
                 x_train, attention_mask = tokenize_GPT_dataset(x_train)
                 concrete_function(x_train, y_train, attention_mask)
             else:
