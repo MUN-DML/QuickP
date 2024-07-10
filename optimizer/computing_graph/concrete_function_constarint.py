@@ -12,7 +12,7 @@ class InputSpec(Enum):
     ]
     IMDB = lambda batch_size, max_len: [
         tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="input_ids"),
-        tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int64, name="labels"),
+        tf.TensorSpec(shape=[batch_size,], dtype=tf.int64, name="labels"),
         tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="attention_mask")
     ]
 
