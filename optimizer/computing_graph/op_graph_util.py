@@ -132,7 +132,11 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
             # LLM model need attention_mask
             if if_LLM:
                 x_train, attention_mask = tokenize_GPT_dataset(x_train)
-                print("y_train", y_train.shape, y_train.dtype)
+
+                # Ensure labels have the shape (batch_size, max_len)
+                # Assuming labels is a tensor of shape (batch_size,)
+                y_train = tf.expand_dims(y_train, axis=-1)  # Make it (batch_size, 1)
+                y_train = tf.tile(y_train, [1, max_len])  # Repeat it to make (batch_size, max_len)
                 concrete_function(x_train, y_train, attention_mask)
             else:
                 concrete_function(x_train, y_train)
