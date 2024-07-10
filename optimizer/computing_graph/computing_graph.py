@@ -16,11 +16,9 @@ from optimizer.computing_graph.op_graph_util import compile_model, train_loss, t
 
 
 def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e-4),
-                          loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200, tokenizer=None,
+                          loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200,
                           max_len=128) -> CompGraph:
     compile_model(model, optimizer, loss_fn)
-    if (not tokenizer or not max_len) and isinstance(model, TFGPT2LMHeadModel):
-        raise ValueError("tokenizer must be set when using TFGPT2LMHeadModel")
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function

@@ -17,6 +17,7 @@ from pathlib import Path
 from pandas import DataFrame
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 from tensorflow.python.framework.dtypes import DType
+from tensorflow.python.framework.ops import EagerTensor
 from transformers import TFGPT2LMHeadModel, GPT2Tokenizer
 
 from DNN_model_tf.openai_gpt2 import get_openai_gpt2_tokenizer
@@ -112,8 +113,9 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
                   num_prof_step=200, if_LLM: bool = False, max_len: int = 128):
     tokenizer = get_openai_gpt2_tokenizer()
 
-    def tokenize_GPT_dataset(texts):
-        tokenized = tokenizer(texts, padding="max_length", truncation=True, max_length=max_len, return_tensors='tf')
+    def tokenize_GPT_dataset(texts: EagerTensor):
+        tokenized = tokenizer([s.decode('utf-8') for s in texts.numpy()], padding="max_length", truncation=True,
+                              max_length=max_len, return_tensors='tf')
         return tokenized['input_ids'], tokenized['attention_mask']
 
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
@@ -130,6 +132,7 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
             # LLM model need attention_mask
             if if_LLM:
                 x_train, attention_mask = tokenize_GPT_dataset(x_train)
+                print("y_train", y_train.shape, y_train.dtype)
                 concrete_function(x_train, y_train, attention_mask)
             else:
                 concrete_function(x_train, y_train)
