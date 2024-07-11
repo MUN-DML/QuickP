@@ -48,18 +48,17 @@ def split_DAG_min_inter_subgraph_edges(G, M):
 
 
 def creates_cycle(subgraph, node, G):
+    # Make the update on the copied graph
+    subgraph_copy = subgraph.copy()
     # Add the node temporarily to the subgraph
-    subgraph.add_node(node)
+    subgraph_copy.add_node(node)
 
     # Add edges from the original graph to the subgraph
     for predecessor in G.predecessors(node):
-        subgraph.add_edge(predecessor, node, **G.get_edge_data(predecessor, node) or {})
+        subgraph_copy.add_edge(predecessor, node, **G.get_edge_data(predecessor, node) or {})
 
     # Check for cycles
-    has_cycle = not nx.is_directed_acyclic_graph(subgraph)
-
-    # Remove the node (which also removes its edges)
-    subgraph.remove_node(node)
+    has_cycle = not nx.is_directed_acyclic_graph(subgraph_copy)
 
     return has_cycle
 
