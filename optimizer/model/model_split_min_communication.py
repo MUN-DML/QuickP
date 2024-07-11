@@ -1,5 +1,7 @@
 import networkx as nx
 
+from optimizer.model.graph import visualize_graph
+
 
 def split_DAG_min_inter_subgraph_edges(G, M):
     # Step 1: Preprocessing
@@ -48,6 +50,8 @@ def split_DAG_min_inter_subgraph_edges(G, M):
 
 
 def creates_cycle(subgraph, node, G):
+    if node not in G.nodes:
+        raise ValueError("node {} not in the original graph".format(node))
     # Make the update on the copied graph
     subgraph_copy = subgraph.copy()
     # Add the node temporarily to the subgraph
@@ -56,6 +60,11 @@ def creates_cycle(subgraph, node, G):
     # Add edges from the original graph to the subgraph
     for predecessor in G.predecessors(node):
         subgraph_copy.add_edge(predecessor, node, **G.get_edge_data(predecessor, node) or {})
+
+    for successor in G.successors(node):
+        # successor must be in the original G to prevent bring extra nodes and edges
+        if successor in G.nodes:
+            subgraph_copy.add_edge(node, successor, **G.get_edge_data(node, successor) or {})
 
     # Check for cycles
     has_cycle = not nx.is_directed_acyclic_graph(subgraph_copy)
