@@ -1,6 +1,6 @@
 import networkx as nx
 
-from optimizer.model.graph import visualize_graph
+from optimizer.model.graph import visualize_graph, is_subgraph
 
 
 def split_DAG_min_inter_subgraph_edges(G, M):
@@ -43,10 +43,12 @@ def split_DAG_min_inter_subgraph_edges(G, M):
 
         load_balance[best_subgraph] += 1
 
-    # Optional: refine partitions to reduce inter-subgraph edges
-    refine_partitions(subgraphs, G, M)
+    assert len(subgraphs) == M
 
-    return subgraphs, inter_subgraph_edges
+    for subgraph in subgraphs:
+        assert is_subgraph(subgraph, G)
+
+    return subgraphs
 
 
 def creates_cycle(subgraph, node, G):
@@ -72,6 +74,7 @@ def creates_cycle(subgraph, node, G):
     return has_cycle
 
 
+# calculate the number of edges that would cross between different subgraphs if a node were added to a particular subgraph
 def compute_inter_subgraph_edges(node, subgraph, G, all_subgraphs):
     edges = 0
     for neighbor in G.neighbors(node):
@@ -88,8 +91,3 @@ def find_subgraph(node, subgraphs):
         if node in subgraph:
             return i
     return -1
-
-
-def refine_partitions(subgraphs, G, M):
-    # Local optimization to swap nodes between subgraphs to reduce inter-subgraph edges
-    pass
