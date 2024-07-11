@@ -52,17 +52,13 @@ def creates_cycle(subgraph, node, G):
     subgraph.add_node(node)
 
     # Add edges from the original graph to the subgraph
-    for neighbor in G.neighbors(node):
-        if neighbor in subgraph:
-            subgraph.add_edge(node, neighbor, **G[node][neighbor])
-    for neighbor in G.predecessors(node):
-        if neighbor in subgraph:
-            subgraph.add_edge(neighbor, node, **G[neighbor][node])
+    for predecessor in G.predecessors(node):
+        subgraph.add_edge(predecessor, node, **G.get_edge_data(predecessor, node) or {})
 
     # Check for cycles
     has_cycle = not nx.is_directed_acyclic_graph(subgraph)
 
-    # Remove the node and its edges to restore the subgraph
+    # Remove the node (which also removes its edges)
     subgraph.remove_node(node)
 
     return has_cycle
