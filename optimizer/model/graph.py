@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels, node_link_graph, \
-    node_link_data, number_weakly_connected_components, has_path, NetworkXError, topological_sort
+    node_link_data, number_weakly_connected_components, has_path, NetworkXError, topological_sort, algorithms
 
 from py_util import convert_data_size, convert_time
 
@@ -388,3 +388,9 @@ def determine_node_order(graph, node1, node2):
     except ValueError:
         # Handle case where node1 or node2 is not in the graph
         return None
+
+
+def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
+    gm = algorithms.isomorphism.DiGraphMatcher(original_g, sub_g)
+    # Returns True if a subgraph of G1 is isomorphic to G2.
+    return gm.subgraph_is_isomorphic()
