@@ -23,25 +23,31 @@ def split_DAG_min_inter_subgraph_edges(G, M):
     # Step 3: Node Assignment
     for node in sorted_nodes:
         min_edges = float('inf')
-        best_subgraph = -1
+        best_subgraph_index = -1
 
-        for i in range(M):
-            if not creates_cycle(subgraphs[i], node, G):
-                current_edges = compute_inter_subgraph_edges(node, subgraphs[i], G, subgraphs)
+        # find the subgraph that results in the fewest additional inter-subgraph edges after adding this node with edges
+        for current_subgraph_index in range(M):
+            if not creates_cycle(subgraphs[current_subgraph_index], node, G):
+                # computes the number of inter-subgraph edges that would result from adding the current node to subgraph i.
+                current_edges = compute_inter_subgraph_edges(node, subgraphs[current_subgraph_index], G, subgraphs)
                 if current_edges < min_edges or (
-                        current_edges == min_edges and load_balance[i] < load_balance[best_subgraph]):
+                        current_edges == min_edges and load_balance[current_subgraph_index] < load_balance[best_subgraph_index]):
                     min_edges = current_edges
-                    best_subgraph = i
+                    best_subgraph_index = current_subgraph_index
 
-        subgraphs[best_subgraph].add_node(node, **G.nodes[node])
+        # Improved: Handle case when no best subgraph is found
+        if best_subgraph_index == -1:
+            best_subgraph_index = load_balance.index(min(load_balance))
+
+        subgraphs[best_subgraph_index].add_node(node, **G.nodes[node])
         for neighbor in G.neighbors(node):
-            if neighbor in subgraphs[best_subgraph]:
-                subgraphs[best_subgraph].add_edge(node, neighbor, **G[node][neighbor])
+            if neighbor in subgraphs[best_subgraph_index]:
+                subgraphs[best_subgraph_index].add_edge(node, neighbor, **G[node][neighbor])
         for neighbor in G.predecessors(node):
-            if neighbor in subgraphs[best_subgraph]:
-                subgraphs[best_subgraph].add_edge(neighbor, node, **G[neighbor][node])
+            if neighbor in subgraphs[best_subgraph_index]:
+                subgraphs[best_subgraph_index].add_edge(neighbor, node, **G[neighbor][node])
 
-        load_balance[best_subgraph] += 1
+        load_balance[best_subgraph_index] += 1
 
     assert len(subgraphs) == M
 
