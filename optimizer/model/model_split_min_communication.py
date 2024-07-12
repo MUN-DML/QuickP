@@ -4,6 +4,8 @@ from optimizer.model.graph import visualize_graph, is_subgraph
 
 
 def split_DAG_min_inter_subgraph_edges(G, M):
+    if not nx.is_directed_acyclic_graph(G):
+        raise ValueError("DAG is not a directed acyclic graph")
     # Step 1: Preprocessing
     in_degree = {node: 0 for node in G.nodes()}
     out_degree = {node: 0 for node in G.nodes()}
@@ -47,6 +49,7 @@ def split_DAG_min_inter_subgraph_edges(G, M):
 
     for subgraph in subgraphs:
         assert is_subgraph(subgraph, G)
+        assert nx.is_directed_acyclic_graph(subgraph)
 
     return subgraphs
 
