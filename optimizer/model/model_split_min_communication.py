@@ -66,12 +66,13 @@ def expand_subgraph(sub_graph, node, original_graph):
 
     # Add edges from the original graph to the subgraph
     for predecessor in original_graph.predecessors(node):
-        if predecessor in original_graph.nodes and not sub_graph.has_edge(predecessor, node):
+        # predecessor must be already in the subgraph to prevent bring extra nodes and edges
+        if predecessor in sub_graph.nodes and not sub_graph.has_edge(predecessor, node):
             sub_graph.add_edge(predecessor, node, **original_graph.get_edge_data(predecessor, node) or {})
 
     for successor in original_graph.successors(node):
-        # successor must be in the original G to prevent bring extra nodes and edges
-        if successor in original_graph.nodes and not sub_graph.has_edge(node, successor):
+        # successor must be already in the subgraph to prevent bring extra nodes and edges
+        if successor in sub_graph.nodes and not sub_graph.has_edge(node, successor):
             sub_graph.add_edge(node, successor, **original_graph.get_edge_data(node, successor) or {})
 
 
