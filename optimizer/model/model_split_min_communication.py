@@ -39,13 +39,7 @@ def split_DAG_min_inter_subgraph_edges(G, M):
         if best_subgraph_index == -1:
             best_subgraph_index = load_balance.index(min(load_balance))
 
-        subgraphs[best_subgraph_index].add_node(node, **G.nodes[node])
-        for neighbor in G.neighbors(node):
-            if neighbor in subgraphs[best_subgraph_index]:
-                subgraphs[best_subgraph_index].add_edge(node, neighbor, **G[node][neighbor])
-        for neighbor in G.predecessors(node):
-            if neighbor in subgraphs[best_subgraph_index]:
-                subgraphs[best_subgraph_index].add_edge(neighbor, node, **G[neighbor][node])
+        expand_subgraph(subgraphs[best_subgraph_index], node, G)
 
         load_balance[best_subgraph_index] += 1
 
@@ -62,7 +56,7 @@ def expand_subgraph(sub_graph, node, original_graph):
     if node not in original_graph.nodes:
         raise ValueError("node {} not in the original graph".format(node))
     # Add the node to the subgraph
-    sub_graph.add_node(node)
+    sub_graph.add_node(node, **original_graph.nodes[node])
 
     # Add edges from the original graph to the subgraph
     for predecessor in original_graph.predecessors(node):
