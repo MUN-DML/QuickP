@@ -97,6 +97,7 @@ def compute_inter_subgraph_edges(node, subgraph, G, all_subgraphs):
     return edges
 
 
+# indicate which subgraph the node is in
 def find_subgraph(node, subgraphs):
     for i, subgraph in enumerate(subgraphs):
         if node in subgraph:
