@@ -1,8 +1,10 @@
 import os
+import sys
 
 import networkx as nx
 from matplotlib import pyplot as plt
 from networkx import DiGraph
+
 # https://metis.readthedocs.io/en/latest/
 # http://glaros.dtc.umn.edu/gkhome/metis/metis/download
 '''
@@ -19,6 +21,9 @@ in .bashrc, export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; export METIS
 os.environ['METIS_DLL'] = '/usr/local/lib/libmetis.so'
 import metis
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
+sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
 
 
