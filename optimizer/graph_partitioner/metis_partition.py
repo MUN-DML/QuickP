@@ -2,6 +2,19 @@ import networkx as nx
 from matplotlib import pyplot as plt
 from networkx import DiGraph
 # https://metis.readthedocs.io/en/latest/
+# http://glaros.dtc.umn.edu/gkhome/metis/metis/download
+'''
+sudo apt-get install cmake, sudo apt-get install build-essential
+gunzip metis-5.1.0.tar.gz
+tar -xvf metis-5.1.0.tar
+cd metis-5.1.0
+read Install.txt
+gcc --version / which gcc
+make config shared=1 => Build files have been written to: /home/hola/Downloads/metis-5.1.0/build/Linux-x86_64
+cd /home/hola/Downloads/metis-5.1.0/build/Linux-x86_64
+make install
+in .bashrc, export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+'''
 import metis
 
 from optimizer.model.graph import CompGraph
