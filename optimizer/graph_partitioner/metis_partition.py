@@ -1,3 +1,5 @@
+import os
+
 import networkx as nx
 from matplotlib import pyplot as plt
 from networkx import DiGraph
@@ -11,10 +13,10 @@ cd metis-5.1.0
 read Install.txt
 gcc --version / which gcc
 make config shared=1 => Build files have been written to: /home/hola/Downloads/metis-5.1.0/build/Linux-x86_64
-cd /home/hola/Downloads/metis-5.1.0/build/Linux-x86_64
 make install
-in .bashrc, export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+in .bashrc, export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; export METIS_DLL=/usr/local/lib/libmetis.so
 '''
+os.environ['METIS_DLL'] = '/usr/local/lib/libmetis.so'
 import metis
 
 from optimizer.model.graph import CompGraph
