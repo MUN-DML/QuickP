@@ -5,6 +5,8 @@ import networkx as nx
 from matplotlib import pyplot as plt
 from networkx import DiGraph
 
+from py_util import tensor_shape_to_bits
+
 # https://metis.readthedocs.io/en/latest/
 # http://glaros.dtc.umn.edu/gkhome/metis/metis/download
 '''
@@ -32,9 +34,14 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     # Step 2: Calculate the node weights based on the `comp_cost` attribute
     for node in graph.nodes:
         total_cost = graph.getOperatorCompCostSum(node)
-        graph.nodes[node]['weight'] = total_cost
-    graph.graph['node_weight_attr'] = 'weight'
-    # graph.graph['node_weight_attr'] = ['quality', 'specialness']
+        graph.nodes[node]['node_weight'] = total_cost
+    for edge in graph.edges:
+        source_op, dest_op = edge
+        shape, dtype = graph.getOperatorOutputSizeAndType(source_op)
+        graph.edges[edge]['edge_weight'] = tensor_shape_to_bits(shape, dtype=dtype)
+
+    graph.graph['node_weight_attr'] = 'node_weight'
+    graph.graph['edge_weight_attr'] = 'edge_weight'
 
     # Convert the DiGraph to an undirected graph for partitioning
     G_undirected = graph.to_undirected()
@@ -57,7 +64,7 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     partition_weights = {i: 0 for i in range(num_partitions)}
     for node, part in zip(graph.nodes(), parts):
         partition_counts[part] += 1
-        partition_weights[part] += graph.nodes[node]['weight']
+        partition_weights[part] += graph.nodes[node]['node_weight']
     print(partition_counts)
     print(partition_weights)
 
