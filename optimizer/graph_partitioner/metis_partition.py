@@ -81,6 +81,10 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     plt.title(f'Graph Partitioning into {num_partitions} Parts using METIS', size=20)
     plt.show()
 
+    # return the placement dict
+    return partition_dict
 
-def construct_sub_graph():
+
+def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> list[DiGraph]:
+
     pass
