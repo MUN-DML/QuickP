@@ -27,16 +27,26 @@ sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
 
 
-def metis_partition(graph: DiGraph, num_partitions=3):
+def metis_partition(graph: CompGraph, num_partitions=3):
+    # Assign weight to each node
+    # Step 2: Calculate the node weights based on the `comp_cost` attribute
+    for node in graph.nodes:
+        total_cost = graph.getOperatorCompCostSum(node)
+        graph.nodes[node]['weight'] = total_cost
+    graph.graph['edge_weight_attr'] = 'weight'
+    # graph.graph['node_weight_attr'] = ['quality', 'specialness']
+
     # Convert the DiGraph to an undirected graph for partitioning
     G_undirected = graph.to_undirected()
+
+    metis_graph = metis.networkx_to_metis(G_undirected)
 
     # Perform graph partitioning using METIS
     '''
     Returns a 2-tuple (objval, parts), where parts is a list of partition indices corresponding 
     and objval is the value of the objective function that was minimized (either the edge cuts or the total volume).
     '''
-    (edgecuts, parts) = metis.part_graph(G_undirected, nparts=num_partitions)
+    (edgecuts, parts) = metis.part_graph(metis_graph, nparts=num_partitions)
 
     # Assign partition labels to the original DiGraph nodes
     partition_dict = {node: part for node, part in zip(graph.nodes(), parts)}
@@ -50,8 +60,8 @@ def metis_partition(graph: DiGraph, num_partitions=3):
     colors = ['lightblue', 'lightgreen', 'lightcoral']
     plt.figure(figsize=(8, 6))
     pos = nx.spring_layout(graph)
-    nx.draw(graph, pos, with_labels=True, node_color=[colors[partition_dict[node]] for node in graph.nodes()],
-            edge_color='gray', node_size=2000, font_size=16)
+    nx.draw(graph, pos, with_labels=False, node_color=[colors[partition_dict[node]] for node in graph.nodes()],
+            edge_color='gray', node_size=200, font_size=16)
     plt.title(f'Graph Partitioning into {num_partitions} Parts using METIS', size=20)
     plt.show()
 

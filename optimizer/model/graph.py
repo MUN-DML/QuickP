@@ -129,6 +129,11 @@ class CompGraph(DiGraph):
             raise ValueError(f"no {device_id} found")
         return self.nodes[node_id]["comp_cost"][device_id]
 
+    def getOperatorCompCostSum(self, node_id):
+        if node_id not in self.nodes:
+            raise ValueError("node {0} does not exist".format(node_id))
+        return sum(self.nodes[node_id]['comp_cost'].values())
+
     def getAllOperators(self):
         return list(self.nodes(data=True))
 
