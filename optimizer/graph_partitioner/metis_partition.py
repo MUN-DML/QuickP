@@ -82,5 +82,5 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     plt.show()
 
 
-comp_graph = CompGraph.load_from_file('../comp_graph.json')
-metis_partition(comp_graph)
+def construct_sub_graph():
+    pass
