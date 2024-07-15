@@ -33,7 +33,7 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     for node in graph.nodes:
         total_cost = graph.getOperatorCompCostSum(node)
         graph.nodes[node]['weight'] = total_cost
-    graph.graph['edge_weight_attr'] = 'weight'
+    graph.graph['node_weight_attr'] = 'weight'
     # graph.graph['node_weight_attr'] = ['quality', 'specialness']
 
     # Convert the DiGraph to an undirected graph for partitioning
@@ -48,13 +48,22 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     '''
     (edgecuts, parts) = metis.part_graph(metis_graph, nparts=num_partitions)
 
-    # Assign partition labels to the original DiGraph nodes
+    # Assign partition labels to the original DiGraph nodes {node_id: placement_index}
     partition_dict = {node: part for node, part in zip(graph.nodes(), parts)}
     nx.set_node_attributes(graph, partition_dict, 'partition')
+    # Count the number of nodes in each partition
+    # Count the number of nodes and sum of weights in each partition
+    partition_counts = {i: 0 for i in range(num_partitions)}
+    partition_weights = {i: 0 for i in range(num_partitions)}
+    for node, part in zip(graph.nodes(), parts):
+        partition_counts[part] += 1
+        partition_weights[part] += graph.nodes[node]['weight']
+    print(partition_counts)
+    print(partition_weights)
 
     # Print the partition labels for each node
-    for node, data in graph.nodes(data=True):
-        print(f"Node {node}: Partition {data['partition']}")
+    # for node, data in graph.nodes(data=True):
+    #     print(f"Node {node}: Partition {data['partition']}")
 
     # Visualize the partitioned graph
     colors = ['lightblue', 'lightgreen', 'lightcoral']
