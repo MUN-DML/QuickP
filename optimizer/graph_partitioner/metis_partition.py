@@ -27,7 +27,7 @@ import metis
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import CompGraph, visualize_graph
+from optimizer.model.graph import CompGraph
 
 
 def metis_partition(graph: CompGraph, num_partitions=3):
@@ -89,10 +89,8 @@ def metis_partition(graph: CompGraph, num_partitions=3):
 def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> list[DiGraph]:
     subgraph_dict = {}
     for operator, placement_index in placement.items():
-        if operator not in subgraph_dict:
+        if placement_index not in subgraph_dict:
             subgraph_dict[placement_index] = nx.DiGraph()
         else:
             expand_subgraph(subgraph_dict[placement_index], operator, digraph)
-    for digraph in subgraph_dict.values():
-        visualize_graph(digraph, show_edge_labels=False, show_node_labels=False)
     return list(subgraph_dict.values())
