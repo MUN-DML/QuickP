@@ -66,8 +66,8 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     for node, part in zip(graph.nodes(), parts):
         partition_counts[part] += 1
         partition_weights[part] += graph.nodes[node]['node_weight']
-    print(partition_counts)
-    print(partition_weights)
+    print("how many operators for each subgraph", partition_counts)
+    print("the sum of computing cost for each subgraph", partition_weights)
 
     # Print the partition labels for each node
     # for node, data in graph.nodes(data=True):
