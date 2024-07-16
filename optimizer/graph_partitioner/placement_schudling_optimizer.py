@@ -10,7 +10,8 @@ from optimizer.computing_graph.op_graph_util import get_proper_optimizer
 from py_util import tensor_shape_to_bits
 from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component, \
     determine_node_order
-from optimizer.graph_partitioner.metis_partition import metis_partition, construct_sub_graph
+from optimizer.graph_partitioner.metis_partition import metis_partition
+from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from DNN_model_tf.small import small_tf
 
 # init comp graph
@@ -28,11 +29,12 @@ if has_more_than_one_component(comp_graph):
 
 # separate the com
 partition_dict = metis_partition(comp_graph)
-subgraph_list = construct_sub_graph(comp_graph, partition_dict)
+subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
+num_graphs = len(subgraph_dict)
 
 # init device topo
 deviceTopo = DeviceGraph()
-deviceTopo.generata_fat_tree_topo(2, 30, 20, 1)
+deviceTopo.generata_fat_tree_topo(num_graphs, 30, 20, 1)
 
 # Init solver
 model = Model("mapping one subgraph to a device")
@@ -50,6 +52,7 @@ model.setParam("Threads", 4)  # Example: Use 4 threads
 
 # Define variables
 subgraph_placement = {}  # key will be (gragh_id, machine_id), value will be 1 or 0; x[3, 1] = 1 means subgraph 3 get allocated to device 1
+x = {}
 subgraph_start = {}
 subgraph_end = {}
 start = {}  # start[node_id] represent the starting time of this node
@@ -59,9 +62,15 @@ comm_end = {}
 comm_cost = {}
 
 # Initialize all variables with names
+for sub_graph_id in subgraph_dict.keys():
+    for machine_id in deviceTopo.getDeviceIDs():
+        subgraph_placement[sub_graph_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{sub_graph_id}_{machine_id}")
+    subgraph_start[sub_graph_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"start_{sub_graph_id}")
+    subgraph_end[sub_graph_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"finish_{sub_graph_id}")
+
 for node_id in comp_graph.getOperatorIDs():
     for machine_id in deviceTopo.getDeviceIDs():
-        subgraph_placement[node_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{node_id}_{machine_id}")
+        x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{node_id}_{machine_id}")
     start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"start_{node_id}")
     finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"finish_{node_id}")
 
@@ -74,6 +83,14 @@ for edge_id_tuple in comp_graph.getEdgeIDs():
     comm_cost[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
                                                        name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
+# Add constraint that if two ops are on the same subgraph, they must be placed on the same device
+
+# Each subgraph is assigned to exactly one device
+for sub_graph_id in subgraph_dict.keys():
+    model.addConstr(
+        quicksum(subgraph_placement[sub_graph_id, machine_id] for machine_id in deviceTopo.getDeviceIDs()) == 1,
+        name=f"subgraph_assignment_{sub_graph_id}")
+
 # Add constraints that schedule every node on exactly one machine
 for op in comp_graph.getOperatorIDs():
     model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{op}")
@@ -85,10 +102,12 @@ for machine_id in deviceTopo.getDeviceIDs():
     model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(machine_id),
                     f"satisfy_memory_constraint_{machine_id}")
 
-# Add constraints that each device should have at least one operator assigned
+# Constraint 2: Each device is assigned at most one subgraph
 for machine_id in deviceTopo.getDeviceIDs():
-    model.addConstr(quicksum(x[node_id, machine_id] for node_id in comp_graph.getOperatorIDs()) >= 1,
-                    name=f"at_least_one_op_{machine_id}")
+    model.addConstr(
+        quicksum(subgraph_placement[sub_graph_id, machine_id] for sub_graph_id in subgraph_dict.keys()) <= 1,
+        name=f"device_capacity_{machine_id}"
+    )
 
 # Add constraints that each op's ending time = starting time + its computing time
 for node_id in comp_graph.getOperatorIDs():

@@ -3,9 +3,8 @@ import sys
 
 import networkx as nx
 from matplotlib import pyplot as plt
-from networkx import DiGraph
 
-from optimizer.graph_partitioner.subgraph_util import expand_subgraph
+from optimizer.graph_partitioner.subgraph_util import identify_edges_cut
 from py_util import tensor_shape_to_bits
 
 # https://metis.readthedocs.io/en/latest/
@@ -55,7 +54,7 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     and objval is the value of the objective function that was minimized (either the edge cuts or the total volume).
     '''
     (edgecuts, parts) = metis.part_graph(metis_graph, nparts=num_partitions)
-
+    print("edgecuts: ", edgecuts)
     # Assign partition labels to the original DiGraph nodes {node_id: placement_index}
     partition_dict = {node: part for node, part in zip(graph.nodes(), parts)}
     nx.set_node_attributes(graph, partition_dict, 'partition')
@@ -68,11 +67,7 @@ def metis_partition(graph: CompGraph, num_partitions=3):
         partition_weights[part] += graph.nodes[node]['node_weight']
     print("how many operators for each subgraph", partition_counts)
     print("the sum of computing cost for each subgraph", partition_weights)
-
-    # Print the partition labels for each node
-    # for node, data in graph.nodes(data=True):
-    #     print(f"Node {node}: Partition {data['partition']}")
-
+    identify_edges_cut(graph, partition_dict)
     # Visualize the partitioned graph
     colors = ['lightblue', 'lightgreen', 'lightcoral']
     plt.figure(figsize=(8, 6))
@@ -84,13 +79,3 @@ def metis_partition(graph: CompGraph, num_partitions=3):
 
     # return the placement dict
     return partition_dict
-
-
-def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int, DiGraph]:
-    subgraph_dict = {}
-    for operator, placement_index in placement.items():
-        # init a Digraph obj if it does not exist in the subgraph_dict
-        if placement_index not in subgraph_dict:
-            subgraph_dict[placement_index] = nx.DiGraph()
-        expand_subgraph(subgraph_dict[placement_index], operator, digraph)
-    return subgraph_dict

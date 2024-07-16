@@ -1,4 +1,5 @@
 import networkx as nx
+from networkx import DiGraph
 
 
 # expand the subgraph by one node and make it still a subgraph of original_graph
@@ -30,3 +31,25 @@ def creates_cycle(subgraph, node, G):
     has_cycle = not nx.is_directed_acyclic_graph(subgraph_copy)
 
     return has_cycle
+
+
+def identify_edges_cut(weighted_digraph: DiGraph, partition_dict: dict[str, int]) -> list:
+    cut_edges = []
+    sum_of_weights = 0
+    for u, v in weighted_digraph.edges():
+        if partition_dict[u] != partition_dict[v]:
+            cut_edges.append((u, v))
+    for u, v in cut_edges:
+        sum_of_weights += weighted_digraph[u][v]['edge_weight']
+    print("sum_of_weights for verification", sum_of_weights)
+    return cut_edges
+
+
+def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int, DiGraph]:
+    subgraph_dict = {}
+    for operator, placement_index in placement.items():
+        # init a Digraph obj if it does not exist in the subgraph_dict
+        if placement_index not in subgraph_dict:
+            subgraph_dict[placement_index] = nx.DiGraph()
+        expand_subgraph(subgraph_dict[placement_index], operator, digraph)
+    return subgraph_dict
