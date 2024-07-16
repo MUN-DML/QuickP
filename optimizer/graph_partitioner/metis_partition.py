@@ -89,8 +89,8 @@ def metis_partition(graph: CompGraph, num_partitions=3):
 def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> list[DiGraph]:
     subgraph_dict = {}
     for operator, placement_index in placement.items():
+        # init a Digraph obj if it does not exist in the subgraph_dict
         if placement_index not in subgraph_dict:
             subgraph_dict[placement_index] = nx.DiGraph()
-        else:
-            expand_subgraph(subgraph_dict[placement_index], operator, digraph)
+        expand_subgraph(subgraph_dict[placement_index], operator, digraph)
     return list(subgraph_dict.values())
