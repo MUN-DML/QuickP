@@ -2,6 +2,8 @@ import json
 import os
 import random
 from typing import Union
+
+import networkx as nx
 import tensorflow as tf
 
 from matplotlib import pyplot as plt
@@ -340,8 +342,12 @@ def has_more_than_one_component(digraph):
         return False
 
 
+def get_weekly_connected_components(G):
+    # Get weakly connected components
+    weakly_connected_components = list(nx.weakly_connected_components(G))
+
+
 def keep_largest_component(digraph):
-    import networkx as nx
     # Find all weakly connected components
     weakly_connected_components = list(nx.weakly_connected_components(digraph))
 
