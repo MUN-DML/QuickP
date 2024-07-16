@@ -10,9 +10,10 @@ from optimizer.computing_graph.op_graph_util import get_proper_optimizer
 from py_util import tensor_shape_to_bits
 from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component, \
     determine_node_order
+from optimizer.graph_partitioner.metis_partition import metis_partition, construct_sub_graph
 from DNN_model_tf.small import small_tf
 
-# init fake data
+# init comp graph
 if not os.path.exists('comp_graph.json'):
     model = small_tf()
     optimizer = get_proper_optimizer(model)
@@ -26,7 +27,10 @@ if has_more_than_one_component(comp_graph):
     comp_graph = keep_largest_component(comp_graph)
 
 # separate the com
+partition_dict = metis_partition(comp_graph)
+subgraph_list = construct_sub_graph(comp_graph, partition_dict)
 
+# init device topo
 deviceTopo = DeviceGraph()
 deviceTopo.generata_fat_tree_topo(2, 30, 20, 1)
 
@@ -45,7 +49,9 @@ model.setParam("MemLimit", 4096)  # Example: Limit memory usage to 4 GB
 model.setParam("Threads", 4)  # Example: Use 4 threads
 
 # Define variables
-x = {}  # key will be (operator_id, machine_id), value will be 1 or 0; x[3, 1] = 1 means operator 3 get allocated to device 1
+subgraph_placement = {}  # key will be (gragh_id, machine_id), value will be 1 or 0; x[3, 1] = 1 means subgraph 3 get allocated to device 1
+subgraph_start = {}
+subgraph_end = {}
 start = {}  # start[node_id] represent the starting time of this node
 finish = {}  # finish[node_id] represent the finish time of this node
 comm_start = {}  # comm_start[source_op, dest_op] represent the communication
@@ -55,7 +61,7 @@ comm_cost = {}
 # Initialize all variables with names
 for node_id in comp_graph.getOperatorIDs():
     for machine_id in deviceTopo.getDeviceIDs():
-        x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{node_id}_{machine_id}")
+        subgraph_placement[node_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{node_id}_{machine_id}")
     start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"start_{node_id}")
     finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"finish_{node_id}")
 
