@@ -29,7 +29,7 @@ sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
 
 
-def metis_partition(graph: CompGraph, num_partitions=3):
+def metis_partition(graph: CompGraph, num_partitions=3) -> tuple[dict[str, int], list]:
     # Assign weight to each node
     # Step 2: Calculate the node weights based on the `comp_cost` attribute
     for node in graph.nodes:
@@ -67,7 +67,9 @@ def metis_partition(graph: CompGraph, num_partitions=3):
         partition_weights[part] += graph.nodes[node]['node_weight']
     print("how many operators for each subgraph", partition_counts)
     print("the sum of computing cost for each subgraph", partition_weights)
-    identify_edges_cut(graph, partition_dict)
+    # verify whether the sum_of_cut_weight == edgecuts
+    cut_edge_list, sum_of_cut_weight = identify_edges_cut(graph, partition_dict)
+    assert sum_of_cut_weight == edgecuts
     # Visualize the partitioned graph
     colors = ['lightblue', 'lightgreen', 'lightcoral']
     plt.figure(figsize=(8, 6))
@@ -78,4 +80,4 @@ def metis_partition(graph: CompGraph, num_partitions=3):
     plt.show()
 
     # return the placement dict
-    return partition_dict
+    return partition_dict, cut_edge_list

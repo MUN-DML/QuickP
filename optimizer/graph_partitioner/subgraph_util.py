@@ -33,16 +33,15 @@ def creates_cycle(subgraph, node, G):
     return has_cycle
 
 
-def identify_edges_cut(weighted_digraph: DiGraph, partition_dict: dict[str, int]) -> list:
-    cut_edges = []
-    sum_of_weights = 0
-    for u, v in weighted_digraph.edges():
-        if partition_dict[u] != partition_dict[v]:
-            cut_edges.append((u, v))
-    for u, v in cut_edges:
-        sum_of_weights += weighted_digraph[u][v]['edge_weight']
-    print("sum_of_weights for verification", sum_of_weights)
-    return cut_edges
+def identify_edges_cut(weighted_digraph: DiGraph, partition_dict: dict[str, int]) -> tuple[list[tuple], int]:
+    cut_edges = [
+        (u, v)
+        for u, v in weighted_digraph.edges()
+        if partition_dict[u] != partition_dict[v]
+    ]
+    sum_of_weights = sum(weighted_digraph[u][v]['edge_weight'] for u, v in cut_edges)
+
+    return cut_edges, sum_of_weights
 
 
 def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int, DiGraph]:
