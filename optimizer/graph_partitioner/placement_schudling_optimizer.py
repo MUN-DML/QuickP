@@ -28,7 +28,7 @@ if has_more_than_one_component(comp_graph):
     comp_graph = keep_largest_component(comp_graph)
 
 # separate the com
-partition_dict = metis_partition(comp_graph)
+partition_dict = metis_partition(comp_graph, num_partitions=3)
 subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 num_graphs = len(subgraph_dict)
 

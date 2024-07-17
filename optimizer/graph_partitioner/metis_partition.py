@@ -6,7 +6,8 @@ from matplotlib import pyplot as plt
 
 from optimizer.graph_partitioner.subgraph_util import identify_edges_cut
 from py_util import tensor_shape_to_bits
-
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 # https://metis.readthedocs.io/en/latest/
 # http://glaros.dtc.umn.edu/gkhome/metis/metis/download
 '''
@@ -29,7 +30,28 @@ sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
 
 
-def metis_partition(graph: CompGraph, num_partitions=3) -> tuple[dict[str, int], list]:
+def metis_partition(graph: CompGraph, num_partitions, visualization=False) -> tuple[dict[str, int], list]:
+    def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):
+        # Visualize the partitioned graph
+        nx.set_node_attributes(weight_graph, partition_result, 'partition')
+
+        # Generate a color map with enough distinct colors
+        unique_partitions = set(partition_result.values())
+        num_partitions = len(unique_partitions)
+        colors = list(mcolors.TABLEAU_COLORS.values()) + list(mcolors.CSS4_COLORS.values())
+
+        if num_partitions > len(colors):
+            raise ValueError(f"Number of partitions ({num_partitions}) exceeds available colors ({len(colors)}).")
+
+        plt.figure(figsize=(8, 6))
+        pos = nx.spring_layout(weight_graph)
+        node_colors = [colors[partition_result[node] % len(colors)] for node in weight_graph.nodes()]
+
+        nx.draw(weight_graph, pos, with_labels=False, node_color=node_colors, edge_color='gray', node_size=200,
+                font_size=16)
+        plt.title(f'Graph Partitioning into {num_partitions} Parts using METIS', size=20)
+        plt.show()
+
     # Assign weight to each node
     # Step 2: Calculate the node weights based on the `comp_cost` attribute
     for node in graph.nodes:
@@ -57,7 +79,6 @@ def metis_partition(graph: CompGraph, num_partitions=3) -> tuple[dict[str, int],
     print("edgecuts: ", edgecuts)
     # Assign partition labels to the original DiGraph nodes {node_id: placement_index}
     partition_dict = {node: part for node, part in zip(graph.nodes(), parts)}
-    nx.set_node_attributes(graph, partition_dict, 'partition')
     # Count the number of nodes in each partition
     # Count the number of nodes and sum of weights in each partition
     partition_counts = {i: 0 for i in range(num_partitions)}
@@ -69,15 +90,11 @@ def metis_partition(graph: CompGraph, num_partitions=3) -> tuple[dict[str, int],
     print("the sum of computing cost for each subgraph", partition_weights)
     # verify whether the sum_of_cut_weight == edgecuts
     cut_edge_list, sum_of_cut_weight = identify_edges_cut(graph, partition_dict)
+    print("verify weight of edge cuts", sum_of_cut_weight)
     assert sum_of_cut_weight == edgecuts
-    # Visualize the partitioned graph
-    colors = ['lightblue', 'lightgreen', 'lightcoral']
-    plt.figure(figsize=(8, 6))
-    pos = nx.spring_layout(graph)
-    nx.draw(graph, pos, with_labels=False, node_color=[colors[partition_dict[node]] for node in graph.nodes()],
-            edge_color='gray', node_size=200, font_size=16)
-    plt.title(f'Graph Partitioning into {num_partitions} Parts using METIS', size=20)
-    plt.show()
+    if visualization:
+        # Visualize the partitioned graph
+        visualize_graph_partitioned(graph, partition_dict)
 
     # return the placement dict
     return partition_dict, cut_edge_list
