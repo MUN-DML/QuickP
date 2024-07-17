@@ -28,7 +28,7 @@ if has_more_than_one_component(comp_graph):
     comp_graph = keep_largest_component(comp_graph)
 
 # separate the com
-partition_dict = metis_partition(comp_graph, num_partitions=3)
+partition_dict, edge_cut_list = metis_partition(comp_graph, num_partitions=3)
 subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 num_graphs = len(subgraph_dict)
 
@@ -53,20 +53,12 @@ model.setParam("Threads", 4)  # Example: Use 4 threads
 # Define variables
 subgraph_placement = {}  # key will be (gragh_id, machine_id), value will be 1 or 0; x[3, 1] = 1 means subgraph 3 get allocated to device 1
 x = {}
-subgraph_start = {}
-subgraph_end = {}
+
 start = {}  # start[node_id] represent the starting time of this node
 finish = {}  # finish[node_id] represent the finish time of this node
 comm_start = {}  # comm_start[source_op, dest_op] represent the communication
 comm_end = {}
 comm_cost = {}
-
-# Initialize all variables with names
-for sub_graph_id in subgraph_dict.keys():
-    for machine_id in deviceTopo.getDeviceIDs():
-        subgraph_placement[sub_graph_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{sub_graph_id}_{machine_id}")
-    subgraph_start[sub_graph_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"start_{sub_graph_id}")
-    subgraph_end[sub_graph_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"finish_{sub_graph_id}")
 
 for node_id in comp_graph.getOperatorIDs():
     for machine_id in deviceTopo.getDeviceIDs():
@@ -84,12 +76,13 @@ for edge_id_tuple in comp_graph.getEdgeIDs():
                                                        name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
 # Add constraint that if two ops are on the same subgraph, they must be placed on the same device
-
-# Each subgraph is assigned to exactly one device
-for sub_graph_id in subgraph_dict.keys():
-    model.addConstr(
-        quicksum(subgraph_placement[sub_graph_id, machine_id] for machine_id in deviceTopo.getDeviceIDs()) == 1,
-        name=f"subgraph_assignment_{sub_graph_id}")
+for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
+    if partition_dict[op1] == partition_dict[op2]:
+        for device in deviceTopo.getDeviceIDs():
+            model.addConstr(x[op1, device] == x[op2, device], name=f"same_device_{op1}_{op2}_{device}")
+    else:
+        for device in deviceTopo.getDeviceIDs():
+            model.addConstr(x[op1, device] + x[op2, device] <= 1, name=f"different_device_{op1}_{op2}_{device}")
 
 # Add constraints that schedule every node on exactly one machine
 for op in comp_graph.getOperatorIDs():
@@ -101,13 +94,6 @@ for machine_id in deviceTopo.getDeviceIDs():
                        for node_id in comp_graph.getOperatorIDs())
     model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(machine_id),
                     f"satisfy_memory_constraint_{machine_id}")
-
-# Constraint 2: Each device is assigned at most one subgraph
-for machine_id in deviceTopo.getDeviceIDs():
-    model.addConstr(
-        quicksum(subgraph_placement[sub_graph_id, machine_id] for sub_graph_id in subgraph_dict.keys()) <= 1,
-        name=f"device_capacity_{machine_id}"
-    )
 
 # Add constraints that each op's ending time = starting time + its computing time
 for node_id in comp_graph.getOperatorIDs():
@@ -122,18 +108,22 @@ for device_id_src in deviceTopo.getDeviceIDs():
     for device_id_dest in deviceTopo.getDeviceIDs():
         unit_comm_costs[device_id_src, device_id_dest] = deviceTopo.calUnitCommCostInUS(device_id_src, device_id_dest)
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
+    # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are placed on different devices
     source_op_ID, dest_op_ID = edge_id_tuple
-    shape, dtype = comp_graph.getOperatorOutputSizeAndType(source_op_ID)
-    tensor_size = tensor_shape_to_bits(shape, dtype=dtype)
+    if edge_id_tuple in edge_cut_list:
+        shape, dtype = comp_graph.getOperatorOutputSizeAndType(source_op_ID)
+        tensor_size = tensor_shape_to_bits(shape, dtype=dtype)
 
-    # Aggregate communication cost
-    comm_cost_expr = quicksum(
-        unit_comm_costs[device_id_src, device_id_dest] * tensor_size * x[source_op_ID, device_id_src] * x[
-            dest_op_ID, device_id_dest]
-        for device_id_src in deviceTopo.getDeviceIDs()
-        for device_id_dest in deviceTopo.getDeviceIDs()
-        if device_id_src != device_id_dest
-    )
+        # Aggregate communication cost
+        comm_cost_expr = quicksum(
+            unit_comm_costs[device_id_src, device_id_dest] * tensor_size * x[source_op_ID, device_id_src] * x[
+                dest_op_ID, device_id_dest]
+            for device_id_src in deviceTopo.getDeviceIDs()
+            for device_id_dest in deviceTopo.getDeviceIDs()
+            if device_id_src != device_id_dest
+        )
+    else:
+        comm_cost_expr = 0
 
     model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr, f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
