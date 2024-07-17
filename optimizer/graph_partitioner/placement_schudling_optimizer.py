@@ -3,7 +3,7 @@ import torch
 import tensorflow as tf
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(script_dir, '..'))
+project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.computing_graph.op_graph_util import get_proper_optimizer
@@ -14,12 +14,13 @@ from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from DNN_model_tf.small import small_tf
 
+number_of_devices = 3
 # init comp graph
 if not os.path.exists('comp_graph.json'):
     model = small_tf()
     optimizer = get_proper_optimizer(model)
     comp_graph = get_computation_graph(model=model, optimizer=optimizer)
-    comp_graph.generata_random_cost(2)
+    comp_graph.generata_random_cost(number_of_devices)
     comp_graph.save_to_file('comp_graph.json')
 
 comp_graph = CompGraph.load_from_file('comp_graph.json')
@@ -28,7 +29,7 @@ if has_more_than_one_component(comp_graph):
     comp_graph = keep_largest_component(comp_graph)
 
 # separate the com
-partition_dict, edge_cut_list = metis_partition(comp_graph, num_partitions=3)
+partition_dict, edge_cut_list = metis_partition(comp_graph, num_partitions=number_of_devices)
 subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 num_graphs = len(subgraph_dict)
 
@@ -103,10 +104,11 @@ for node_id in comp_graph.getOperatorIDs():
 
 # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
 # unit_comm_costs[device_id_src, device_id_dest] means the com cost per bit from device with source device to dest device
-unit_comm_costs = {}
-for device_id_src in deviceTopo.getDeviceIDs():
-    for device_id_dest in deviceTopo.getDeviceIDs():
-        unit_comm_costs[device_id_src, device_id_dest] = deviceTopo.calUnitCommCostInUS(device_id_src, device_id_dest)
+unit_comm_costs = {
+    (src, dest): deviceTopo.calUnitCommCostInUS(src, dest)
+    for src in deviceTopo.getDeviceIDs()
+    for dest in deviceTopo.getDeviceIDs()
+}
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are placed on different devices
     source_op_ID, dest_op_ID = edge_id_tuple
