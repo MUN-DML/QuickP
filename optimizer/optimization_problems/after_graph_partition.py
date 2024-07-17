@@ -15,7 +15,7 @@ from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from DNN_model_tf.small import small_tf
 
-number_of_devices = 3
+number_of_devices = 2
 # init comp graph
 if not os.path.exists('comp_graph.json'):
     model = small_tf()
