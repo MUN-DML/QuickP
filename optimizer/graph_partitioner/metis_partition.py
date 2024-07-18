@@ -55,8 +55,8 @@ def metis_partition(graph: CompGraph, num_partitions, visualization=False) -> tu
     # Assign weight to each node
     # Step 2: Calculate the node weights based on the `comp_cost` attribute
     for node in graph.nodes:
-        total_cost = graph.getOperatorCompCostSum(node)
-        graph.nodes[node]['node_weight'] = total_cost
+        ave_cost = graph.getOperatorCompCostAve(node)
+        graph.nodes[node]['node_weight'] = ave_cost
     for edge in graph.edges:
         source_op, dest_op = edge
         shape, dtype = graph.getOperatorOutputSizeAndType(source_op)
@@ -71,12 +71,7 @@ def metis_partition(graph: CompGraph, num_partitions, visualization=False) -> tu
     metis_graph = metis.networkx_to_metis(G_undirected)
 
     # Perform graph partitioning using METIS
-    '''
-    Returns a 2-tuple (objval, parts), where parts is a list of partition indices corresponding 
-    and objval is the value of the objective function that was minimized (either the edge cuts or the total volume).
-    '''
-    (edgecuts, parts) = metis.part_graph(metis_graph, nparts=num_partitions)
-    print("edgecuts: ", edgecuts)
+    edgecuts, parts = metis.part_graph(metis_graph, nparts=num_partitions)
     # Assign partition labels to the original DiGraph nodes {node_id: placement_index}
     partition_dict = {node: part for node, part in zip(graph.nodes(), parts)}
     # Count the number of nodes in each partition
@@ -86,12 +81,12 @@ def metis_partition(graph: CompGraph, num_partitions, visualization=False) -> tu
     for node, part in zip(graph.nodes(), parts):
         partition_counts[part] += 1
         partition_weights[part] += graph.nodes[node]['node_weight']
-    print("how many operators for each subgraph", partition_counts)
-    print("the sum of computing cost for each subgraph", partition_weights)
+    print("how many operators for each subgraph", partition_counts, "the sum of weights for each subgraph", partition_weights)
+
     # verify whether the sum_of_cut_weight == edgecuts
     cut_edge_list, sum_of_cut_weight = identify_edges_cut(graph, partition_dict)
-    print("verify weight of edge cuts", sum_of_cut_weight)
     assert sum_of_cut_weight == edgecuts
+    print("verify weight of edge cuts", sum_of_cut_weight, "is equal to ", edgecuts)
     if visualization:
         # Visualize the partitioned graph
         visualize_graph_partitioned(graph, partition_dict)
