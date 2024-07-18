@@ -8,7 +8,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.computing_graph.op_graph_util import get_proper_optimizer
-from py_util import tensor_shape_to_bits
+from py_util import tensor_shape_to_bits, compare_2d_list
 from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component, \
     determine_node_order
 from optimizer.graph_partitioner.metis_partition import metis_partition
@@ -25,13 +25,14 @@ if not os.path.exists('comp_graph.json'):
     comp_graph.save_to_file('comp_graph.json')
 
 comp_graph = CompGraph.load_from_file('comp_graph.json')
-
 if has_more_than_one_component(comp_graph):
     comp_graph = keep_largest_component(comp_graph)
 
 # separate the com
 partition_dict, edge_cut_list = metis_partition(comp_graph, num_partitions=number_of_devices)
 subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
+# two_dime_node_list is to test whether the
+two_dime_node_list: list[list] = [list(subgraph.nodes.keys())for subgraph in subgraph_dict.values()]
 num_graphs = len(subgraph_dict)
 
 # init device topo
@@ -53,9 +54,7 @@ model.setParam("MemLimit", 4096)  # Example: Limit memory usage to 4 GB
 model.setParam("Threads", 4)  # Example: Use 4 threads
 
 # Define variables
-subgraph_placement = {}  # key will be (gragh_id, machine_id), value will be 1 or 0; x[3, 1] = 1 means subgraph 3 get allocated to device 1
 x = {}
-
 start = {}  # start[node_id] represent the starting time of this node
 finish = {}  # finish[node_id] represent the finish time of this node
 comm_start = {}  # comm_start[source_op, dest_op] represent the communication
@@ -148,12 +147,12 @@ for device in deviceTopo.getDeviceIDs():
     # ensures that each pair of operations is only considered once
     for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
         node_order = determine_node_order(comp_graph, op1, op2)
-        if node_order == 1:
+        if node_order in (1, 2):
             y = model.addVar(vtype=GRB.BINARY)
-            model.addGenConstrIndicator(y, True, finish[op1] <= start[op2])
-        elif node_order == 2:
-            y = model.addVar(vtype=GRB.BINARY)
-            model.addGenConstrIndicator(y, True, finish[op2] <= start[op1])
+            if node_order == 1:
+                model.addGenConstrIndicator(y, True, finish[op1] <= start[op2])
+            else:
+                model.addGenConstrIndicator(y, True, finish[op2] <= start[op1])
         else:
             raise ValueError("Invalid node order")
 
@@ -213,6 +212,7 @@ if model.status == GRB.INFEASIBLE:
             print(f"{constr.ConstrName}")
 elif model.status == GRB.UNBOUNDED:
     print("Model is unbounded.")
+# this is the main process part after a solution is reached
 elif model.status == GRB.OPTIMAL:
     print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
     print('Expected Traning time = ', TotalLatency.X, 's', sep='')
@@ -231,6 +231,9 @@ elif model.status == GRB.OPTIMAL:
     # Sort operators by their start times for each device
     for device, ops in result['Assignment'].items():
         result['Assignment'][device] = sorted(ops, key=lambda x: x[1])
+
+    # verify if all ops on the same subgraph are placed on a same device
+    assert compare_2d_list(two_dime_node_list, [[item[0] for item in sublist] for sublist in list(result['Assignment'].values())])
 
     # populate result['CommunicationCosts'] and result['CommunicationTimeLine']
     for edge_id_tuple in list(comp_graph.getEdgeIDs()):

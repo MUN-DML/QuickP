@@ -364,3 +364,11 @@ def convert_time(value, from_unit, to_unit):
     converted_value = seconds_value / conversion_factors[to_unit]
 
     return converted_value
+
+
+# Compare
+def compare_2d_list(list1, list2):
+    def normalize_2d_list(lst):
+        return sorted([sorted(sublist) for sublist in lst])
+
+    return normalize_2d_list(list1) == normalize_2d_list(list2)
