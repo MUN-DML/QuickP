@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels, node_link_graph, \
     node_link_data, number_weakly_connected_components, has_path, NetworkXError, topological_sort, algorithms
 
+from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from py_util import convert_data_size, convert_time
 
 
@@ -109,6 +110,18 @@ class CompGraph(DiGraph):
             # Delete keys after iteration
             for key in existing_real_device:
                 del node["comp_cost"][key]
+
+    def get_node_weight_function(self, node_weight_function: NodeWeightFunction):
+        functions = {
+            NodeWeightFunction.SUM_COMP_COST: self.getOperatorCompCostSum,
+            NodeWeightFunction.AVE_COMP_COST: self.getOperatorCompCostAve,
+        }
+        return functions[node_weight_function]
+
+    def get_edge_weight_function(self, edge_weight_function: EdgeWeightFunction):
+        functions = {
+        }
+        return functions[edge_weight_function]
 
     def add_new_node(self, operator_id, op_type, output_size: tf.TensorShape, output_type):
         super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size,

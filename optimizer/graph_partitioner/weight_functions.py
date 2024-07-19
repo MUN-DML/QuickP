@@ -1,0 +1,12 @@
+from enum import Enum
+import networkx as nx
+
+
+class NodeWeightFunction(Enum):
+    SUM_COMP_COST = 'sum_comp_cost'
+    AVE_COMP_COST = 'ave_comp_cost'
+
+
+class EdgeWeightFunction(Enum):
+    SOURCE_OUTPUT_TENSOR = 'source_output_tensor'
+    SOURCE_OUTPUT_TENSOR_WITH_COMP = 'source_output_tensor_with_comp'
