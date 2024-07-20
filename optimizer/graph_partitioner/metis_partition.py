@@ -59,8 +59,7 @@ def metis_partition(graph: CompGraph, num_partitions, visualization=False) -> tu
         graph.nodes[node]['node_weight'] = ave_cost
     for edge in graph.edges:
         source_op, dest_op = edge
-        shape, dtype = graph.getOperatorOutputSizeAndType(source_op)
-        graph.edges[edge]['edge_weight'] = tensor_shape_to_bits(shape, dtype=dtype)
+        graph.edges[edge]['edge_weight'] = graph.getOperatorOutputInBit(source_op)
 
     graph.graph['node_weight_attr'] = 'node_weight'
     graph.graph['edge_weight_attr'] = 'edge_weight'

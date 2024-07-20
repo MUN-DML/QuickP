@@ -97,8 +97,7 @@ for device_id_src in deviceTopo.getDeviceIDs():
         unit_comm_costs[device_id_src, device_id_dest] = deviceTopo.calUnitCommCostInUS(device_id_src, device_id_dest)
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     source_op_ID, dest_op_ID = edge_id_tuple
-    shape, dtype = comp_graph.getOperatorOutputSizeAndType(source_op_ID)
-    tensor_size = tensor_shape_to_bits(shape, dtype=dtype)
+    tensor_size = comp_graph.getOperatorOutputInBit(source_op_ID)
 
     # Aggregate communication cost
     comm_cost_expr = quicksum(
@@ -227,8 +226,7 @@ elif model.status == GRB.OPTIMAL:
             comm_end_time = comm_end_var.X
             if comm_cost == 0:
                 continue
-            shape, dtype = comp_graph.getOperatorOutputSizeAndType(source_op_ID)
-            tensor_size = tensor_shape_to_bits(shape, dtype=dtype)
+            tensor_size = comp_graph.getOperatorOutputInBit(source_op_ID)
             for device, ops in result['Assignment'].items():
                 if source_op_ID in [op[0] for op in ops]:
                     s_placement = device

@@ -11,7 +11,7 @@ from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_ne
     node_link_data, number_weakly_connected_components, has_path, NetworkXError, topological_sort, algorithms
 
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
-from py_util import convert_data_size, convert_time
+from py_util import convert_data_size, convert_time, tensor_shape_to_bits
 
 
 class CompGraph(DiGraph):
@@ -120,6 +120,8 @@ class CompGraph(DiGraph):
 
     def get_edge_weight_function(self, edge_weight_function: EdgeWeightFunction):
         functions = {
+            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getOperatorOutputInBit,
+            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: None
         }
         return functions[edge_weight_function]
 
@@ -138,6 +140,10 @@ class CompGraph(DiGraph):
 
     def getOperatorOutputSizeAndType(self, node_id):
         return self.nodes[node_id]["output_size"], self.nodes[node_id]["output_type"]
+
+    def getOperatorOutputInBit(self, node_id):
+        shape, dtype = self.getOperatorOutputSizeAndType(node_id)
+        return tensor_shape_to_bits(shape, dtype=dtype)
 
     def getOperatorCompCostByDevice(self, node_id, device_id):
         if self.nodes[node_id] is None:
