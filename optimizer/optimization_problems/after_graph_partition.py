@@ -186,8 +186,6 @@ elif model.status == GRB.UNBOUNDED:
     print("Model is unbounded.")
 # this is the main process part after a solution is reached
 elif model.status == GRB.OPTIMAL:
-    print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
-    print('Expected Traning time = ', TotalLatency.X, 's', sep='')
     show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
 
     del model

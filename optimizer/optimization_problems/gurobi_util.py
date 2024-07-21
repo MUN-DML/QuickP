@@ -48,12 +48,13 @@ def init_computing_and_device_graph(num_device):
     return deviceTopo, comp_graph
 
 
-def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo: DeviceGraph, start: dict, finish: dict,
-                               graph_partition=False, two_dime_node_list=None):
+def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo: DeviceGraph, start: dict,
+                               finish: dict, graph_partition=False, two_dime_node_list=None):
     if graph_partition and not two_dime_node_list:
         raise ValueError("should has a 2d list to represent the original graph partition")
     # init result dict
-    result = {'totalLatency': model.ObjVal, 'Assignment': {}, 'CommunicationCosts': [], "CommunicationTimeLine": {}}
+    result = {'totalLatency': model.ObjVal, 'Assignment': {}, 'CommunicationCosts': [], "CommunicationTimeLine": {},
+              "device_utility_rate": {}, "sum of communication costs": None}
     # populate result['Assignment']
     for key, value in x.items():
         # key[1] is the device id
@@ -116,15 +117,20 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
         result['CommunicationTimeLine'][device] = sorted(timeline, key=lambda x: x[2])
 
     # Print operator placement
-    for device, ops in result['Assignment'].items():
+    for device, op_info_tuples in result['Assignment'].items():
+        sum_comp = 0
         print(f"Device: {device}")
-        for op in ops:
+        for op_tuple in op_info_tuples:
             comp_cost = 0  # Initialize computation cost for the current operator
             for device_id in deviceTopo.getDeviceIDs():
-                comp_cost += x[op[0], device_id].X * comp_graph.getOperatorCompCostByDevice(op[0], device_id)
+                comp_cost += x[op_tuple[0], device_id].X * comp_graph.getOperatorCompCostByDevice(op_tuple[0],
+                                                                                                  device_id)
+            sum_comp += comp_cost
             if comp_cost == 0:
                 continue
-            print(f"  Operator: {op[0]}, Start: {op[1]}, Finish: {op[2]}, Comp Cost: {comp_cost}")
+            print(f"  Operator: {op_tuple[0]}, Start: {op_tuple[1]}, Finish: {op_tuple[2]}, Comp Cost: {comp_cost}")
+        device_utility_rate = sum_comp / model.ObjVal
+        result['device_utility_rate'][device] = device_utility_rate
 
     # Print communication costs
     print("Communication Costs:")
@@ -134,7 +140,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
         sum_of_communication += comm_cost
         print(
             f"  From {source_op_ID} with placement {s_placement} to {dest_op_ID} with placement {d_placement}, Cost: {comm_cost}, Tensor size: {tensor_size}, Bandwidth: {bandwidth} GB/s")
-    print(f"Total Communication Cost: {sum_of_communication}")
+    result['sum of communication costs'] = sum_of_communication
 
     # Print communication timeline divided by device
     print("Communication Timeline:")
@@ -143,3 +149,9 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
         for source_op_ID, dest_op_ID, comm_start_time, comm_end_time, cost in timeline:
             print(
                 f"  Communication from {source_op_ID} to {dest_op_ID} starts at {comm_start_time} and ends at {comm_end_time} with cost: {cost}")
+
+    # Print Summary
+    print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
+    print('Expected Training time = ', model.ObjVal, 's', sep='')
+    print("Device Utility Rate:", result['device_utility_rate'])
+    print("Total Communication Costs:", result['sum of communication costs'])

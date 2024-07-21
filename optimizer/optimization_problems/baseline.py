@@ -168,10 +168,8 @@ if model.status == GRB.INFEASIBLE:
 elif model.status == GRB.UNBOUNDED:
     print("Model is unbounded.")
 elif model.status == GRB.OPTIMAL:
-    print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
-    print('Expected Traning time = ', TotalLatency.X, 's', sep='')
-
     show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish)
+
     del model
     disposeDefaultEnv()
 else:
