@@ -21,6 +21,14 @@ def expand_subgraph(sub_graph, node, original_graph):
             sub_graph.add_edge(node, successor, **original_graph.get_edge_data(node, successor) or {})
 
 
+def shrink_subgraph(sub_graph, node):
+    if node not in sub_graph.nodes:
+        raise ValueError(f"node {node} not in the subgraph")
+
+        # Remove the node along with all its edges
+    sub_graph.remove_node(node)
+
+
 def creates_cycle(subgraph, node, G):
     # Make the update on the copied graph
     subgraph_copy = subgraph.copy()
