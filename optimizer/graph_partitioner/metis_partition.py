@@ -2,12 +2,10 @@ import os
 import sys
 
 import networkx as nx
-from matplotlib import pyplot as plt
 
-from optimizer.graph_partitioner.subgraph_util import identify_edges_cut
-from py_util import tensor_shape_to_bits
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+
 # https://metis.readthedocs.io/en/latest/
 # http://glaros.dtc.umn.edu/gkhome/metis/metis/download
 '''
@@ -28,9 +26,13 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
+from optimizer.graph_partitioner.subgraph_util import identify_edges_cut
+from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
-def metis_partition(graph: CompGraph, num_partitions, visualization=False) -> tuple[dict[str, int], list]:
+def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction = NodeWeightFunction.AVE_COMP_COST,
+                    edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
+                    visualization=False) -> tuple[dict[str, int], list]:
     def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):
         # Visualize the partitioned graph
         nx.set_node_attributes(weight_graph, partition_result, 'partition')
@@ -53,13 +55,14 @@ def metis_partition(graph: CompGraph, num_partitions, visualization=False) -> tu
         plt.show()
 
     # Assign weight to each node
-    # Step 2: Calculate the node weights based on the `comp_cost` attribute
+    # Step 2: Calculate the node/edge weights based on the node_weight_function and edge_weight_function
+    node_weight_func = graph.get_node_weight_function(node_weight_function)
+    edge_weight_func = graph.get_edge_weight_function(edge_weight_function)
     for node in graph.nodes:
-        ave_cost = graph.getOperatorCompCostAve(node)
-        graph.nodes[node]['node_weight'] = ave_cost
+        graph.nodes[node]['node_weight'] = node_weight_func(node)
     for edge in graph.edges:
         source_op, dest_op = edge
-        graph.edges[edge]['edge_weight'] = graph.getOperatorOutputInBit(source_op)
+        graph.edges[edge]['edge_weight'] = edge_weight_func(source_op)
 
     graph.graph['node_weight_attr'] = 'node_weight'
     graph.graph['edge_weight_attr'] = 'edge_weight'
@@ -80,7 +83,8 @@ def metis_partition(graph: CompGraph, num_partitions, visualization=False) -> tu
     for node, part in zip(graph.nodes(), parts):
         partition_counts[part] += 1
         partition_weights[part] += graph.nodes[node]['node_weight']
-    print("how many operators for each subgraph", partition_counts, "the sum of weights for each subgraph", partition_weights)
+    print("how many operators for each subgraph", partition_counts, "the sum of weights for each subgraph",
+          partition_weights)
 
     # verify whether the sum_of_cut_weight == edgecuts
     cut_edge_list, sum_of_cut_weight = identify_edges_cut(graph, partition_dict)
