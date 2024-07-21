@@ -11,8 +11,7 @@ from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
     show_optimization_solution
-from optimizer.graph_partitioner.weight_functions import NodeWeightFunction
-
+from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 number_of_devices = 2
 # init fake data
@@ -22,7 +21,9 @@ deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices)
 model = gurobi_setup("minimize_maxload")
 
 # separate the com
-partition_dict, edge_cut_list = metis_partition(comp_graph, num_partitions=number_of_devices, node_weight_function=NodeWeightFunction.AVE_COMP_COST_WITH_IN_DEGREE)
+partition_dict, edge_cut_list = metis_partition(comp_graph, num_partitions=number_of_devices,
+                                                node_weight_function=NodeWeightFunction.AVE_COMP_COST_WITH_IN_DEGREE,
+                                                edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP)
 subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 # two_dime_node_list is to test whether the
 two_dime_node_list: list[list] = [list(subgraph.nodes.keys())for subgraph in subgraph_dict.values()]

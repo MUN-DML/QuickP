@@ -122,7 +122,7 @@ class CompGraph(DiGraph):
     def get_edge_weight_function(self, edge_weight_function: EdgeWeightFunction):
         functions = {
             EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getOperatorOutputInBit,
-            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: None
+            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getOperatorOutputWithComputingCost
         }
         return functions[edge_weight_function]
 
@@ -145,6 +145,11 @@ class CompGraph(DiGraph):
     def getOperatorOutputInBit(self, node_id):
         shape, dtype = self.getOperatorOutputSizeAndType(node_id)
         return tensor_shape_to_bits(shape, dtype=dtype)
+
+    def getOperatorOutputWithComputingCost(self, node_id):
+        output_size = self.getOperatorOutputInBit(node_id)
+        average_comp_cost = self.getOperatorCompCostAve(node_id)
+        return output_size + average_comp_cost
 
     def getOperatorCompCostByDevice(self, node_id, device_id):
         if self.nodes[node_id] is None:
@@ -197,7 +202,8 @@ class CompGraph(DiGraph):
         return list(self.edges.values())
 
     def getDeviceCompSpeedRatio(self):
-        comp_costs: list[dict[str, int]] = [data['comp_cost'] for node, data in self.nodes(data=True) if 'comp_cost' in data]
+        comp_costs: list[dict[str, int]] = [data['comp_cost'] for node, data in self.nodes(data=True) if
+                                            'comp_cost' in data]
         for comp_cost in comp_costs:
             pass
 
