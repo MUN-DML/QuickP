@@ -201,6 +201,12 @@ class CompGraph(DiGraph):
         for comp_cost in comp_costs:
             pass
 
+    def clean_marginal_operators(self):
+        nodes_to_remove = [node for node in self.nodes if
+                           self.in_degree(node) == 0 and self.getOperatorCompCostSum(node) == 0]
+        print("removed nodes:", nodes_to_remove)
+        self.remove_nodes_from(nodes_to_remove)
+
     def __str__(self):
         nodes_str = "\n".join(
             [f"Operator ID: {node_id}, Attributes: {attrs}" for node_id, attrs in self.nodes(data=True)])

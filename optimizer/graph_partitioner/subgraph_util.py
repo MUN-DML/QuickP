@@ -25,7 +25,7 @@ def shrink_subgraph(sub_graph, node):
     if node not in sub_graph.nodes:
         raise ValueError(f"node {node} not in the subgraph")
 
-        # Remove the node along with all its edges
+    # Remove the node along with all its edges
     sub_graph.remove_node(node)
 
 

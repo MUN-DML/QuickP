@@ -44,6 +44,7 @@ def init_computing_and_device_graph(num_device):
     comp_graph = CompGraph.load_from_file('comp_graph.json')
     if has_more_than_one_component(comp_graph):
         comp_graph = keep_largest_component(comp_graph)
+        comp_graph.clean_marginal_operators()
 
     return deviceTopo, comp_graph
 
