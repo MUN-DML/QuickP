@@ -5,6 +5,7 @@ import networkx as nx
 class NodeWeightFunction(Enum):
     SUM_COMP_COST = 'sum_comp_cost'
     AVE_COMP_COST = 'ave_comp_cost'
+    AVE_COMP_COST_WITH_IN_DEGREE = 'ave_comp_cost_with_in_degree'
 
 
 class EdgeWeightFunction(Enum):

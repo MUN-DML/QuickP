@@ -115,6 +115,7 @@ class CompGraph(DiGraph):
         functions = {
             NodeWeightFunction.SUM_COMP_COST: self.getOperatorCompCostSum,
             NodeWeightFunction.AVE_COMP_COST: self.getOperatorCompCostAve,
+            NodeWeightFunction.AVE_COMP_COST_WITH_IN_DEGREE: self.getOperatorCompCostAveWithIncomingEdges
         }
         return functions[node_weight_function]
 
@@ -163,6 +164,13 @@ class CompGraph(DiGraph):
         if node_id not in self.nodes:
             raise ValueError("node {0} does not exist".format(node_id))
         return int(sum(self.nodes[node_id]['comp_cost'].values()) / len(self.nodes[node_id]['comp_cost']))
+
+    def getOperatorCompCostAveWithIncomingEdges(self, node_id):
+        if node_id not in self.nodes:
+            raise ValueError("node {0} does not exist".format(node_id))
+        average_comp_cost = self.getOperatorCompCostAve(node_id)
+        degree = self.in_degree(node_id)
+        return degree * average_comp_cost
 
     def getAllOperators(self):
         return list(self.nodes(data=True))
