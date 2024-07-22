@@ -22,7 +22,6 @@ model = gurobi_setup("minimize_maxload")
 
 # separate the com
 partition_dict, edge_cut_list = metis_partition(comp_graph, num_partitions=number_of_devices,
-                                                node_weight_function=NodeWeightFunction.AVE_COMP_COST_WITH_IN_DEGREE,
                                                 edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP)
 subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 # two_dime_node_list is to test whether the
@@ -85,7 +84,8 @@ unit_comm_costs = {
     for dest in deviceTopo.getDeviceIDs()
 }
 for edge_id_tuple in list(comp_graph.getEdgeIDs()):
-    # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are placed on different devices
+    # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
+    # placed on different devices
     source_op_ID, dest_op_ID = edge_id_tuple
     if edge_id_tuple in edge_cut_list:
         tensor_size = comp_graph.getOperatorOutputInBit(source_op_ID)
@@ -98,23 +98,24 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
             for device_id_dest in deviceTopo.getDeviceIDs()
             if device_id_src != device_id_dest
         )
+        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr, f"comm_cost_{source_op_ID}_{dest_op_ID}")
+
+        # Ensures the communication starts only after the source operation finishes.
+        model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
+                        f"bind_finish_to_comm_start_{source_op_ID}_{dest_op_ID}")
+
+        # Ensures the communication ends before the destination operation starts.
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
+                        f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
+
+        # Ensures the communication duration covers the communication cost.
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost[
+            source_op_ID, dest_op_ID],
+                        f"data_dependency_{source_op_ID}_{dest_op_ID}")
     else:
-        comm_cost_expr = 0
+        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
 
-    model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr, f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
-    # Ensures the communication starts only after the source operation finishes.
-    model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
-                    f"bind_finish_to_comm_start_{source_op_ID}_{dest_op_ID}")
-
-    # Ensures the communication ends before the destination operation starts.
-    model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
-                    f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
-
-    # Ensures the communication duration covers the communication cost.
-    model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost[
-        source_op_ID, dest_op_ID],
-                    f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
 # Add constraint to ensure each device processes only one operator at a time. This is a SCHEDULING problem.
 for device in deviceTopo.getDeviceIDs():
