@@ -43,12 +43,13 @@ for node_id in comp_graph.getOperatorIDs():
 
 for edge_id_tuple in comp_graph.getEdgeIDs():
     source_op_ID, dest_op_ID = edge_id_tuple
-    comm_start[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                        name=f"comm_start_{source_op_ID}_{dest_op_ID}")
-    comm_end[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                      name=f"comm_end_{source_op_ID}_{dest_op_ID}")
-    comm_cost[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                       name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
+    if edge_id_tuple in edge_cut_list:
+        comm_start[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
+                                                            name=f"comm_start_{source_op_ID}_{dest_op_ID}")
+        comm_end[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
+                                                          name=f"comm_end_{source_op_ID}_{dest_op_ID}")
+        comm_cost[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
+                                                           name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
 # Add constraint that if two ops are on the same subgraph, they must be placed on the same device
 for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
@@ -136,6 +137,8 @@ for device in deviceTopo.getDeviceIDs():
 
 # Add constraint to ensure each device can only send or receive from one link at a time. This is communication scheduling
 for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.combinations(comp_graph.getEdgeIDs(), 2):
+    if (source_op_ID1, dest_op_ID1) not in edge_cut_list or (source_op_ID2, dest_op_ID2) not in edge_cut_list:
+        continue
     for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
         # For any two communication, determine the topo order between the source nodes of these two links
         node_order = determine_node_order(comp_graph, source_op_ID1, source_op_ID2)
