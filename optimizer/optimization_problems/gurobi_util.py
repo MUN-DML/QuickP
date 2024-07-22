@@ -29,7 +29,7 @@ def gurobi_setup(name: str):
     return model
 
 
-def init_computing_and_device_graph(num_device):
+def init_computing_and_device_graph(num_device, if_clean_extra_operator=False):
     # init device topo
     deviceTopo = DeviceGraph()
     deviceTopo.generata_fat_tree_topo(num_device, 30, 20, 1)
@@ -44,7 +44,8 @@ def init_computing_and_device_graph(num_device):
     comp_graph = CompGraph.load_from_file('comp_graph.json')
     if has_more_than_one_component(comp_graph):
         comp_graph = keep_largest_component(comp_graph)
-        comp_graph.clean_marginal_operators()
+        if if_clean_extra_operator:
+            comp_graph.clean_marginal_operators()
 
     return deviceTopo, comp_graph
 
