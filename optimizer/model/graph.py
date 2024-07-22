@@ -208,7 +208,7 @@ class CompGraph(DiGraph):
             pass
 
     def clean_marginal_operators(self):
-        nodes_to_remove = [node for node in self.nodes if
+        nodes_to_remove = [node for node in self.nodes if self.getOperatorOutputInBit(node) == 0 and
                            self.in_degree(node) == 0 and self.getOperatorCompCostSum(node) == 0]
         print("removed nodes:", nodes_to_remove)
         self.remove_nodes_from(nodes_to_remove)
