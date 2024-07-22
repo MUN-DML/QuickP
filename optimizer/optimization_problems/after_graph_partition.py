@@ -25,7 +25,7 @@ partition_dict, edge_cut_list = metis_partition(comp_graph, num_partitions=numbe
                                                 edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP)
 subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 # two_dime_node_list is to test whether the
-two_dime_node_list: list[list] = [list(subgraph.nodes.keys())for subgraph in subgraph_dict.values()]
+two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
 
 # Define variables
 x = {}
@@ -116,9 +116,7 @@ for edge_id_tuple in list(comp_graph.getEdgeIDs()):
     else:
         model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
 
-
-
-# Add constraint to ensure each device processes only one operator at a time. This is a SCHEDULING problem.
+# Add constraint to ensure each device processes only one operator at a time, a SCHEDULING problem within each device.
 for device in deviceTopo.getDeviceIDs():
     # ensures that each pair of operations is only considered once
     for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
@@ -135,7 +133,7 @@ for device in deviceTopo.getDeviceIDs():
         # If on the same device, ensure that the operators do not overlap
         model.addConstr(y >= x[op1, device] + x[op2, device] - 1)
 
-# Add constraint to ensure each device can only send or receive from one link at a time. This is communication scheduling
+# Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
 for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.combinations(comp_graph.getEdgeIDs(), 2):
     if (source_op_ID1, dest_op_ID1) not in edge_cut_list or (source_op_ID2, dest_op_ID2) not in edge_cut_list:
         continue
@@ -159,8 +157,10 @@ for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.comb
         # will be 4
         model.addConstr(
             no_overlap >= (
-                x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
-                x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
+                    x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] +
+                    x[dest_op_ID2, device_id_dest] +
+                    x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
+                        source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
             )
         )
 
