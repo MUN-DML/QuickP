@@ -169,7 +169,7 @@ elif model.status == GRB.UNBOUNDED:
     print("Model is unbounded.")
 elif model.status == GRB.OPTIMAL:
     show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish)
-
+    print("number of operators in total", len(comp_graph))
     del model
     disposeDefaultEnv()
 else:
