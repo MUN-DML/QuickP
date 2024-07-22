@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Tuple, Dict, Any, List
 
 import networkx as nx
 
@@ -32,7 +33,7 @@ from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, Edg
 
 def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction = NodeWeightFunction.AVE_COMP_COST,
                     edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
-                    visualization=False) -> tuple[dict[str, int], list]:
+                    visualization=False) -> tuple[dict[Any, Any], list[tuple], CompGraph]:
     def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):
         # Visualize the partitioned graph
         nx.set_node_attributes(weight_graph, partition_result, 'partition')
@@ -76,15 +77,6 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
     edgecuts, parts = metis.part_graph(metis_graph, nparts=num_partitions)
     # Assign partition labels to the original DiGraph nodes {node_id: placement_index}
     partition_dict = {node: part for node, part in zip(graph.nodes(), parts)}
-    # Count the number of nodes in each partition
-    # Count the number of nodes and sum of weights in each partition
-    partition_counts = {i: 0 for i in range(num_partitions)}
-    partition_weights = {i: 0 for i in range(num_partitions)}
-    for node, part in zip(graph.nodes(), parts):
-        partition_counts[part] += 1
-        partition_weights[part] += graph.nodes[node]['node_weight']
-    print("how many operators for each subgraph", partition_counts, "the sum of weights for each subgraph",
-          partition_weights)
 
     # verify whether the sum_of_cut_weight == edgecuts
     cut_edge_list, sum_of_cut_weight = identify_edges_cut(graph, partition_dict)
@@ -94,5 +86,5 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
         # Visualize the partitioned graph
         visualize_graph_partitioned(graph, partition_dict)
 
-    # return the placement dict
-    return partition_dict, cut_edge_list
+    # return the placement dict, list of edges cut and the weighted graph itself
+    return partition_dict, cut_edge_list, graph

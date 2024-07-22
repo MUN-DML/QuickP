@@ -157,3 +157,19 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
     print('Expected Training time = ', model.ObjVal, 's', sep='')
     print("Device Utility Rate:", result['device_utility_rate'])
     print("Total Communication Costs:", result['sum of communication costs'])
+
+
+def show_graph_partition_info(weighted_graph: CompGraph, partition_dict):
+    # Count the number of nodes in each partition
+    # Count the number of nodes and sum of weights in each partition
+    partition_counts = {}
+    partition_weights = {}
+    for node, part in partition_dict.items():
+        if part not in partition_counts:
+            partition_counts[part] = 0
+        if part not in partition_weights:
+            partition_weights[part] = 0
+        partition_counts[part] += 1
+        partition_weights[part] += weighted_graph.nodes[node]['node_weight']
+    print("how many operators for each subgraph", partition_counts, "the sum of weights for each subgraph",
+          partition_weights)
