@@ -56,7 +56,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
         raise ValueError("should has a 2d list to represent the original graph partition")
     # init result dict
     result = {'totalLatency': model.ObjVal, 'Assignment': {}, 'CommunicationCosts': [], "CommunicationTimeLine": {},
-              "device_utility_rate": {}, "sum of communication costs": None}
+              "device_utility_rate": {}, "total_communication_time": None, "total_computing_time_per_device": {}}
     # populate result['Assignment']
     for key, value in x.items():
         # key[1] is the device id
@@ -132,6 +132,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
                 continue
             print(f"  Operator: {op_tuple[0]}, Start: {op_tuple[1]}, Finish: {op_tuple[2]}, Comp Cost: {comp_cost}")
         device_utility_rate = sum_comp / model.ObjVal
+        result['total_computing_time_per_device'][device] = sum_comp
         result['device_utility_rate'][device] = device_utility_rate
 
     # Print communication costs
@@ -142,7 +143,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
         sum_of_communication += comm_cost
         print(
             f"  From {source_op_ID} with placement {s_placement} to {dest_op_ID} with placement {d_placement}, Cost: {comm_cost}, Tensor size: {tensor_size}, Bandwidth: {bandwidth} GB/s")
-    result['sum of communication costs'] = sum_of_communication
+    result['total_communication_time'] = sum_of_communication
 
     # Print communication timeline divided by device
     print("Communication Timeline:")
@@ -156,7 +157,8 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
     print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
     print('Expected Training time = ', model.ObjVal, 's', sep='')
     print("Device Utility Rate:", result['device_utility_rate'])
-    print("Total Communication Costs:", result['sum of communication costs'])
+    print("Total Communication Time:", result['total_communication_time'])
+    print("total_computing_time_per_device:", result['total_computing_time_per_device'])
 
 
 def show_graph_partition_info(weighted_graph: CompGraph, partition_dict):

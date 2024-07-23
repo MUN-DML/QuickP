@@ -82,7 +82,7 @@ class CompGraph(DiGraph):
         with open(file_path, 'w') as f:
             f.write(json_data)
 
-    def generata_random_cost(self, device_number: int, computing_cost_ratio: list = None):
+    def generata_random_cost(self, device_number: int, computing_cost_ratio: list = None, adjustment_percent: int = None):
         if computing_cost_ratio is None:
             computing_cost_ratio = [1] * device_number
         else:
@@ -97,7 +97,7 @@ class CompGraph(DiGraph):
                 base = node["comp_cost"].values()
                 ratio = computing_cost_ratio[i]
                 base_num = sum(base) / len(base)
-                adjustment_range = 0.05 * base_num
+                adjustment_range = adjustment_percent * base_num if adjustment_percent else 0
 
                 # Generate a random adjustment within the range [-5%, 5%]
                 adjustment = random.uniform(-adjustment_range, adjustment_range)
