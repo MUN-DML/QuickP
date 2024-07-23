@@ -12,7 +12,7 @@ from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_compu
     show_optimization_solution
 
 # init fake data
-deviceTopo, comp_graph = init_computing_and_device_graph(2)
+deviceTopo, comp_graph = init_computing_and_device_graph(2, 'comp_graph_baseline.json')
 
 # Init solver
 model = gurobi_setup("minimize_maxload")

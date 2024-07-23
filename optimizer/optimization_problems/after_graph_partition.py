@@ -15,7 +15,7 @@ from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, Edg
 
 number_of_devices = 2
 # init fake data
-deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices)
+deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json")
 
 # Init solver
 model = gurobi_setup("minimize_maxload")
