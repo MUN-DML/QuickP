@@ -64,7 +64,9 @@ def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int
     return subgraph_dict
 
 
-def recalculate_node_weights(dag: CompGraph, fix_ratio=0.2):
+def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 0.2):
+    if fix_ratio > 1 or fix_ratio < 0:
+        raise ValueError("fix_ratio must be between 0 and 1")
 
     # Process nodes in topological order to ensure dependencies are respected
     topo_sorted_nodes = list(nx.topological_sort(dag))
