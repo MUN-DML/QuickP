@@ -1,6 +1,8 @@
 import networkx as nx
 from networkx import DiGraph
 
+from optimizer.model.graph import CompGraph
+
 
 # expand the subgraph by one node and make it still a subgraph of original_graph
 def expand_subgraph(sub_graph, node, original_graph):
@@ -60,3 +62,16 @@ def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int
             subgraph_dict[placement_index] = nx.DiGraph()
         expand_subgraph(subgraph_dict[placement_index], operator, digraph)
     return subgraph_dict
+
+
+def recalculate_node_weights(dag: CompGraph, fix_ratio=0.0000001):
+
+    # Process nodes in topological order to ensure dependencies are respected
+    topo_sorted_nodes = list(nx.topological_sort(dag))
+
+    for node in topo_sorted_nodes:
+        # Calculate the weighted sum of predecessors' weights
+        for pred in dag.predecessors(node):
+            source_node_weight = dag.nodes[pred]['node_weight']
+            edge_weight = dag[pred][node]['edge_weight']
+            dag.nodes[node]['node_weight'] += int(edge_weight * source_node_weight * fix_ratio)
