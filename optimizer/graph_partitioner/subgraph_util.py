@@ -64,7 +64,7 @@ def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int
     return subgraph_dict
 
 
-def recalculate_node_weights(dag: CompGraph, fix_ratio=0.0000001):
+def recalculate_node_weights(dag: CompGraph, fix_ratio=0.2):
 
     # Process nodes in topological order to ensure dependencies are respected
     topo_sorted_nodes = list(nx.topological_sort(dag))
@@ -73,5 +73,8 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio=0.0000001):
         # Calculate the weighted sum of predecessors' weights
         for pred in dag.predecessors(node):
             source_node_weight = dag.nodes[pred]['node_weight']
-            edge_weight = dag[pred][node]['edge_weight']
+            if source_node_weight == 0:
+                continue
+            # edge_weight = dag[pred][node]['edge_weight']
+            edge_weight = 1
             dag.nodes[node]['node_weight'] += int(edge_weight * source_node_weight * fix_ratio)
