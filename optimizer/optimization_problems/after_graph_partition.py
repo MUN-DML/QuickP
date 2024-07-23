@@ -193,7 +193,7 @@ elif model.status == GRB.UNBOUNDED:
 # this is the main process part after a solution is reached
 elif model.status == GRB.OPTIMAL:
     show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
-    show_graph_partition_info(weighted_graph, partition_dict)
+    show_graph_partition_info(weighted_graph, partition_dict, edge_cut_list)
     del model
     disposeDefaultEnv()
 else:
