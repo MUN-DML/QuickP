@@ -82,7 +82,8 @@ class CompGraph(DiGraph):
         with open(file_path, 'w') as f:
             f.write(json_data)
 
-    def generata_random_cost(self, device_number: int, computing_cost_ratio: list = None, adjustment_percent: int = None):
+    def generata_random_cost(self, device_number: int, computing_cost_ratio: list = None,
+                             adjustment_percent: int = None):
         if computing_cost_ratio is None:
             computing_cost_ratio = [1] * device_number
         else:
@@ -452,6 +453,17 @@ def determine_node_order(graph, node1, node2):
     except ValueError:
         # Handle case where node1 or node2 is not in the graph
         return None
+
+
+def topo_order_until_node(dag, target_node):
+    assert nx.is_directed_acyclic_graph(dag)
+    topo_sorted_gen = nx.topological_sort(dag)
+    for node in topo_sorted_gen:
+        yield node
+        if node == target_node:
+            break
+    else:
+        raise ValueError(f"Node {target_node} not found in the DAG")
 
 
 def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
