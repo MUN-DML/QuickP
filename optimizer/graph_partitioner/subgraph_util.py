@@ -64,7 +64,7 @@ def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int
     return subgraph_dict
 
 
-def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 0.2):
+def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 0.2, node_adjust=True, edge_adjust=True):
     # By using a weighted sum of predecessor nodes' weights, the function accounts for the interconnected nature of
     # nodes within subgraphs. This ensures that the influence of a node on its successors is proportional to its weight
     # and the weight of the connecting edge. This dependency chain leads to a smoother distribution of weights since
@@ -75,17 +75,19 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 0.2):
     # Process nodes in topological order to ensure dependencies are respected
     topo_sorted_nodes = list(nx.topological_sort(dag))
 
-    for node in topo_sorted_nodes:
-        # Calculate the weighted sum of predecessors' weights
-        for pred in dag.predecessors(node):
-            source_node_weight = dag.nodes[pred]['node_weight']
-            if source_node_weight == 0:
-                continue
-            dag.nodes[node]['node_weight'] += int(source_node_weight * fix_ratio)
-
-    for node in topo_sorted_nodes:
-        for succ in dag.successors(node):
-            # Calculate the new weight for the edge (node, succ)
+    if node_adjust:
+        for node in topo_sorted_nodes:
+            # Calculate the weighted sum of predecessors' weights
             for pred in dag.predecessors(node):
-                incoming_edge_weight = dag[pred][node]["edge_weight"]
-                dag[node][succ]['edge_weight'] += int(incoming_edge_weight * fix_ratio)
+                source_node_weight = dag.nodes[pred]['node_weight']
+                if source_node_weight == 0:
+                    continue
+                dag.nodes[node]['node_weight'] += int(source_node_weight * fix_ratio)
+
+    if edge_adjust:
+        for node in topo_sorted_nodes:
+            for successor in dag.successors(node):
+                # Calculate the new weight for the edge (node, succ)
+                for pred in dag.predecessors(node):
+                    incoming_edge_weight = dag[pred][node]["edge_weight"]
+                    dag[node][successor]['edge_weight'] += int(incoming_edge_weight * fix_ratio)
