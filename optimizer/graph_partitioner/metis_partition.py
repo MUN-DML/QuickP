@@ -27,13 +27,14 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
-from optimizer.graph_partitioner.subgraph_util import identify_edges_cut, recalculate_node_weights
+from optimizer.graph_partitioner.subgraph_util import identify_edges_cut, recalculate_node_weights, weight_normalization
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
 def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction = NodeWeightFunction.AVE_COMP_COST,
                     edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
-                    visualization=False, recursive_weight_enhancement=False) -> tuple[dict[Any, Any], list[tuple], CompGraph]:
+                    visualization=False, recursive_weight_enhancement=False,
+                    weight_normalize=False) -> tuple[dict[Any, Any], list[tuple], CompGraph]:
     def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):
         # Visualize the partitioned graph
         nx.set_node_attributes(weight_graph, partition_result, 'partition')
@@ -66,6 +67,8 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
         graph.edges[edge]['edge_weight'] = edge_weight_func(source_op)
     if recursive_weight_enhancement:
         recalculate_node_weights(graph)
+    if weight_normalize:
+        weight_normalization(graph)
     graph.graph['node_weight_attr'] = 'node_weight'
     graph.graph['edge_weight_attr'] = 'edge_weight'
 

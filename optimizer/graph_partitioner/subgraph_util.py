@@ -1,4 +1,6 @@
 import networkx as nx
+import numpy as np
+import pandas as pd
 from networkx import DiGraph
 
 from optimizer.model.graph import CompGraph
@@ -91,3 +93,28 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 0.2, node_adjust
                 for pred in dag.predecessors(node):
                     incoming_edge_weight = dag[pred][node]["edge_weight"]
                     dag[node][successor]['edge_weight'] += int(incoming_edge_weight * fix_ratio)
+
+
+def weight_normalization(dag: CompGraph, to_range: tuple = (1, 1000)):
+    from sklearn.preprocessing import MinMaxScaler
+    scaler = MinMaxScaler(feature_range=to_range)
+
+    # extract
+    node_weights = {node: attributes['node_weight'] for node, attributes in dag.nodes(data=True)}
+    edge_weights = {(source, target): attributes['edge_weight'] for source, target, attributes in dag.edges(data=True)}
+
+    # Convert to pandas DataFrame
+    df_nodes = pd.DataFrame(node_weights.items(), columns=['node', 'node_weight'])
+    df_edges = pd.DataFrame(edge_weights.items(), columns=['edge', 'edge_weight'])
+
+    # Fit and transform nodes/edges weights
+    df_nodes['node_weight'] = scaler.fit_transform(df_nodes[['node_weight']])
+    df_edges['edge_weight'] = scaler.fit_transform(df_edges[['edge_weight']])
+
+    # Convert back to dictionary
+    scaled_node_weights = dict(zip(df_nodes['node'], df_nodes['node_weight'].astype(int)))
+    scaled_edge_weights = dict(zip(df_edges['edge'], df_edges['edge_weight'].astype(int)))
+
+    # Update the node and edge weight
+
+
