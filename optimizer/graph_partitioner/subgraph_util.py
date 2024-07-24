@@ -116,5 +116,7 @@ def weight_normalization(dag: CompGraph, to_range: tuple = (1, 1000)):
     scaled_edge_weights = dict(zip(df_edges['edge'], df_edges['edge_weight'].astype(int)))
 
     # Update the node and edge weight
-
-
+    for node, weight in scaled_node_weights.items():
+        dag.nodes[node]['node_weight'] = weight
+    for (source, dest), weight in scaled_edge_weights.items():
+        dag[source][dest]['edge_weight'] = weight
