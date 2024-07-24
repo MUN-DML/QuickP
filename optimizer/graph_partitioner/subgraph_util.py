@@ -81,6 +81,11 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 0.2):
             source_node_weight = dag.nodes[pred]['node_weight']
             if source_node_weight == 0:
                 continue
-            # edge_weight = dag[pred][node]['edge_weight']
-            edge_weight = 1
-            dag.nodes[node]['node_weight'] += int(edge_weight * source_node_weight * fix_ratio)
+            dag.nodes[node]['node_weight'] += int(source_node_weight * fix_ratio)
+
+    for node in topo_sorted_nodes:
+        for succ in dag.successors(node):
+            # Calculate the new weight for the edge (node, succ)
+            for pred in dag.predecessors(node):
+                incoming_edge_weight = dag[pred][node]["edge_weight"]
+                dag[node][succ]['edge_weight'] += int(incoming_edge_weight * fix_ratio)
