@@ -65,6 +65,10 @@ def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int
 
 
 def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 0.2):
+    # By using a weighted sum of predecessor nodes' weights, the function accounts for the interconnected nature of
+    # nodes within subgraphs. This ensures that the influence of a node on its successors is proportional to its weight
+    # and the weight of the connecting edge. This dependency chain leads to a smoother distribution of weights since
+    # each node’s weight is a blend of its own cost and the cumulative influence of its predecessors.
     if fix_ratio > 1 or fix_ratio < 0:
         raise ValueError("fix_ratio must be between 0 and 1")
 
