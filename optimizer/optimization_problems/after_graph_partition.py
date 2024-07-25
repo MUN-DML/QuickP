@@ -22,8 +22,8 @@ model = gurobi_setup("minimize_maxload")
 
 # separate the com
 partition_dict, edge_cut_list, weighted_graph = metis_partition(comp_graph, num_partitions=number_of_devices,
-                                                                edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST,
-                                                                recursive_weight_enhancement=True, weight_normalize=True)
+                                                                edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
+                                                                recursive_weight_enhancement=True, weight_normalize=False)
 subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 # two_dime_node_list is to test whether the
 two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
