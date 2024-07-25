@@ -7,7 +7,7 @@ import tensorflow as tf
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import determine_node_order
+from optimizer.model.graph import determine_node_order, create_topological_position_dict
 from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
     show_optimization_solution
 
@@ -15,7 +15,7 @@ from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_compu
 def optimize_baseline():
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(2, 'comp_graph_baseline.json')
-
+    topo_dict = create_topological_position_dict(comp_graph)
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
@@ -104,7 +104,7 @@ def optimize_baseline():
     for device in deviceTopo.getDeviceIDs():
         # ensures that each pair of operations is only considered once
         for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
-            node_order = determine_node_order(comp_graph, op1, op2)
+            node_order = determine_node_order(topo_dict, op1, op2)
             if node_order == 1:
                 y = model.addVar(vtype=GRB.BINARY)
                 model.addGenConstrIndicator(y, True, finish[op1] <= start[op2])
@@ -122,7 +122,7 @@ def optimize_baseline():
                                                                                              2):
         for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
             # For any two communication, determine the topo order between the source nodes of these two links
-            node_order = determine_node_order(comp_graph, source_op_ID1, source_op_ID2)
+            node_order = determine_node_order(topo_dict, source_op_ID1, source_op_ID2)
             if not node_order:
                 raise ValueError("order not existing")
             # Select the appropriate non-overlapping variable and communication ends and starts based on node order
