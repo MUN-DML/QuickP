@@ -116,14 +116,14 @@ class CompGraph(DiGraph):
         functions = {
             NodeWeightFunction.SUM_COMP_COST: self.getOperatorCompCostSum,
             NodeWeightFunction.AVE_COMP_COST: self.getOperatorCompCostAve,
-            NodeWeightFunction.AVE_COMP_COST_WITH_IN_DEGREE: self.getOperatorCompCostAveWithIncomingEdges
         }
         return functions[node_weight_function]
 
     def get_edge_weight_function(self, edge_weight_function: EdgeWeightFunction):
         functions = {
             EdgeWeightFunction.MOCK_COMMUNICATION_COST: self.getOperatorMockCommCostInUS,
-            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getOperatorOutputWithComputingCost
+            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getOperatorOutputWithComputingCost,
+            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getOperatorOutputInBit
         }
         return functions[edge_weight_function]
 
@@ -147,9 +147,10 @@ class CompGraph(DiGraph):
         shape, dtype = self.getOperatorOutputSizeAndType(node_id)
         return tensor_shape_to_bits(shape, dtype=dtype)
 
-    def getOperatorMockCommCostInUS(self, node_id, mock_band_in_GB=20):
+    def getOperatorMockCommCostInUS(self, node_id, mock_band_in_GB_per_second=20):
         output_size = self.getOperatorOutputInBit(node_id)
-        return output_size / convert_data_size(mock_band_in_GB, 'GB', 'bit')
+        result = convert_time(output_size / convert_data_size(mock_band_in_GB_per_second, 'GB', 'bit'), 's', 'us')
+        return result
 
     def getOperatorOutputWithComputingCost(self, node_id):
         output_size = self.getOperatorOutputInBit(node_id)
@@ -174,13 +175,6 @@ class CompGraph(DiGraph):
         if node_id not in self.nodes:
             raise ValueError("node {0} does not exist".format(node_id))
         return int(sum(self.nodes[node_id]['comp_cost'].values()) / len(self.nodes[node_id]['comp_cost']))
-
-    def getOperatorCompCostAveWithIncomingEdges(self, node_id):
-        if node_id not in self.nodes:
-            raise ValueError("node {0} does not exist".format(node_id))
-        average_comp_cost = self.getOperatorCompCostAve(node_id)
-        degree = self.in_degree(node_id)
-        return degree * average_comp_cost
 
     def getAllOperators(self):
         return list(self.nodes(data=True))
