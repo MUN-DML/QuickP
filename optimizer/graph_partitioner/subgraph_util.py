@@ -97,7 +97,6 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 0.2, node_adjust
 
 def weight_normalization(dag: CompGraph, to_range: tuple = (1, 1000)):
     from sklearn.preprocessing import MinMaxScaler
-    scaler = MinMaxScaler(feature_range=to_range)
 
     # extract
     node_weights = {node: attributes['node_weight'] for node, attributes in dag.nodes(data=True)}
@@ -107,9 +106,15 @@ def weight_normalization(dag: CompGraph, to_range: tuple = (1, 1000)):
     df_nodes = pd.DataFrame(node_weights.items(), columns=['node', 'node_weight'])
     df_edges = pd.DataFrame(edge_weights.items(), columns=['edge', 'edge_weight'])
 
+    node_range = (max(to_range[0], df_nodes.node_weight.min()), min(to_range[1], df_nodes.node_weight.max()))
+    edge_range = (max(to_range[0], df_edges.edge_weight.min()), min(to_range[1], df_edges.edge_weight.max()))
+
+    scaler_node = MinMaxScaler(feature_range=node_range)
+    scaler_edge = MinMaxScaler(feature_range=to_range)
+
     # Fit and transform nodes/edges weights
-    df_nodes['node_weight'] = scaler.fit_transform(df_nodes[['node_weight']])
-    df_edges['edge_weight'] = scaler.fit_transform(df_edges[['edge_weight']])
+    df_nodes['node_weight'] = scaler_node.fit_transform(df_nodes[['node_weight']])
+    df_edges['edge_weight'] = scaler_edge.fit_transform(df_edges[['edge_weight']])
 
     # Convert back to dictionary
     scaled_node_weights = dict(zip(df_nodes['node'], df_nodes['node_weight'].astype(int)))
