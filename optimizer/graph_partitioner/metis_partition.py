@@ -65,7 +65,6 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
     for edge in graph.edges:
         source_op, dest_op = edge
         graph.edges[edge]['edge_weight'] = edge_weight_func(source_op)
-        print('comparison', graph.getOperatorOutputInBit(source_op), graph.getOperatorMockCommCostInUS(source_op), edge_weight_func(source_op))
     if recursive_weight_enhancement:
         recalculate_node_weights(graph)
     if weight_normalize:
