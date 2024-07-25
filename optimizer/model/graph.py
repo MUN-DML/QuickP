@@ -416,6 +416,21 @@ def keep_largest_component(digraph):
     return largest_component_subgraph
 
 
+# This method is to reduce the time complexity when determining the topo order between two nodes
+def create_topological_position_dict(graph):
+    """
+    Creates a dictionary mapping each node to its position in the topologically sorted order.
+
+    Parameters:
+    graph (nx.DiGraph): The directed graph.
+
+    Returns:
+    dict: A dictionary where keys are nodes and values are their positions in the topologically sorted order.
+    """
+    sorted_nodes = list(topological_sort(graph))
+    return {node: pos for pos, node in enumerate(sorted_nodes)}
+
+
 def determine_node_order(graph, node1, node2):
     """
     Determines if node1 is prior or later than node2 in the topologically sorted order.
