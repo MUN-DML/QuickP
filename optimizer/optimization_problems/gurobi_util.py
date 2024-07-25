@@ -9,6 +9,7 @@ from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.computing_graph.op_graph_util import get_proper_optimizer
 from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component
 from DNN_model_tf.small import small_tf
+from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
 def gurobi_setup(name: str):
@@ -29,13 +30,13 @@ def gurobi_setup(name: str):
     return model
 
 
-def init_computing_and_device_graph(num_device, filename: str, if_clean_extra_operator=False):
+def init_computing_and_device_graph(num_device, filename: str, if_clean_extra_operator=False, model_type=TFModelEnum.SMALL):
     # init device topo
     deviceTopo = DeviceGraph()
     deviceTopo.generata_fat_tree_topo(num_device, 30, 20, 1)
 
     if not os.path.exists(filename):
-        model = small_tf()
+        model = model_type()
         optimizer = get_proper_optimizer(model)
         comp_graph = get_computation_graph(model=model, optimizer=optimizer)
         comp_graph.generata_random_cost(num_device)

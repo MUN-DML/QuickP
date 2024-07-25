@@ -275,15 +275,13 @@ def tensor_shape_to_bits(tensor_shape, dtype: DType):
     total_elements = tf.reduce_prod(tensor_shape).numpy()
 
     # Determine the number of bits per element based on dtype
-    if dtype == tf.float32 or dtype == tf.int32:
+    if dtype in [tf.float32, tf.int32, tf.uint32]:
         bits_per_element = 32
-    elif dtype == tf.float64 or dtype == tf.int64:
+    elif dtype in [tf.float64, tf.int64, tf.uint64]:
         bits_per_element = 64
-    elif dtype == tf.float16:
+    elif dtype in [tf.float16, tf.int16, tf.uint16]:
         bits_per_element = 16
-    elif dtype == tf.int16:
-        bits_per_element = 16
-    elif dtype == tf.int8 or dtype == tf.uint8:
+    elif dtype in [tf.int8, tf.uint8]:
         bits_per_element = 8
     elif dtype == tf.bool:
         bits_per_element = 1

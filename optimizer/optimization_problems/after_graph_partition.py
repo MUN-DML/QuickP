@@ -12,12 +12,14 @@ from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
     show_optimization_solution, show_graph_partition_info
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
+from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def optimize_after_graph_partition():
+def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL):
     number_of_devices = 2
     # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json")
+    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
+                                                             model_type=model_type)
 
     # Init solver
     model = gurobi_setup("minimize_maxload")
@@ -210,4 +212,4 @@ def optimize_after_graph_partition():
 
 
 if __name__ == '__main__':
-    optimize_after_graph_partition()
+    optimize_after_graph_partition(TFModelEnum.VGG)
