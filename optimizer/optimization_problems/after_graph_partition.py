@@ -14,7 +14,7 @@ from optimizer.optimization_problems.gurobi_util import init_computing_and_devic
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
-def optimization_after_graph_partition():
+def optimize_after_graph_partition():
     number_of_devices = 2
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json")
@@ -210,4 +210,4 @@ def optimization_after_graph_partition():
 
 
 if __name__ == '__main__':
-    optimization_after_graph_partition()
+    optimize_after_graph_partition()
