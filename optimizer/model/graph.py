@@ -431,39 +431,31 @@ def create_topological_position_dict(graph):
     return {node: pos for pos, node in enumerate(sorted_nodes)}
 
 
-def determine_node_order(graph, node1, node2):
+def determine_node_order(topo_positions, node1, node2):
     """
     Determines if node1 is prior or later than node2 in the topologically sorted order.
 
     Parameters:
-    graph (nx.DiGraph): The directed graph.
+    topo_positions (dict): A dictionary mapping nodes to their topological positions.
     node1: The first node to check.
     node2: The second node to check.
 
     Returns:
     int: 1 if node1 is prior to node2,
          2 if node1 is later than node2,
-         "not found" if either of the nodes is not in the graph.
+         None if either of the nodes is not in the graph.
     """
     try:
-        # Perform topological sort
-        sorted_nodes = list(topological_sort(graph))
-
-        # Get the positions of the nodes
-        pos_node1 = sorted_nodes.index(node1)
-        pos_node2 = sorted_nodes.index(node2)
-
+        pos_node1 = topo_positions[node1]
+        pos_node2 = topo_positions[node2]
+        # print(pos_node1, pos_node2)
         # if node1 is ancestor to node2
         if pos_node1 < pos_node2:
             return 1
         # if node1 is successor of node2
         else:
             return 2
-    except NetworkXError as e:
-        # Handle case where the graph is not a DAG
-        print(f"Error: {e}")
-        return None
-    except ValueError:
+    except KeyError:
         # Handle case where node1 or node2 is not in the graph
         return None
 

@@ -6,7 +6,7 @@ import tensorflow as tf
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import determine_node_order
+from optimizer.model.graph import determine_node_order, create_topological_position_dict
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
@@ -22,6 +22,8 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL, 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
+
+    topo_dict = create_topological_position_dict(comp_graph)
 
     # Init solver
     model = gurobi_setup("minimize_maxload")
@@ -129,7 +131,7 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL, 
     for device in deviceTopo.getDeviceIDs():
         # ensures that each pair of operations is only considered once
         for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
-            node_order = determine_node_order(comp_graph, op1, op2)
+            node_order = determine_node_order(topo_dict, op1, op2)
             if node_order in (1, 2):
                 y = model.addVar(vtype=GRB.BINARY)
                 if node_order == 1:
@@ -149,7 +151,7 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL, 
             continue
         for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
             # For any two communication, determine the topo order between the source nodes of these two links
-            node_order = determine_node_order(comp_graph, source_op_ID1, source_op_ID2)
+            node_order = determine_node_order(topo_dict, source_op_ID1, source_op_ID2)
             if not node_order:
                 raise ValueError("order not existing")
             # Select the appropriate non-overlapping variable and communication ends and starts based on node order
