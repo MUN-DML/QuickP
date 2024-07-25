@@ -32,7 +32,7 @@ from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, Edg
 
 
 def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction = NodeWeightFunction.AVE_COMP_COST,
-                    edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
+                    edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.MOCK_COMMUNICATION_COST,
                     visualization=False, recursive_weight_enhancement=False,
                     weight_normalize=False) -> tuple[dict[Any, Any], list[tuple], CompGraph]:
     def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):

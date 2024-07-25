@@ -9,5 +9,5 @@ class NodeWeightFunction(Enum):
 
 
 class EdgeWeightFunction(Enum):
-    SOURCE_OUTPUT_TENSOR = 'source_output_tensor'
+    MOCK_COMMUNICATION_COST = 'source_output_tensor'
     SOURCE_OUTPUT_TENSOR_WITH_COMP = 'source_output_tensor_with_comp'

@@ -122,7 +122,7 @@ class CompGraph(DiGraph):
 
     def get_edge_weight_function(self, edge_weight_function: EdgeWeightFunction):
         functions = {
-            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getOperatorOutputInBit,
+            EdgeWeightFunction.MOCK_COMMUNICATION_COST: self.getOperatorMockCommCostInUS,
             EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getOperatorOutputWithComputingCost
         }
         return functions[edge_weight_function]
@@ -146,6 +146,10 @@ class CompGraph(DiGraph):
     def getOperatorOutputInBit(self, node_id):
         shape, dtype = self.getOperatorOutputSizeAndType(node_id)
         return tensor_shape_to_bits(shape, dtype=dtype)
+
+    def getOperatorMockCommCostInUS(self, node_id, mock_band_in_GB=20):
+        output_size = self.getOperatorOutputInBit(node_id)
+        return output_size / convert_data_size(mock_band_in_GB, 'GB', 'bit')
 
     def getOperatorOutputWithComputingCost(self, node_id):
         output_size = self.getOperatorOutputInBit(node_id)
