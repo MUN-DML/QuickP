@@ -140,10 +140,8 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
                 raise ValueError("Invalid node order")
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
-    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.combinations(comp_graph.getEdgeIDs(),
-                                                                                             2):
-        if (source_op_ID1, dest_op_ID1) not in edge_cut_list or (source_op_ID2, dest_op_ID2) not in edge_cut_list:
-            continue
+    # Only edges in the edge_cut_list will bring communication cost
+    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.combinations(edge_cut_list, 2):
         for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
             # For any two communication, determine the topo order between the source nodes of these two links
             node_order = determine_node_order(topo_dict, source_op_ID1, source_op_ID2)
@@ -164,10 +162,10 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
             # will be 4
             model.addConstr(
                 no_overlap >= (
-                        x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                            source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
-                        x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
-                            source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
+                    x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
+                        source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
+                    x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
+                        source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
                 )
             )
 
