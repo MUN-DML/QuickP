@@ -15,7 +15,8 @@ from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, Edg
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL, edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR):
+def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
+                                   edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR):
     if model_type == TFModelEnum.VGG:
         edge_weight_function = EdgeWeightFunction.MOCK_COMMUNICATION_COST
     number_of_devices = 2
@@ -170,8 +171,7 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL, 
             model.addConstr(
                 no_overlap >= (
                         x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                    source_op_ID2, device_id_src] +
-                        x[dest_op_ID2, device_id_dest] +
+                            source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
                         x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
                             source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
                 )
