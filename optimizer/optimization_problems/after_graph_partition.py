@@ -92,18 +92,21 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
         (src, dest): deviceTopo.calUnitCommCostInUS(src, dest)
         for src in deviceTopo.getDeviceIDs()
         for dest in deviceTopo.getDeviceIDs()
+        if src != dest
+    }
+    tensor_sizes = {
+        (source_op_ID, dest_op_ID): comp_graph.getOperatorOutputInBit(source_op_ID)
+        for source_op_ID, dest_op_ID in edge_cut_list
     }
     for edge_id_tuple in list(comp_graph.getEdgeIDs()):
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
         source_op_ID, dest_op_ID = edge_id_tuple
         if edge_id_tuple in edge_cut_list:
-            tensor_size = comp_graph.getOperatorOutputInBit(source_op_ID)
-
             # Aggregate communication cost
             comm_cost_expr = quicksum(
-                unit_comm_costs[device_id_src, device_id_dest] * tensor_size * x[source_op_ID, device_id_src] * x[
-                    dest_op_ID, device_id_dest]
+                unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
+                x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
                 for device_id_src in deviceTopo.getDeviceIDs()
                 for device_id_dest in deviceTopo.getDeviceIDs()
                 if device_id_src != device_id_dest
