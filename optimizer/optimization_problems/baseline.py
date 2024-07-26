@@ -12,9 +12,9 @@ from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_compu
     show_optimization_solution
 
 
-def optimize_baseline():
+def optimize_baseline(number_of_devices=2):
     # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(2, 'comp_graph_baseline.json')
+    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph_baseline.json')
     topo_dict = create_topological_position_dict(comp_graph)
     # Init solver
     model = gurobi_setup("minimize_maxload")

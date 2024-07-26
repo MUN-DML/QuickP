@@ -16,10 +16,9 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
 def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
-                                   edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR):
+                                   edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR, number_of_devices=2):
     if model_type == TFModelEnum.VGG:
         edge_weight_function = EdgeWeightFunction.MOCK_COMMUNICATION_COST
-    number_of_devices = 2
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
