@@ -128,21 +128,16 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
             model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
 
     # Add constraint to ensure each device processes only one operator at a time, a SCHEDULING problem within each device.
-    for device in deviceTopo.getDeviceIDs():
-        # ensures that each pair of operations is only considered once
-        for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
+    for subgraph in subgraph_dict.values():
+        for op1, op2 in itertools.combinations(subgraph.getOperatorIDs(), 2):
             node_order = determine_node_order(topo_dict, op1, op2)
             if node_order in (1, 2):
-                y = model.addVar(vtype=GRB.BINARY)
                 if node_order == 1:
-                    model.addGenConstrIndicator(y, True, finish[op1] <= start[op2])
+                    model.addConstr(finish[op1] <= start[op2])
                 else:
-                    model.addGenConstrIndicator(y, True, finish[op2] <= start[op1])
+                    model.addConstr(finish[op2] <= start[op1])
             else:
                 raise ValueError("Invalid node order")
-
-            # If on the same device, ensure that the operators do not overlap
-            model.addConstr(y >= x[op1, device] + x[op2, device] - 1)
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.combinations(comp_graph.getEdgeIDs(),

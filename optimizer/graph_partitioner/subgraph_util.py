@@ -56,12 +56,12 @@ def identify_edges_cut(weighted_digraph: DiGraph, partition_dict: dict[str, int]
     return cut_edges, sum_of_weights
 
 
-def construct_sub_graph(digraph: DiGraph, placement: dict[str, int]) -> dict[int, DiGraph]:
+def construct_sub_graph(digraph: CompGraph, placement: dict[str, int]) -> dict[int, CompGraph]:
     subgraph_dict = {}
     for operator, placement_index in placement.items():
         # init a Digraph obj if it does not exist in the subgraph_dict
         if placement_index not in subgraph_dict:
-            subgraph_dict[placement_index] = nx.DiGraph()
+            subgraph_dict[placement_index] = CompGraph()
         expand_subgraph(subgraph_dict[placement_index], operator, digraph)
     return subgraph_dict
 
