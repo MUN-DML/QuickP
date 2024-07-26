@@ -28,7 +28,7 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
-    # separate the com
+    # Partition the computation graph
     partition_dict, edge_cut_list, weighted_graph = metis_partition(comp_graph, num_partitions=number_of_devices,
                                                                     edge_weight_function=edge_weight_function,
                                                                     recursive_weight_enhancement=True,
@@ -61,20 +61,20 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
             comm_cost[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
                                                                name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
-    # Add constraint that if two ops are on the same subgraph, they must be placed on the same device
-    for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
-        for device in deviceTopo.getDeviceIDs():
+    # Define Constraints
+    for device in deviceTopo.getDeviceIDs():
+        # Add constraints that operators assigned cannot exceed the capacity
+        mem_sum = quicksum(x[node_id, device] * comp_graph.getOperator(node_id)["mem"]
+                           for node_id in comp_graph.getOperatorIDs())
+        model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(device),
+                        f"satisfy_memory_constraint_{device}")
+
+        # Add constraint that if two ops are on the same subgraph, they must be placed on the same device
+        for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
             if partition_dict[op1] == partition_dict[op2]:
                 model.addConstr(x[op1, device] == x[op2, device], name=f"same_device_{op1}_{op2}_{device}")
             else:
                 model.addConstr(x[op1, device] + x[op2, device] <= 1, name=f"different_device_{op1}_{op2}_{device}")
-
-    # Add constraints that operators assigned cannot exceed the capacity
-    for machine_id in deviceTopo.getDeviceIDs():
-        mem_sum = quicksum(x[node_id, machine_id] * comp_graph.getOperator(node_id)["mem"]
-                           for node_id in comp_graph.getOperatorIDs())
-        model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(machine_id),
-                        f"satisfy_memory_constraint_{machine_id}")
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
