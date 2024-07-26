@@ -69,10 +69,6 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
             else:
                 model.addConstr(x[op1, device] + x[op2, device] <= 1, name=f"different_device_{op1}_{op2}_{device}")
 
-    # Add constraints that schedule every node on exactly one machine
-    for op in comp_graph.getOperatorIDs():
-        model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{op}")
-
     # Add constraints that operators assigned cannot exceed the capacity
     for machine_id in deviceTopo.getDeviceIDs():
         mem_sum = quicksum(x[node_id, machine_id] * comp_graph.getOperator(node_id)["mem"]
@@ -80,11 +76,14 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
         model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(machine_id),
                         f"satisfy_memory_constraint_{machine_id}")
 
-    # Add constraints that each op's ending time = starting time + its computing time
     for node_id in comp_graph.getOperatorIDs():
+        # Add constraints that each op's ending time = starting time + its computing time
         comp_cost = quicksum(x[node_id, device_id] * comp_graph.getOperatorCompCostByDevice(node_id, device_id)
                              for device_id in deviceTopo.getDeviceIDs())
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
+
+        # Add constraints that schedule every node on exactly one machine
+        model.addConstr(quicksum(x[node_id, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{node_id}")
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     # device_pairs is a Set obj with unique device pair
