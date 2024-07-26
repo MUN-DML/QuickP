@@ -98,40 +98,41 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
         (source_op_ID, dest_op_ID): comp_graph.getOperatorOutputInBit(source_op_ID)
         for source_op_ID, dest_op_ID in edge_cut_list
     }
-    for edge_id_tuple in list(comp_graph.getEdgeIDs()):
+    for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
         source_op_ID, dest_op_ID = edge_id_tuple
-        if edge_id_tuple in edge_cut_list:
-            # Aggregate communication cost
-            comm_cost_expr = quicksum(
-                unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
-                x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
-                for device_id_src in deviceTopo.getDeviceIDs()
-                for device_id_dest in deviceTopo.getDeviceIDs()
-                if device_id_src != device_id_dest
-            )
-            model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr,
-                            f"comm_cost_{source_op_ID}_{dest_op_ID}")
+        # Aggregate communication cost
+        comm_cost_expr = quicksum(
+            unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
+            x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
+            for device_id_src in deviceTopo.getDeviceIDs()
+            for device_id_dest in deviceTopo.getDeviceIDs()
+            if device_id_src != device_id_dest
+        )
+        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr,
+                        f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
-            # Ensures the communication starts only after the source operation finishes.
-            model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
-                            f"bind_finish_to_comm_start_{source_op_ID}_{dest_op_ID}")
+        # Ensures the communication starts only after the source operation finishes.
+        model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
+                        f"bind_finish_to_comm_start_{source_op_ID}_{dest_op_ID}")
 
-            # Ensures the communication ends before the destination operation starts.
-            model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
-                            f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
+        # Ensures the communication ends before the destination operation starts.
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
+                        f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
 
-            # Ensures the communication duration covers the communication cost.
-            model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost[
-                source_op_ID, dest_op_ID],
-                            f"data_dependency_{source_op_ID}_{dest_op_ID}")
-        else:
-            model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+        # Ensures the communication duration covers the communication cost.
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost[
+            source_op_ID, dest_op_ID],
+                        f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
-    # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device processes
-    # only one operator at a time. It is an SCHEDULING problem within each device.
+    # It is an SCHEDULING problem within each device.
     for subgraph in subgraph_dict.values():
+        # for an edge where both node are placed on the same device, label the data dependency
+        for source_op, dest_op in subgraph.getEdgeIDs():
+            model.addConstr(finish[source_op] <= start[dest_op])
+        # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device
+        # processes only one operator at a time.
         for op1, op2 in itertools.combinations(subgraph.getOperatorIDs(), 2):
             node_order = determine_node_order(topo_dict, op1, op2)
             if node_order in (1, 2):
