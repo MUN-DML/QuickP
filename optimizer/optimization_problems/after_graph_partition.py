@@ -128,11 +128,8 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
 
     # It is an SCHEDULING problem within each device.
     for subgraph in subgraph_dict.values():
-        # for an edge where both node are placed on the same device, label the data dependency
-        for source_op, dest_op in subgraph.getEdgeIDs():
-            model.addConstr(finish[source_op] <= start[dest_op])
         # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device
-        # processes only one operator at a time.
+        # processes only one operator at a time. Also, it indicates the data dependency
         for op1, op2 in itertools.combinations(subgraph.getOperatorIDs(), 2):
             node_order = determine_node_order(topo_dict, op1, op2)
             if node_order in (1, 2):
