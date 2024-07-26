@@ -64,11 +64,10 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
 
     # Add constraint that if two ops are on the same subgraph, they must be placed on the same device
     for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
-        if partition_dict[op1] == partition_dict[op2]:
-            for device in deviceTopo.getDeviceIDs():
+        for device in deviceTopo.getDeviceIDs():
+            if partition_dict[op1] == partition_dict[op2]:
                 model.addConstr(x[op1, device] == x[op2, device], name=f"same_device_{op1}_{op2}_{device}")
-        else:
-            for device in deviceTopo.getDeviceIDs():
+            else:
                 model.addConstr(x[op1, device] + x[op2, device] <= 1, name=f"different_device_{op1}_{op2}_{device}")
 
     # Add constraints that schedule every node on exactly one machine
