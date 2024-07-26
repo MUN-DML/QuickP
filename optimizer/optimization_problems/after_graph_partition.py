@@ -127,7 +127,8 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
         else:
             model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
 
-    # Add constraint to ensure each device processes only one operator at a time, a SCHEDULING problem within each device.
+    # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device processes
+    # only one operator at a time. It is an SCHEDULING problem within each device.
     for subgraph in subgraph_dict.values():
         for op1, op2 in itertools.combinations(subgraph.getOperatorIDs(), 2):
             node_order = determine_node_order(topo_dict, op1, op2)
