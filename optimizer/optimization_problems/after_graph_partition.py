@@ -129,11 +129,10 @@ def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
         # processes only one operator at a time. Also, it indicates the data dependency
         for op1, op2 in itertools.combinations(subgraph.getOperatorIDs(), 2):
             node_order = determine_node_order(topo_dict, op1, op2)
-            if node_order in (1, 2):
-                if node_order == 1:
-                    model.addConstr(finish[op1] <= start[op2])
-                else:
-                    model.addConstr(finish[op2] <= start[op1])
+            if node_order == 1:
+                model.addConstr(finish[op1] <= start[op2])
+            elif node_order == 2:
+                model.addConstr(finish[op2] <= start[op1])
             else:
                 raise ValueError("Invalid node order")
 

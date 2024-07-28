@@ -66,23 +66,24 @@ def optimize_baseline(number_of_devices=2):
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
+    device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
+                    src != dest}
     # unit_comm_costs[device_id_src, device_id_dest] means the com cost per bit from device with source device to dest device
-    unit_comm_costs = {}
-    for device_id_src in deviceTopo.getDeviceIDs():
-        for device_id_dest in deviceTopo.getDeviceIDs():
-            unit_comm_costs[device_id_src, device_id_dest] = deviceTopo.calUnitCommCostInUS(device_id_src,
-                                                                                            device_id_dest)
+    unit_comm_costs = {
+        (src_device, dest_device): deviceTopo.calUnitCommCostInUS(src_device, dest_device)
+        for src_device, dest_device in device_pairs
+    }
+    tensor_sizes = {
+        (source_op_ID, dest_op_ID): comp_graph.getOperatorOutputInBit(source_op_ID)
+        for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs()
+    }
     for edge_id_tuple in list(comp_graph.getEdgeIDs()):
         source_op_ID, dest_op_ID = edge_id_tuple
-        tensor_size = comp_graph.getOperatorOutputInBit(source_op_ID)
-
         # Aggregate communication cost
         comm_cost_expr = quicksum(
-            unit_comm_costs[device_id_src, device_id_dest] * tensor_size * x[source_op_ID, device_id_src] * x[
-                dest_op_ID, device_id_dest]
-            for device_id_src in deviceTopo.getDeviceIDs()
-            for device_id_dest in deviceTopo.getDeviceIDs()
-            if device_id_src != device_id_dest
+            unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
+            x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
+            for device_id_src, device_id_dest in device_pairs
         )
 
         model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr, f"comm_cost_{source_op_ID}_{dest_op_ID}")
@@ -141,7 +142,7 @@ def optimize_baseline(number_of_devices=2):
             model.addConstr(
                 no_overlap >= (
                         x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                    source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
+                            source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
                         x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
                             source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
                 )
