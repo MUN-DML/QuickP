@@ -22,8 +22,12 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                    adjust_matrix=None):
     if adjust_matrix is None:
         adjust_matrix = {"node_enable": True, "edge_enable": False, 'adjustment_ratio': 1.0}
+
+    if_weight_norm = False
     if model_type == TFModelEnum.VGG:
         edge_weight_function = EdgeWeightFunction.MOCK_COMMUNICATION_COST
+        if_weight_norm = True
+
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
@@ -37,7 +41,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     partition_dict, edge_cut_list, weighted_graph = metis_partition(comp_graph, num_partitions=number_of_devices,
                                                                     edge_weight_function=edge_weight_function,
                                                                     adjust_matrix=adjust_matrix,
-                                                                    weight_normalize=True)
+                                                                    weight_normalize=if_weight_norm)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]

@@ -25,7 +25,7 @@ def run_optimization_command(problem_type: OptimizationProblem,
         raise ValueError("Invalid optimization problem type")
 
 
-def populate_training_time_list(increment=0.2):
+def populate_training_time_list(increment=0.05):
     ratio_list = [round(x, 10) for x in [0 + i * increment for i in range(int(1 / increment) + 1)]]
 
     data_matrix = {
