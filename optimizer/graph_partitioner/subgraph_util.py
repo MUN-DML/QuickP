@@ -66,7 +66,7 @@ def construct_sub_graph(digraph: CompGraph, placement: dict[str, int]) -> dict[i
     return subgraph_dict
 
 
-def recalculate_node_weights(dag: CompGraph, adjust_matrix=None):
+def recalculate_node_weights(dag: CompGraph, adjust_matrix: dict=None):
     # By using a weighted sum of predecessor nodes' weights, the function accounts for the interconnected nature of
     # nodes within subgraphs. This ensures that the influence of a node on its successors is proportional to its weight
     # and the weight of the connecting edge. This dependency chain leads to a smoother distribution of weights since
@@ -77,7 +77,7 @@ def recalculate_node_weights(dag: CompGraph, adjust_matrix=None):
     if not adjust_matrix:
         return
 
-    if not adjust_matrix["adjustment_ratio"]:
+    if "adjustment_ratio" not in adjust_matrix.keys():
         raise ValueError("adjustment_ratio must be specified")
 
     if adjust_matrix["adjustment_ratio"] < 0:

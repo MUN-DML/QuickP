@@ -25,7 +25,7 @@ def run_optimization_command(problem_type: OptimizationProblem,
         raise ValueError("Invalid optimization problem type")
 
 
-def populate_parameter_list(increment=0.5):
+def populate_training_time_list(increment=0.5):
     ratio_list = [round(x, 10) for x in [0 + i * increment for i in range(int(1 / increment) + 1)]]
 
     data_matrix = {
@@ -37,8 +37,7 @@ def populate_parameter_list(increment=0.5):
     result_matrix = {}
 
     for adjustment_type, setting_dict in data_matrix.items():
-        if not result_matrix[adjustment_type]:
-            result_matrix[adjustment_type] = []
+        result_matrix.setdefault(adjustment_type, [])
         for ratio in ratio_list:
             entire_setting = {**setting_dict, "adjustment_ratio": ratio}
             expected_training = run_optimization_command(problem_type=OptimizationProblem.GRAPH_PARTITION,
@@ -78,5 +77,5 @@ def generate_graph(data_dict):
 
 
 if __name__ == '__main__':
-    data_dict = populate_parameter_list()
+    data_dict = populate_training_time_list()
     generate_graph(data_dict)
