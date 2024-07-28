@@ -15,8 +15,8 @@ from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, Edg
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def optimize_after_graph_partition(model_type: TFModelEnum = TFModelEnum.SMALL,
-                                   edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR, number_of_devices=2):
+def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
+                                   edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR):
     if model_type == TFModelEnum.VGG:
         edge_weight_function = EdgeWeightFunction.MOCK_COMMUNICATION_COST
     # init fake data

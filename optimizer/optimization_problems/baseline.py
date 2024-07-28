@@ -10,11 +10,13 @@ sys.path.append(project_root)
 from optimizer.model.graph import determine_node_order, create_topological_position_dict
 from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
     show_optimization_solution
+from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def optimize_baseline(number_of_devices=2):
+def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL):
     # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph_baseline.json')
+    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph_baseline.json',
+                                                             model_type=model_type)
     topo_dict = create_topological_position_dict(comp_graph)
     # Init solver
     model = gurobi_setup("minimize_maxload")
