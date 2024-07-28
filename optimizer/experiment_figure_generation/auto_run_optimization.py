@@ -9,46 +9,45 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 from optimizer.graph_partitioner.weight_functions import EdgeWeightFunction
 
 
-def populate_parameter_list(increment=0.05):
-    ratio_list = [round(x, 10) for x in [0 + i * increment for i in range(int(1 / increment) + 1)]]
-    data_dict = {
-        "models": ratio_list,
-        "no_adjustment": [],
-        "edge_adjustment": [],
-        "node_adjustment": [],
-        "both_adjustment": []
-    }
-    for ratio in ratio_list:
-        pass
-
-    return data_dict
-
-
 def run_optimization_command(problem_type: OptimizationProblem,
+                             adjustment_type: dict,
                              number_of_devices=2,
                              model_type: TFModelEnum = TFModelEnum.SMALL,
                              edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.SOURCE_OUTPUT_TENSOR):
     if problem_type == OptimizationProblem.BASELINE:
         # Call optimize_baseline
-        problem_type(number_of_devices=number_of_devices, model_type=model_type)
+        return problem_type(number_of_devices=number_of_devices, model_type=model_type)
     elif problem_type == OptimizationProblem.GRAPH_PARTITION:
         # Call optimize_after_graph_partition
-        problem_type(number_of_devices=number_of_devices, model_type=model_type,
-                     edge_weight_function=edge_weight_function)
+        return problem_type(number_of_devices=number_of_devices, model_type=model_type,
+                     edge_weight_function=edge_weight_function, adjust_matrix=adjustment_type)
     else:
         raise ValueError("Invalid optimization problem type")
+
+
+def populate_parameter_list(increment=0.05):
+    ratio_list = [round(x, 10) for x in [0 + i * increment for i in range(int(1 / increment) + 1)]]
+
+    data_matrix = {
+        "no_adjustment": {"matrix": {"node_enable": False, "edge_enable": False}, 'performance': []},
+        "edge_adjustment": {"matrix": {"node_enable": False, "edge_enable": True}, 'performance': []},
+        "node_adjustment": {"matrix": {"node_enable": True, "edge_enable": False}, 'performance': []},
+        "both_adjustment": {"matrix": {"node_enable": True, "edge_enable": True}, 'performance': []}
+    }
+    for adjustment_type, info in data_matrix.items():
+        adjustment_matrix = info["matrix"]
+        for ratio in ratio_list:
+            expected_training = run_optimization_command(problem_type=OptimizationProblem.GRAPH_PARTITION,
+                                                         adjustment_type=adjustment_matrix)
+            info['performance'].append(expected_training)
+
+    data_matrix["ratios"] = ratio_list
+    return data_matrix
 
 
 def generate_graph(data_dict):
     import matplotlib.pyplot as plt
     import numpy as np
-
-    # Sample data
-    fix_rate_ratio = [0.1, 0.2, 0.3]
-    training_times_no_adjustment = [10, 20, 30]
-    training_times_edge_adjustment = [15, 25, 35]
-    training_times_node_adjustment = [12, 22, 32]
-    training_times_both_adjustment = [14, 24, 34]
 
     x = np.arange(len(data_dict["ratios"]))  # the label locations
     width = 0.2  # the width of the bars
@@ -62,7 +61,7 @@ def generate_graph(data_dict):
     bars4 = ax.bar(x + 1.5 * width, data_dict["both_adjustment"], width, label='Both Adjustments')
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_xlabel('Models')
+    ax.set_xlabel('ratios')
     ax.set_ylabel('Training Time (s)')
     ax.set_title('Training Time Comparison with Different Adjustments')
     ax.set_xticks(x)
@@ -74,4 +73,6 @@ def generate_graph(data_dict):
     plt.show()
 
 
-populate_parameter_list()
+if __name__ == '__main__':
+    data_dict = populate_parameter_list()
+    generate_graph(data_dict)
