@@ -66,18 +66,22 @@ def construct_sub_graph(digraph: CompGraph, placement: dict[str, int]) -> dict[i
     return subgraph_dict
 
 
-def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 1.0, adjust_matrix=None):
+def recalculate_node_weights(dag: CompGraph, adjust_matrix=None):
     # By using a weighted sum of predecessor nodes' weights, the function accounts for the interconnected nature of
     # nodes within subgraphs. This ensures that the influence of a node on its successors is proportional to its weight
     # and the weight of the connecting edge. This dependency chain leads to a smoother distribution of weights since
     # each node’s weight is a blend of its own cost and the cumulative influence of its predecessors.
-    if fix_ratio < 0:
-        raise ValueError("fix_ratio must be between 0 and 1")
 
     # Process nodes in topological order to ensure dependencies are respected
     topo_sorted_nodes = list(nx.topological_sort(dag))
     if not adjust_matrix:
         return
+
+    if not adjust_matrix["adjustment_ratio"]:
+        raise ValueError("adjustment_ratio must be specified")
+
+    if adjust_matrix["adjustment_ratio"] < 0:
+        raise ValueError("fix_ratio must be larger than 0")
 
     if adjust_matrix["node_enable"]:
         for node in topo_sorted_nodes:
@@ -86,7 +90,7 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 1.0, adjust_matr
                 source_node_weight = dag.nodes[pred]['node_weight']
                 if source_node_weight == 0:
                     continue
-                dag.nodes[node]['node_weight'] += int(source_node_weight * fix_ratio)
+                dag.nodes[node]['node_weight'] += int(source_node_weight * adjust_matrix["adjustment_ratio"])
 
     if adjust_matrix["edge_enable"]:
         for node in topo_sorted_nodes:
@@ -94,7 +98,7 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 1.0, adjust_matr
                 # Calculate the new weight for the edge (node, succ)
                 for pred in dag.predecessors(node):
                     incoming_edge_weight = dag[pred][node]["edge_weight"]
-                    dag[node][successor]['edge_weight'] += int(incoming_edge_weight * fix_ratio)
+                    dag[node][successor]['edge_weight'] += int(incoming_edge_weight * adjust_matrix["adjustment_ratio"])
 
 
 def weight_normalization(dag: CompGraph, to_range: tuple = (1, 1000)):

@@ -21,7 +21,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                    edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
                                    adjust_matrix=None):
     if adjust_matrix is None:
-        adjust_matrix = {"node_enable": True, "edge_enable": False}
+        adjust_matrix = {"node_enable": True, "edge_enable": False, 'adjustment_ratio': 1.0}
     if model_type == TFModelEnum.VGG:
         edge_weight_function = EdgeWeightFunction.MOCK_COMMUNICATION_COST
     # init fake data

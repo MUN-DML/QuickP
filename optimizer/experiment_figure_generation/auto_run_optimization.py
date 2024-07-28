@@ -25,21 +25,25 @@ def run_optimization_command(problem_type: OptimizationProblem,
         raise ValueError("Invalid optimization problem type")
 
 
-def populate_parameter_list(increment=0.05):
+def populate_parameter_list(increment=0.5):
     ratio_list = [round(x, 10) for x in [0 + i * increment for i in range(int(1 / increment) + 1)]]
 
     data_matrix = {
-        "no_adjustment": {"matrix": {"node_enable": False, "edge_enable": False}, 'performance': []},
-        "edge_adjustment": {"matrix": {"node_enable": False, "edge_enable": True}, 'performance': []},
-        "node_adjustment": {"matrix": {"node_enable": True, "edge_enable": False}, 'performance': []},
-        "both_adjustment": {"matrix": {"node_enable": True, "edge_enable": True}, 'performance': []}
+        "no_adjustment": {"node_enable": False, "edge_enable": False},
+        "edge_adjustment": {"node_enable": False, "edge_enable": True},
+        "node_adjustment": {"node_enable": True, "edge_enable": False},
+        "both_adjustment": {"node_enable": True, "edge_enable": True}
     }
-    for adjustment_type, info in data_matrix.items():
-        adjustment_matrix = info["matrix"]
+    result_matrix = {}
+
+    for adjustment_type, setting_dict in data_matrix.items():
+        if not result_matrix[adjustment_type]:
+            result_matrix[adjustment_type] = []
         for ratio in ratio_list:
+            entire_setting = {**setting_dict, "adjustment_ratio": ratio}
             expected_training = run_optimization_command(problem_type=OptimizationProblem.GRAPH_PARTITION,
-                                                         adjustment_type=adjustment_matrix)
-            info['performance'].append(expected_training)
+                                                         adjustment_type=entire_setting)
+            result_matrix[adjustment_type].append(expected_training)
 
     data_matrix["ratios"] = ratio_list
     return data_matrix
