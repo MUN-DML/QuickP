@@ -18,7 +18,10 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
-                                   edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR):
+                                   edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
+                                   adjust_matrix=None):
+    if adjust_matrix is None:
+        adjust_matrix = {"node_enable": True, "edge_enable": False}
     if model_type == TFModelEnum.VGG:
         edge_weight_function = EdgeWeightFunction.MOCK_COMMUNICATION_COST
     # init fake data
@@ -33,7 +36,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # Partition the computation graph
     partition_dict, edge_cut_list, weighted_graph = metis_partition(comp_graph, num_partitions=number_of_devices,
                                                                     edge_weight_function=edge_weight_function,
-                                                                    recursive_weight_enhancement=True,
+                                                                    adjust_matrix=adjust_matrix,
                                                                     weight_normalize=True)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
     # two_dime_node_list is to test whether the

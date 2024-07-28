@@ -66,7 +66,7 @@ def construct_sub_graph(digraph: CompGraph, placement: dict[str, int]) -> dict[i
     return subgraph_dict
 
 
-def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 1.0, node_adjust=True, edge_adjust=False):
+def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 1.0, adjust_matrix=None):
     # By using a weighted sum of predecessor nodes' weights, the function accounts for the interconnected nature of
     # nodes within subgraphs. This ensures that the influence of a node on its successors is proportional to its weight
     # and the weight of the connecting edge. This dependency chain leads to a smoother distribution of weights since
@@ -76,8 +76,10 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 1.0, node_adjust
 
     # Process nodes in topological order to ensure dependencies are respected
     topo_sorted_nodes = list(nx.topological_sort(dag))
+    if not adjust_matrix:
+        return
 
-    if node_adjust:
+    if adjust_matrix["node_enable"]:
         for node in topo_sorted_nodes:
             # Calculate the weighted sum of predecessors' weights
             for pred in dag.predecessors(node):
@@ -86,7 +88,7 @@ def recalculate_node_weights(dag: CompGraph, fix_ratio: float = 1.0, node_adjust
                     continue
                 dag.nodes[node]['node_weight'] += int(source_node_weight * fix_ratio)
 
-    if edge_adjust:
+    if adjust_matrix["edge_enable"]:
         for node in topo_sorted_nodes:
             for successor in dag.successors(node):
                 # Calculate the new weight for the edge (node, succ)
