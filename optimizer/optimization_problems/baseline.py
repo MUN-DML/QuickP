@@ -4,6 +4,8 @@ from gurobipy import *
 import torch
 import tensorflow as tf
 
+os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
