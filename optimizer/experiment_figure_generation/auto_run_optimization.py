@@ -25,7 +25,7 @@ def run_optimization_command(problem_type: OptimizationProblem,
         raise ValueError("Invalid optimization problem type")
 
 
-def populate_training_time_list(increment=0.5):
+def populate_training_time_list(increment=0.2):
     ratio_list = [round(x, 10) for x in [0 + i * increment for i in range(int(1 / increment) + 1)]]
 
     data_matrix = {
@@ -44,31 +44,32 @@ def populate_training_time_list(increment=0.5):
                                                          adjustment_type=entire_setting)
             result_matrix[adjustment_type].append(expected_training)
 
-    data_matrix["ratios"] = ratio_list
-    return data_matrix
+    result_matrix["ratios"] = ratio_list
+    return result_matrix
 
 
-def generate_graph(data_dict):
+def generate_graph(result_dict):
+    print(result_dict)
     import matplotlib.pyplot as plt
     import numpy as np
 
-    x = np.arange(len(data_dict["ratios"]))  # the label locations
+    x = np.arange(len(result_dict["ratios"]))  # the label locations
     width = 0.2  # the width of the bars
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Plotting the bars
-    bars1 = ax.bar(x - 1.5 * width, data_dict["no_adjustment"], width, label='No Adjustment')
-    bars2 = ax.bar(x - 0.5 * width, data_dict["edge_adjustment"], width, label='Edge Weight Adjustment')
-    bars3 = ax.bar(x + 0.5 * width, data_dict["node_adjustment"], width, label='Node Weight Adjustment')
-    bars4 = ax.bar(x + 1.5 * width, data_dict["both_adjustment"], width, label='Both Adjustments')
+    bars1 = ax.bar(x - 1.5 * width, result_dict["no_adjustment"], width, label='No Adjustment')
+    bars2 = ax.bar(x - 0.5 * width, result_dict["edge_adjustment"], width, label='Edge Weight Adjustment')
+    bars3 = ax.bar(x + 0.5 * width, result_dict["node_adjustment"], width, label='Node Weight Adjustment')
+    bars4 = ax.bar(x + 1.5 * width, result_dict["both_adjustment"], width, label='Both Adjustments')
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_xlabel('ratios')
     ax.set_ylabel('Training Time (s)')
     ax.set_title('Training Time Comparison with Different Adjustments')
     ax.set_xticks(x)
-    ax.set_xticklabels(data_dict["ratios"])
+    ax.set_xticklabels(result_dict["ratios"])
     ax.legend()
 
     fig.tight_layout()
