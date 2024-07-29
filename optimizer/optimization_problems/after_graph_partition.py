@@ -169,10 +169,10 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             # will be 4
             model.addConstr(
                 no_overlap >= (
-                        x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                            source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
-                        x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
-                            source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
+                    x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
+                        source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
+                    x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
+                        source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
                 )
             )
 
