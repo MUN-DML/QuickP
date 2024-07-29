@@ -7,7 +7,8 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.computing_graph.op_graph_util import get_proper_optimizer
-from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component
+from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component, \
+    create_topological_order_list
 from DNN_model_tf.small import small_tf
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
@@ -30,7 +31,8 @@ def gurobi_setup(name: str):
     return model
 
 
-def init_computing_and_device_graph(num_device, filename: str, if_clean_extra_operator=False, model_type=TFModelEnum.SMALL):
+def init_computing_and_device_graph(num_device, filename: str, if_clean_extra_operator=False,
+                                    model_type=TFModelEnum.SMALL):
     # init device topo
     deviceTopo = DeviceGraph()
     deviceTopo.generata_fat_tree_topo(num_device, 30, 20, 1)
@@ -177,3 +179,16 @@ def show_graph_partition_info(weighted_graph: CompGraph, partition_dict, edge_cu
     print("how many operators for each subgraph", partition_counts, "the sum of weights for each subgraph",
           partition_weights)
     print("edges cut during partition", edge_cut_list)
+
+
+def get_subgraph_topo_dict(digraph: CompGraph, partition_dict) -> dict[int, list]:
+    subgraph_topo_dict = {}
+    original_topo_list = create_topological_order_list(digraph)
+
+    for node in original_topo_list:
+        subgraph_id = partition_dict[node]
+        if subgraph_id not in subgraph_topo_dict.keys():
+            subgraph_topo_dict[subgraph_id] = []
+        subgraph_topo_dict[subgraph_id].append(node)
+
+    return subgraph_topo_dict

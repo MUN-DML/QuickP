@@ -12,7 +12,7 @@ from optimizer.model.graph import determine_node_order, create_topological_posit
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info
+    show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
@@ -43,6 +43,9 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                     adjust_matrix=adjust_matrix,
                                                                     weight_normalize=if_weight_norm)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
+    # subgraph_topo_dict = {subgraph_id: create_topological_position_dict(subgraph) for subgraph_id, subgraph in subgraph_dict.items()}
+    subgraph_topo_list = get_subgraph_topo_dict(comp_graph, partition_dict)
+
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
 
@@ -134,17 +137,11 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    for subgraph in subgraph_dict.values():
+    for topo_list in subgraph_topo_list.values():
         # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device
         # processes only one operator at a time. Also, it indicates the data dependency
-        for op1, op2 in itertools.combinations(subgraph.getOperatorIDs(), 2):
-            node_order = determine_node_order(topo_dict, op1, op2)
-            if node_order == 1:
-                model.addConstr(finish[op1] <= start[op2])
-            elif node_order == 2:
-                model.addConstr(finish[op2] <= start[op1])
-            else:
-                raise ValueError("Invalid node order")
+        for a, b in zip(topo_list, topo_list[1:]):
+            model.addConstr(finish[a] <= start[b])
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
