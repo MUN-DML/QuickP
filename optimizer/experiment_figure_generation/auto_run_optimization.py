@@ -20,7 +20,7 @@ def run_optimization_command(problem_type: OptimizationProblem,
     elif problem_type == OptimizationProblem.GRAPH_PARTITION:
         # Call optimize_after_graph_partition
         return problem_type(number_of_devices=number_of_devices, model_type=model_type,
-                     edge_weight_function=edge_weight_function, adjust_matrix=adjustment_type)
+                            edge_weight_function=edge_weight_function, adjust_matrix=adjustment_type)
     else:
         raise ValueError("Invalid optimization problem type")
 
@@ -52,24 +52,22 @@ def generate_graph(result_dict):
     print(result_dict)
     import matplotlib.pyplot as plt
     import numpy as np
-
-    x = np.arange(len(result_dict["ratios"]))  # the label locations
+    x_labels = result_dict.pop("ratios")
+    x = np.arange(len(x_labels))  # the label locations
     width = 0.2  # the width of the bars
 
     fig, ax = plt.subplots(figsize=(10, 6))
-
+    offsets = np.linspace(-1.5, 1.5, len(result_dict)) * width
     # Plotting the bars
-    bars1 = ax.bar(x - 1.5 * width, result_dict["no_adjustment"], width, label='No Adjustment')
-    bars2 = ax.bar(x - 0.5 * width, result_dict["edge_adjustment"], width, label='Edge Weight Adjustment')
-    bars3 = ax.bar(x + 0.5 * width, result_dict["node_adjustment"], width, label='Node Weight Adjustment')
-    bars4 = ax.bar(x + 1.5 * width, result_dict["both_adjustment"], width, label='Both Adjustments')
+    for i, (adjustment_type, performance) in enumerate(result_dict.items()):
+        ax.bar(x + offsets[i], performance, width, label=adjustment_type)
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_xlabel('ratios')
     ax.set_ylabel('Training Time (s)')
     ax.set_title('Training Time Comparison with Different Adjustments')
     ax.set_xticks(x)
-    ax.set_xticklabels(result_dict["ratios"])
+    ax.set_xticklabels(x_labels)
     ax.legend()
 
     fig.tight_layout()
