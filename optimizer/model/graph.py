@@ -431,6 +431,10 @@ def create_topological_position_dict(graph):
     return {node: pos for pos, node in enumerate(sorted_nodes)}
 
 
+def create_topological_order_list(graph):
+    return list(topological_sort(graph))
+
+
 def determine_node_order(topo_positions, node1, node2):
     """
     Determines if node1 is prior or later than node2 in the topologically sorted order.
