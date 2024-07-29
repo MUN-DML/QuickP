@@ -79,11 +79,10 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"satisfy_memory_constraint_{device}")
 
         # Add constraint that if two ops are on the same subgraph, they must be placed on the same device
-        for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
-            if partition_dict[op1] == partition_dict[op2]:
-                model.addConstr(x[op1, device] == x[op2, device], name=f"same_device_{op1}_{op2}_{device}")
-            else:
-                model.addConstr(x[op1, device] + x[op2, device] <= 1, name=f"different_device_{op1}_{op2}_{device}")
+        for subgraph in subgraph_dict.values():
+            # the sum on any device will be either 0 (not on this device) or the len of the sub_graph (on this device)
+            model.addConstr(sum(x[op, device] for op in subgraph.getOperatorIDs())
+                            == len(subgraph.nodes) * x[subgraph.getOperatorIDs()[0], device])
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
@@ -92,11 +91,13 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
         # Add constraints that schedule every node on exactly one machine
-        model.addConstr(quicksum(x[node_id, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{node_id}")
+        model.addConstr(quicksum(x[node_id, device] for device in deviceTopo.getDeviceIDs()) == 1,
+                        name=f"one_device_{node_id}")
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     # device_pairs is a Set obj with unique device pair
-    device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if src != dest}
+    device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
+                    src != dest}
     # unit_comm_costs[device_id_src, device_id_dest] means the com cost per bit from device with source device to dest device
     unit_comm_costs = {
         (src_device, dest_device): deviceTopo.calUnitCommCostInUS(src_device, dest_device)
@@ -168,10 +169,10 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             # will be 4
             model.addConstr(
                 no_overlap >= (
-                    x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                        source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
-                    x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
-                        source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
+                        x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
+                    source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
+                        x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
+                            source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
                 )
             )
 
