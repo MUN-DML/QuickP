@@ -102,13 +102,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(device),
                         f"satisfy_memory_constraint_{device}")
 
-        # Add constraint that one subgraph can only be mapped to one device
-
-        # Add constraint that if two ops are on the same subgraph, they must be placed on the same device
-        for subgraph in subgraph_dict.values():
-            # the sum on any device will be either 0 (not on this device) or the len of the sub_graph (on this device)
-            model.addConstr(quicksum(x[op, device] for op in subgraph.getOperatorIDs())
-                            == len(subgraph.nodes) * x[subgraph.getOperatorIDs()[0], device])
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
