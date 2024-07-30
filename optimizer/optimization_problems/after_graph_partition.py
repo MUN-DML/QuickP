@@ -78,13 +78,15 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             comm_cost[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
                                                                name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
-    # Define Constraints
+    '''
+    Define Constraints
+    '''
 
-    # device-subgraph 1 to 1 mapping
-    # Ensure each subgraph is assigned to exactly one device
+    # device-subgraph one-to-one mapping
+    # Step 1: Ensure each subgraph is assigned to exactly one device
     for subgraph_id in subgraph_dict.keys():
         model.addConstr(quicksum(y[subgraph_id, device] for device in deviceTopo.getDeviceIDs()) == 1)
-    # Ensure each device is assigned to exactly one subgraph
+    # Step 2: Ensure each device is assigned to exactly one subgraph
     for device in deviceTopo.getDeviceIDs():
         model.addConstr(quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == 1)
 
@@ -95,13 +97,12 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                 # Ensure that if the subgraph is assigned to the device, the operator is also assigned to the device
                 model.addConstr(x[op, device] == y[subgraph_id, device])
 
+    # Add constraints that operators assigned cannot exceed the capacity
     for device in deviceTopo.getDeviceIDs():
-        # Add constraints that operators assigned cannot exceed the capacity
         mem_sum = quicksum(x[node_id, device] * comp_graph.getOperator(node_id)["mem"]
                            for node_id in comp_graph.getOperatorIDs())
         model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(device),
                         f"satisfy_memory_constraint_{device}")
-
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
