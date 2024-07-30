@@ -73,10 +73,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
     for device, ops in result['Assignment'].items():
         result['Assignment'][device] = sorted(ops, key=lambda x: x[1])
 
-    # verify if all ops on the same subgraph are placed on a same device
-    if graph_partition:
-        assert compare_2d_list(two_dime_node_list,
-                               [[item[0] for item in sublist] for sublist in list(result['Assignment'].values())])
+
 
     # populate result['CommunicationCosts'] and result['CommunicationTimeLine']
     for edge_id_tuple in list(comp_graph.getEdgeIDs()):

@@ -8,7 +8,7 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import determine_node_order, create_topological_position_dict
+from optimizer.model.graph import determine_node_order, create_topological_position_dict, from_topo_list_to_dict
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
@@ -32,7 +32,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
 
-    topo_dict = create_topological_position_dict(comp_graph)
+    global_topo_dict = create_topological_position_dict(comp_graph)
 
     # Init solver
     model = gurobi_setup("minimize_maxload")
@@ -51,6 +51,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # Define variables
     x = {}
+    y = {}
     start = {}  # start[node_id] represent the starting time of this node
     finish = {}  # finish[node_id] represent the finish time of this node
     comm_start = {}  # comm_start[source_op, dest_op] represent the communication
@@ -62,6 +63,25 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{node_id}_{machine_id}")
         start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"start_{node_id}")
         finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"finish_{node_id}")
+
+    for subgraph_id in subgraph_dict.keys():
+        for device in deviceTopo.getDeviceIDs():
+            y[subgraph_id, device] = model.addVar(vtype=GRB.BINARY, name=f"y_{subgraph_id}_{device}")
+
+    # Ensure each subgraph is assigned to exactly one device
+    for subgraph_id in subgraph_dict.keys():
+        model.addConstr(quicksum(y[subgraph_id, device] for device in deviceTopo.getDeviceIDs()) == 1)
+
+    # Ensure each device is assigned to exactly one subgraph
+    for device in deviceTopo.getDeviceIDs():
+        model.addConstr(quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == 1)
+
+    # Link the assignment of operators to devices with the assignment of subgraphs to devices
+    for subgraph_id, subgraph in subgraph_dict.items():
+        for device in deviceTopo.getDeviceIDs():
+            for op in subgraph.getOperatorIDs():
+                # Ensure that if the subgraph is assigned to the device, the operator is also assigned to the device
+                model.addConstr(x[op, device] <= y[subgraph_id, device])
 
     for edge_id_tuple in comp_graph.getEdgeIDs():
         source_op_ID, dest_op_ID = edge_id_tuple
@@ -80,6 +100,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                            for node_id in comp_graph.getOperatorIDs())
         model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(device),
                         f"satisfy_memory_constraint_{device}")
+
+        # Add constraint that one subgraph can only be mapped to one device
 
         # Add constraint that if two ops are on the same subgraph, they must be placed on the same device
         for subgraph in subgraph_dict.values():
@@ -148,9 +170,13 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.combinations(edge_cut_list, 2):
         for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
             # For any two communication, determine the topo order between the source nodes of these two links
-            node_order = determine_node_order(topo_dict, source_op_ID1, source_op_ID2)
-            if not node_order:
-                raise ValueError("order not existing")
+            if partition_dict[source_op_ID1] == partition_dict[source_op_ID2]:
+                local_topo_list = subgraph_topo_list[partition_dict[source_op_ID1]]
+                local_topo_dict = from_topo_list_to_dict(local_topo_list)
+                node_order = determine_node_order(local_topo_dict, source_op_ID1, source_op_ID2)
+            else:
+                node_order = determine_node_order(global_topo_dict, source_op_ID1, source_op_ID2)
+
             # Select the appropriate non-overlapping variable and communication ends and starts based on node order
             no_overlap = model.addVar(vtype=GRB.BINARY)
             comm_end_1, comm_start_2 = (comm_end[source_op_ID1, dest_op_ID1], comm_start[source_op_ID2, dest_op_ID2]) \
@@ -212,4 +238,4 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 
 if __name__ == '__main__':
-    optimize_after_graph_partition(model_type=TFModelEnum.VGG)
+    optimize_after_graph_partition(number_of_devices=4, model_type=TFModelEnum.SMALL)

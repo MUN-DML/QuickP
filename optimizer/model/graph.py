@@ -427,12 +427,16 @@ def create_topological_position_dict(graph):
     Returns:
     dict: A dictionary where keys are nodes and values are their positions in the topologically sorted order.
     """
-    sorted_nodes = list(topological_sort(graph))
-    return {node: pos for pos, node in enumerate(sorted_nodes)}
+    sorted_nodes = create_topological_order_list(graph)
+    return from_topo_list_to_dict(sorted_nodes)
 
 
 def create_topological_order_list(graph):
     return list(topological_sort(graph))
+
+
+def from_topo_list_to_dict(sorted_nodes):
+    return {node: pos for pos, node in enumerate(sorted_nodes)}
 
 
 def determine_node_order(topo_positions, node1, node2):
