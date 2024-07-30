@@ -178,10 +178,8 @@ def show_graph_partition_info(weighted_graph: CompGraph, partition_dict, edge_cu
     print("edges cut during partition", edge_cut_list)
 
 
-def get_subgraph_topo_dict(digraph: CompGraph, partition_dict) -> dict[int, list]:
+def get_subgraph_topo_dict(original_topo_list, partition_dict) -> dict[int, list]:
     subgraph_topo_dict = {}
-    original_topo_list = create_topological_order_list(digraph)
-
     for node in original_topo_list:
         subgraph_id = partition_dict[node]
         if subgraph_id not in subgraph_topo_dict.keys():

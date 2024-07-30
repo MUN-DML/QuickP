@@ -31,9 +31,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
-
-    global_topo_dict = create_topological_position_dict(comp_graph)
-
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
@@ -43,8 +40,13 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                     adjust_matrix=adjust_matrix,
                                                                     weight_normalize=if_weight_norm)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
-    # subgraph_topo_dict = {subgraph_id: create_topological_position_dict(subgraph) for subgraph_id, subgraph in subgraph_dict.items()}
-    subgraph_topo_list = get_subgraph_topo_dict(comp_graph, partition_dict)
+
+    # global_topo_dict will decide the
+    global_topo_dict = create_topological_position_dict(comp_graph)
+    # operator scheduling within each device
+    subgraph_topo_list = get_subgraph_topo_dict(global_topo_dict, partition_dict)
+    # communication scheduling between devices
+    edge_cut_topo_ordered_list = sort_edges_by_topo_order(edge_cut_list, global_topo_dict)
 
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
@@ -162,7 +164,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
-    edge_cut_topo_ordered_list = sort_edges_by_topo_order(edge_cut_list, global_topo_dict)
     for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(edge_cut_topo_ordered_list, edge_cut_topo_ordered_list[1:]):
         for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
             no_overlap = model.addVar(vtype=GRB.BINARY)
