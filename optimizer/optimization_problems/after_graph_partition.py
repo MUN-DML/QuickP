@@ -50,8 +50,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
 
     # Define variables
-    x = {}
-    y = {}
+    x = {}  # [operator_id, device_id] == 1 means this operator is assigned to this device
+    y = {}  # [subgraph_id, device_id] == 1 means this subgraph is assigned to this device
     start = {}  # start[node_id] represent the starting time of this node
     finish = {}  # finish[node_id] represent the finish time of this node
     comm_start = {}  # comm_start[source_op, dest_op] represent the communication
@@ -68,21 +68,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         for device in deviceTopo.getDeviceIDs():
             y[subgraph_id, device] = model.addVar(vtype=GRB.BINARY, name=f"y_{subgraph_id}_{device}")
 
-    # Ensure each subgraph is assigned to exactly one device
-    for subgraph_id in subgraph_dict.keys():
-        model.addConstr(quicksum(y[subgraph_id, device] for device in deviceTopo.getDeviceIDs()) == 1)
-
-    # Ensure each device is assigned to exactly one subgraph
-    for device in deviceTopo.getDeviceIDs():
-        model.addConstr(quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == 1)
-
-    # Link the assignment of operators to devices with the assignment of subgraphs to devices
-    for subgraph_id, subgraph in subgraph_dict.items():
-        for device in deviceTopo.getDeviceIDs():
-            for op in subgraph.getOperatorIDs():
-                # Ensure that if the subgraph is assigned to the device, the operator is also assigned to the device
-                model.addConstr(x[op, device] <= y[subgraph_id, device])
-
     for edge_id_tuple in comp_graph.getEdgeIDs():
         source_op_ID, dest_op_ID = edge_id_tuple
         if edge_id_tuple in edge_cut_list:
@@ -94,6 +79,22 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # Define Constraints
+
+    # device-subgraph 1 to 1 mapping
+    # Ensure each subgraph is assigned to exactly one device
+    for subgraph_id in subgraph_dict.keys():
+        model.addConstr(quicksum(y[subgraph_id, device] for device in deviceTopo.getDeviceIDs()) == 1)
+    # Ensure each device is assigned to exactly one subgraph
+    for device in deviceTopo.getDeviceIDs():
+        model.addConstr(quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == 1)
+
+    # Link the assignment of operators to devices with the assignment of subgraphs to devices
+    for subgraph_id, subgraph in subgraph_dict.items():
+        for device in deviceTopo.getDeviceIDs():
+            for op in subgraph.getOperatorIDs():
+                # Ensure that if the subgraph is assigned to the device, the operator is also assigned to the device
+                model.addConstr(x[op, device] == y[subgraph_id, device])
+
     for device in deviceTopo.getDeviceIDs():
         # Add constraints that operators assigned cannot exceed the capacity
         mem_sum = quicksum(x[node_id, device] * comp_graph.getOperator(node_id)["mem"]
