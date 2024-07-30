@@ -12,7 +12,7 @@ from optimizer.model.graph import determine_node_order, create_topological_posit
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict
+    show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
@@ -162,24 +162,13 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
-    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.combinations(edge_cut_list, 2):
+    edge_cut_topo_ordered_list = sort_edges_by_topo_order(edge_cut_list, global_topo_dict)
+    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(edge_cut_topo_ordered_list, edge_cut_topo_ordered_list[1:]):
         for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
-            # For any two communication, determine the topo order between the source nodes of these two links
-            if partition_dict[source_op_ID1] == partition_dict[source_op_ID2]:
-                local_topo_list = subgraph_topo_list[partition_dict[source_op_ID1]]
-                local_topo_dict = from_topo_list_to_dict(local_topo_list)
-                node_order = determine_node_order(local_topo_dict, source_op_ID1, source_op_ID2)
-            else:
-                node_order = determine_node_order(global_topo_dict, source_op_ID1, source_op_ID2)
-
-            # Select the appropriate non-overlapping variable and communication ends and starts based on node order
             no_overlap = model.addVar(vtype=GRB.BINARY)
-            comm_end_1, comm_start_2 = (comm_end[source_op_ID1, dest_op_ID1], comm_start[source_op_ID2, dest_op_ID2]) \
-                if node_order == 1 \
-                else (comm_end[source_op_ID2, dest_op_ID2], comm_start[source_op_ID1, dest_op_ID1])
 
             # Enforce non-overlapping constraints using indicator constraints
-            model.addGenConstrIndicator(no_overlap, True, comm_end_1 <= comm_start_2)
+            model.addGenConstrIndicator(no_overlap, True, comm_end[source_op_ID1, dest_op_ID1] <= comm_start[source_op_ID2, dest_op_ID2])
 
             # if using the same link,
             # either x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest]

@@ -189,3 +189,8 @@ def get_subgraph_topo_dict(digraph: CompGraph, partition_dict) -> dict[int, list
         subgraph_topo_dict[subgraph_id].append(node)
 
     return subgraph_topo_dict
+
+
+# Function to sort edges based on the topological order of the source node and then the destination node
+def sort_edges_by_topo_order(edges, topo_order):
+    return sorted(edges, key=lambda edge: (topo_order[edge[0]], topo_order[edge[1]]))
