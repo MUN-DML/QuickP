@@ -127,28 +127,28 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
             # If on the same device, ensure that the operators do not overlap
             model.addConstr(y >= x[op1, device] + x[op2, device] - 1)
 
-        # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
-        for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(edge_topo_ordered_list,
+    # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
+    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(edge_topo_ordered_list,
                                                                               edge_topo_ordered_list[1:]):
-            for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
-                no_overlap = model.addVar(vtype=GRB.BINARY)
+        for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
+            no_overlap = model.addVar(vtype=GRB.BINARY)
 
-                # Enforce non-overlapping constraints using indicator constraints
-                model.addGenConstrIndicator(no_overlap, True, comm_end[source_op_ID1, dest_op_ID1] <= comm_start[
-                    source_op_ID2, dest_op_ID2])
+            # Enforce non-overlapping constraints using indicator constraints
+            model.addGenConstrIndicator(no_overlap, True, comm_end[source_op_ID1, dest_op_ID1] <= comm_start[
+                source_op_ID2, dest_op_ID2])
 
-                # if using the same link,
-                # either x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest]
-                # or x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src]
-                # will be 4
-                model.addConstr(
-                    no_overlap >= (
-                        x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                            source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
-                        x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
-                            source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
-                    )
+            # if using the same link,
+            # either x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest]
+            # or x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src]
+            # will be 4
+            model.addConstr(
+                no_overlap >= (
+                    x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
+                        source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
+                    x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
+                        source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
                 )
+            )
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
