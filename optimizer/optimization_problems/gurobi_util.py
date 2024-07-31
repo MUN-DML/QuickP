@@ -18,7 +18,7 @@ def gurobi_setup(name: str):
     model = Model(name)
     model.setParam("LogToConsole", 0)
     model.setParam("LogFile", "gurobi.log")
-    model.setParam("MIPGap", 0.01)
+    model.setParam("MIPGap", 0.21)
     model.setParam("TimeLimit", 2400)
     model.setParam("MIPFocus", 1)
 
@@ -72,8 +72,6 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
     # Sort operators by their start times for each device
     for device, ops in result['Assignment'].items():
         result['Assignment'][device] = sorted(ops, key=lambda x: x[1])
-
-
 
     # populate result['CommunicationCosts'] and result['CommunicationTimeLine']
     for edge_id_tuple in list(comp_graph.getEdgeIDs()):
@@ -190,5 +188,11 @@ def get_subgraph_topo_dict(original_topo_list, partition_dict) -> dict[int, list
 
 
 # Function to sort edges based on the topological order of the source node and then the destination node
-def sort_edges_by_topo_order(edges, topo_order):
-    return sorted(edges, key=lambda edge: (topo_order[edge[0]], topo_order[edge[1]]))
+def sort_edges_by_topo_order(edges, topo_order, sort_dest=False):
+    def key_func(edge):
+        if sort_dest:
+            return topo_order[edge[0]], topo_order[edge[1]]
+        else:
+            return topo_order[edge[0]]
+
+    return sorted(edges, key=key_func)

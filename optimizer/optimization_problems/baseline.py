@@ -9,9 +9,9 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import determine_node_order, create_topological_position_dict
+from optimizer.model.graph import determine_node_order, create_topological_position_dict, create_topological_order_list
 from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
-    show_optimization_solution
+    show_optimization_solution, sort_edges_by_topo_order
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
@@ -19,7 +19,12 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph_baseline.json',
                                                              model_type=model_type)
-    topo_dict = create_topological_position_dict(comp_graph)
+
+    global_topo_list = create_topological_order_list(comp_graph)
+    # global_topo_dict will decide the
+    global_topo_dict = create_topological_position_dict(comp_graph)
+    edge_topo_ordered_list = sort_edges_by_topo_order(comp_graph.getEdgeIDs(), global_topo_dict)
+
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
@@ -109,7 +114,7 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
     for device in deviceTopo.getDeviceIDs():
         # ensures that each pair of operations is only considered once
         for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
-            node_order = determine_node_order(topo_dict, op1, op2)
+            node_order = determine_node_order(global_topo_dict, op1, op2)
             if node_order == 1:
                 y = model.addVar(vtype=GRB.BINARY)
                 model.addGenConstrIndicator(y, True, finish[op1] <= start[op2])
@@ -122,35 +127,28 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
             # If on the same device, ensure that the operators do not overlap
             model.addConstr(y >= x[op1, device] + x[op2, device] - 1)
 
-    # Add constraint to ensure each device can only send or receive from one link at a time. This is communication scheduling
-    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in itertools.combinations(comp_graph.getEdgeIDs(),
-                                                                                             2):
-        for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
-            # For any two communication, determine the topo order between the source nodes of these two links
-            node_order = determine_node_order(topo_dict, source_op_ID1, source_op_ID2)
-            if not node_order:
-                raise ValueError("order not existing")
-            # Select the appropriate non-overlapping variable and communication ends and starts based on node order
-            no_overlap = model.addVar(vtype=GRB.BINARY)
-            comm_end_1, comm_start_2 = (comm_end[source_op_ID1, dest_op_ID1], comm_start[source_op_ID2, dest_op_ID2]) \
-                if node_order == 1 \
-                else (comm_end[source_op_ID2, dest_op_ID2], comm_start[source_op_ID1, dest_op_ID1])
+        # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
+        for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(edge_topo_ordered_list,
+                                                                              edge_topo_ordered_list[1:]):
+            for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
+                no_overlap = model.addVar(vtype=GRB.BINARY)
 
-            # Enforce non-overlapping constraints using indicator constraints
-            model.addGenConstrIndicator(no_overlap, True, comm_end_1 <= comm_start_2)
+                # Enforce non-overlapping constraints using indicator constraints
+                model.addGenConstrIndicator(no_overlap, True, comm_end[source_op_ID1, dest_op_ID1] <= comm_start[
+                    source_op_ID2, dest_op_ID2])
 
-            # if using the same link,
-            # either x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest]
-            # or x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src]
-            # will be 4
-            model.addConstr(
-                no_overlap >= (
+                # if using the same link,
+                # either x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest]
+                # or x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src]
+                # will be 4
+                model.addConstr(
+                    no_overlap >= (
                         x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
                             source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
                         x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
                             source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
+                    )
                 )
-            )
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
