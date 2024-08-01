@@ -123,7 +123,8 @@ class CompGraph(DiGraph):
         functions = {
             EdgeWeightFunction.MOCK_COMMUNICATION_COST: self.getOperatorMockCommCostInUS,
             EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getOperatorOutputWithComputingCost,
-            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getOperatorOutputInBit
+            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getOperatorOutputInBit,
+            EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP: self.getOperatorMockCommCostWithComputingCost
         }
         return functions[edge_weight_function]
 
@@ -147,15 +148,20 @@ class CompGraph(DiGraph):
         shape, dtype = self.getOperatorOutputSizeAndType(node_id)
         return tensor_shape_to_bits(shape, dtype=dtype)
 
+    def getOperatorOutputWithComputingCost(self, node_id):
+        output_size = self.getOperatorOutputInBit(node_id)
+        average_comp_cost = self.getOperatorCompCostAve(node_id)
+        return output_size + average_comp_cost
+
     def getOperatorMockCommCostInUS(self, node_id, mock_band_in_GB_per_second=20):
         output_size = self.getOperatorOutputInBit(node_id)
         result = convert_time(output_size / convert_data_size(mock_band_in_GB_per_second, 'GB', 'bit'), 's', 'us')
         return result
 
-    def getOperatorOutputWithComputingCost(self, node_id):
-        output_size = self.getOperatorOutputInBit(node_id)
+    def getOperatorMockCommCostWithComputingCost(self, node_id, mock_band_in_GB_per_second=20):
+        mock_comm_cost = self.getOperatorMockCommCostInUS(node_id, mock_band_in_GB_per_second)
         average_comp_cost = self.getOperatorCompCostAve(node_id)
-        return output_size + average_comp_cost
+        return mock_comm_cost + average_comp_cost
 
     def getOperatorCompCostByDevice(self, node_id, device_id):
         if self.nodes[node_id] is None:
@@ -200,12 +206,6 @@ class CompGraph(DiGraph):
     def getEdgeObjs(self) -> list[dict]:
         return list(self.edges.values())
 
-    def getDeviceCompSpeedRatio(self):
-        comp_costs: list[dict[str, int]] = [data['comp_cost'] for node, data in self.nodes(data=True) if
-                                            'comp_cost' in data]
-        for comp_cost in comp_costs:
-            pass
-
     def clean_marginal_operators(self):
         nodes_to_remove = [node for node in self.nodes if self.getOperatorOutputInBit(node) == 0 and
                            self.in_degree(node) == 0 and self.getOperatorCompCostSum(node) == 0]
@@ -222,7 +222,6 @@ class CompGraph(DiGraph):
                f"Edges:\n{edges_str}"
 
 
-# Undirected Graph
 class DeviceGraph(DiGraph):
 
     def generata_fat_tree_topo(self, device_number, intra_node_band, inter_node_band, max_num_device_per_node):

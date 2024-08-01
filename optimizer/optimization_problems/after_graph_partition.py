@@ -18,9 +18,8 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
-                                   edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
-                                   adjust_matrix=None):
-    if_weight_norm = False
+                                   edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
+                                   adjust_matrix=None, if_weight_norm=True):
     if model_type == TFModelEnum.VGG and (edge_weight_function != EdgeWeightFunction.MOCK_COMMUNICATION_COST or not if_weight_norm):
         raise ValueError('if the Model is VGG => enable communication cost edge weight function and weight normalization')
 
