@@ -19,11 +19,7 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   adjust_matrix=None, if_weight_norm=True):
-    if model_type == TFModelEnum.VGG and (
-            edge_weight_function == EdgeWeightFunction.SOURCE_OUTPUT_TENSOR or not if_weight_norm):
-        raise ValueError(
-            'if the Model is VGG => enable communication cost edge weight function and weight normalization')
+                                   adjust_matrix=None, if_weight_norm=False):
 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
@@ -223,4 +219,4 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     optimize_after_graph_partition(number_of_devices=2, model_type=TFModelEnum.VGG,
-                                   adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 1.0})
+                                   adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0.0})

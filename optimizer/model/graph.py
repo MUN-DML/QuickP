@@ -124,7 +124,8 @@ class CompGraph(DiGraph):
             EdgeWeightFunction.MOCK_COMMUNICATION_COST: self.getOperatorMockCommCostInUS,
             EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getOperatorOutputWithComputingCost,
             EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getOperatorOutputInBit,
-            EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP: self.getOperatorMockCommCostWithComputingCost
+            EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP: self.getOperatorMockCommCostWithComputingCost,
+            EdgeWeightFunction.NODE_COMP_COST_AS_EDGE_WEIGHT: self.getOperatorCompCostAve
         }
         return functions[edge_weight_function]
 

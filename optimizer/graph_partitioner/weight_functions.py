@@ -12,3 +12,4 @@ class EdgeWeightFunction(Enum):
     MOCK_COMMUNICATION_COST_WITH_COMP = 'mock_communication_cost_with_comp'
     SOURCE_OUTPUT_TENSOR_WITH_COMP = 'source_output_tensor_with_comp'
     SOURCE_OUTPUT_TENSOR = 'source_output_tensor'
+    NODE_COMP_COST_AS_EDGE_WEIGHT = 'node_comp_cost_as_edge_weight'
