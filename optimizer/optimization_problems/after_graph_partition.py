@@ -20,8 +20,10 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
                                    adjust_matrix=None, if_weight_norm=True):
-    if model_type == TFModelEnum.VGG and (edge_weight_function != EdgeWeightFunction.MOCK_COMMUNICATION_COST or not if_weight_norm):
-        raise ValueError('if the Model is VGG => enable communication cost edge weight function and weight normalization')
+    if model_type == TFModelEnum.VGG and (
+            edge_weight_function == EdgeWeightFunction.SOURCE_OUTPUT_TENSOR or not if_weight_norm):
+        raise ValueError(
+            'if the Model is VGG => enable communication cost edge weight function and weight normalization')
 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
@@ -30,10 +32,11 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     model = gurobi_setup("minimize_maxload")
 
     # Partition the computation graph
-    partition_dict, edge_cut_list, weighted_graph = metis_partition(comp_graph, num_partitions=number_of_devices,
-                                                                    edge_weight_function=edge_weight_function,
-                                                                    adjust_matrix=adjust_matrix,
-                                                                    weight_normalize=if_weight_norm)
+    partition_dict, edge_cut_list, weighted_graph, edge_cut_weight_sum = metis_partition(comp_graph,
+                                                                                         num_partitions=number_of_devices,
+                                                                                         edge_weight_function=edge_weight_function,
+                                                                                         adjust_matrix=adjust_matrix,
+                                                                                         weight_normalize=if_weight_norm)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     # global_topo_dict will decide the
@@ -209,7 +212,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
         show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
-        show_graph_partition_info(weighted_graph, partition_dict, edge_cut_list)
+        show_graph_partition_info(weighted_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         del model
         disposeDefaultEnv()
@@ -219,4 +222,5 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 
 if __name__ == '__main__':
-    optimize_after_graph_partition(number_of_devices=2, model_type=TFModelEnum.SMALL, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 1.0})
+    optimize_after_graph_partition(number_of_devices=2, model_type=TFModelEnum.VGG,
+                                   adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 1.0})

@@ -34,7 +34,7 @@ from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, Edg
 def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction = NodeWeightFunction.AVE_COMP_COST,
                     edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
                     visualization=False, adjust_matrix=None,
-                    weight_normalize=False) -> tuple[dict[Any, Any], list[tuple], CompGraph]:
+                    weight_normalize=False) -> tuple[dict[Any, Any], list[tuple], CompGraph, int]:
     def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):
         # Visualize the partitioned graph
         nx.set_node_attributes(weight_graph, partition_result, 'partition')
@@ -87,10 +87,9 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
     # verify whether the sum_of_cut_weight == edgecuts
     cut_edge_list, sum_of_cut_weight = identify_edges_cut(graph, partition_dict)
     assert sum_of_cut_weight == edgecuts
-    print("verify weight of edge cuts", sum_of_cut_weight, "is equal to ", edgecuts)
     if visualization:
         # Visualize the partitioned graph
         visualize_graph_partitioned(graph, partition_dict)
 
     # return the placement dict, list of edges cut and the weighted graph itself
-    return partition_dict, cut_edge_list, graph
+    return partition_dict, cut_edge_list, graph, edgecuts
