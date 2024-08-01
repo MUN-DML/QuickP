@@ -86,11 +86,12 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # device-subgraph one-to-one mapping
     # Step 1: Ensure each subgraph is assigned to exactly one device
-    for subgraph_id in subgraph_dict.keys():
-        model.addConstr(quicksum(y[subgraph_id, device] for device in deviceTopo.getDeviceIDs()) == 1)
-    # Step 2: Ensure each device is assigned to exactly one subgraph
-    for device in deviceTopo.getDeviceIDs():
-        model.addConstr(quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == 1)
+    # Constraint: Each subgraph is assigned to exactly one device
+    model.addConstrs((quicksum(y[subgraph_id, device] for device in deviceTopo.getDeviceIDs()) == 1 for subgraph_id in
+                      subgraph_dict.keys()), "SubgraphAssignment")
+    # Constraint: Each device is assigned to exactly one subgraph
+    model.addConstrs((quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == 1 for device in
+                      deviceTopo.getDeviceIDs()), "DeviceAssignment")
 
     # Link the assignment of operators to devices with the assignment of subgraphs to devices
     for subgraph_id, subgraph in subgraph_dict.items():
