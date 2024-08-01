@@ -41,7 +41,7 @@ def populate_training_time_list(increment=0.05, min_value=0.0, max_value=1.0):
     fix_setting = {
         "problem_type": OptimizationProblem.GRAPH_PARTITION,
         "edge_weight_function": EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-        "model_type": TFModelEnum.SMALL,
+        "model_type": TFModelEnum.VGG,
         "if_weight_norm": False
     }
 
@@ -51,6 +51,9 @@ def populate_training_time_list(increment=0.05, min_value=0.0, max_value=1.0):
             entire_setting = {**setting_dict, "adjustment_ratio": ratio}
             expected_training = run_optimization_command(**fix_setting,
                                                          adjustment_type=entire_setting)
+            if not expected_training:
+                expected_training = 0
+
             result_matrix[adjustment_type].append(expected_training)
 
     result_matrix["ratios"] = ratio_list

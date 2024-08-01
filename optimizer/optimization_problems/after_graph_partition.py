@@ -203,6 +203,9 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         for constr in model.getConstrs():
             if constr.IISConstr:
                 print(f"{constr.ConstrName}")
+        if model is not None:
+            model.dispose()
+        disposeDefaultEnv()
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     # this is the main process part after a solution is reached
@@ -210,13 +213,16 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
         show_graph_partition_info(weighted_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
-        del model
+        if model is not None:
+            model.dispose()
         disposeDefaultEnv()
         return optimal_value
     else:
         print(f"Optimization ended with status {model.status}")
+        if model is not None:
+            model.dispose()
+        disposeDefaultEnv()
 
 
 if __name__ == '__main__':
-    optimize_after_graph_partition(number_of_devices=2, model_type=TFModelEnum.VGG,
-                                   adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0.65})
+    optimize_after_graph_partition(number_of_devices=2, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0})
