@@ -11,22 +11,24 @@ from optimizer.graph_partitioner.weight_functions import EdgeWeightFunction
 
 def run_optimization_command(problem_type: OptimizationProblem,
                              adjustment_type: dict,
-                             number_of_devices=2,
-                             model_type: TFModelEnum = TFModelEnum.SMALL,
-                             edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.SOURCE_OUTPUT_TENSOR):
+                             if_weight_norm: bool,
+                             model_type: TFModelEnum,
+                             edge_weight_function: EdgeWeightFunction,
+                             number_of_devices=2
+                             ):
     if problem_type == OptimizationProblem.BASELINE:
         # Call optimize_baseline
-        return problem_type(number_of_devices=number_of_devices, model_type=model_type)
+        return problem_type(number_of_devices=number_of_devices, model_type=model_type, if_weight_norm=if_weight_norm)
     elif problem_type == OptimizationProblem.GRAPH_PARTITION:
         # Call optimize_after_graph_partition
-        return problem_type(number_of_devices=number_of_devices, model_type=model_type,
+        return problem_type(number_of_devices=number_of_devices, model_type=model_type, if_weight_norm=if_weight_norm,
                             edge_weight_function=edge_weight_function, adjust_matrix=adjustment_type)
     else:
         raise ValueError("Invalid optimization problem type")
 
 
-def populate_training_time_list(increment=0.05):
-    ratio_list = [round(x, 10) for x in [0 + i * increment for i in range(int(1 / increment) + 1)]]
+def populate_training_time_list(increment=0.05, min_value=0.0, max_value=1.0):
+    ratio_list = [round(x, 10) for x in [min_value + i * increment for i in range(int((max_value - min_value) / increment) + 1)]]
 
     data_matrix = {
         "no_adjustment": {"node_enable": False, "edge_enable": False},
@@ -36,11 +38,18 @@ def populate_training_time_list(increment=0.05):
     }
     result_matrix = {}
 
+    fix_setting = {
+        "problem_type": OptimizationProblem.GRAPH_PARTITION,
+        "edge_weight_function": EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
+        "model_type": TFModelEnum.SMALL,
+        "if_weight_norm": False
+    }
+
     for adjustment_type, setting_dict in data_matrix.items():
         result_matrix.setdefault(adjustment_type, [])
         for ratio in ratio_list:
             entire_setting = {**setting_dict, "adjustment_ratio": ratio}
-            expected_training = run_optimization_command(problem_type=OptimizationProblem.GRAPH_PARTITION,
+            expected_training = run_optimization_command(**fix_setting,
                                                          adjustment_type=entire_setting)
             result_matrix[adjustment_type].append(expected_training)
 

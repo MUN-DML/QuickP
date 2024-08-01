@@ -219,4 +219,4 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     optimize_after_graph_partition(number_of_devices=2, model_type=TFModelEnum.VGG,
-                                   adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0.0})
+                                   adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0.65})
