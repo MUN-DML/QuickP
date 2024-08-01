@@ -56,9 +56,6 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
         plt.title(f'Graph Partitioning into {num_partitions} Parts using METIS', size=20)
         plt.show()
 
-    if edge_weight_function == EdgeWeightFunction.MOCK_COMMUNICATION_COST and not weight_normalize:
-        raise ValueError("weight_normalization should be set to True when using MOCK_COMMUNICATION_COST as the edge weight function.")
-
     # Assign weight to each node
     # Step 2: Calculate the node/edge weights based on the node_weight_function and edge_weight_function
     node_weight_func = graph.get_node_weight_function(node_weight_function)
@@ -86,7 +83,7 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
 
     # verify whether the sum_of_cut_weight == edgecuts
     cut_edge_list, sum_of_cut_weight = identify_edges_cut(graph, partition_dict)
-    # assert sum_of_cut_weight == edgecuts
+    assert sum_of_cut_weight == edgecuts
     if visualization:
         # Visualize the partitioned graph
         visualize_graph_partitioned(graph, partition_dict)
