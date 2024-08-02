@@ -177,7 +177,6 @@ def show_graph_partition_info(weighted_graph: CompGraph, partition_dict, edge_cu
     print("sum of weight of edge cut", weight_cut_sum)
 
 
-
 def get_subgraph_topo_dict(original_topo_list, partition_dict) -> dict[int, list]:
     subgraph_topo_dict = {}
     for node in original_topo_list:
@@ -190,7 +189,7 @@ def get_subgraph_topo_dict(original_topo_list, partition_dict) -> dict[int, list
 
 
 # Function to sort edges based on the topological order of the source node and then the destination node
-def sort_edges_by_topo_order(edges, topo_order, sort_dest=False):
+def sort_edges_by_topo_order(edges, topo_order, sort_dest=True):
     def key_func(edge):
         if sort_dest:
             return topo_order[edge[0]], topo_order[edge[1]]
@@ -198,3 +197,8 @@ def sort_edges_by_topo_order(edges, topo_order, sort_dest=False):
             return topo_order[edge[0]]
 
     return sorted(edges, key=key_func)
+
+
+def get_incoming_and_outing_cut_off_edges_in_subgraph(cut_off_edges: list, subgraph_id, partition_dict):
+    return [(source, dest) for source, dest in cut_off_edges
+            if partition_dict[source] == subgraph_id or partition_dict[dest] == subgraph_id]

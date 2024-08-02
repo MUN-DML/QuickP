@@ -12,7 +12,8 @@ from optimizer.model.graph import determine_node_order, create_topological_posit
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order
+    show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order, \
+    get_incoming_and_outing_cut_off_edges_in_subgraph
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
@@ -159,29 +160,12 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
-    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(edge_cut_topo_ordered_list, edge_cut_topo_ordered_list[1:]):
-        for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
-            no_overlap = model.addVar(vtype=GRB.BINARY)
+    for subgraph_id in subgraph_dict.keys():
+        local_cut_off_list = get_incoming_and_outing_cut_off_edges_in_subgraph(edge_cut_list, subgraph_id, partition_dict)
+        sorted_local_cut_off_list = sort_edges_by_topo_order(local_cut_off_list, global_topo_dict)
+        for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(sorted_local_cut_off_list, sorted_local_cut_off_list[1:]):
+            model.addConstr(comm_end[source_op_ID1, dest_op_ID1] <= comm_start[source_op_ID2, dest_op_ID2])
 
-            # Enforce non-overlapping constraints using indicator constraints
-            model.addGenConstrIndicator(no_overlap, True, comm_end[source_op_ID1, dest_op_ID1] <= comm_start[source_op_ID2, dest_op_ID2])
-
-            # if using the same link,
-            # either x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest]
-            # or x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src]
-            # will be 4
-            model.addConstr(
-                no_overlap >= (
-                    x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                        source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] - 3
-                )
-            )
-            model.addConstr(
-                no_overlap >= (
-                    x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
-                        source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
-                )
-            )
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -229,4 +213,4 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 
 if __name__ == '__main__':
-    optimize_after_graph_partition(number_of_devices=4, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0})
+    optimize_after_graph_partition(number_of_devices=8, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0}, if_weight_norm=True)
