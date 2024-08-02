@@ -173,7 +173,11 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             model.addConstr(
                 no_overlap >= (
                     x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                        source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
+                        source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] - 3
+                )
+            )
+            model.addConstr(
+                no_overlap >= (
                     x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
                         source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
                 )
@@ -225,4 +229,4 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 
 if __name__ == '__main__':
-    optimize_after_graph_partition(number_of_devices=2, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0})
+    optimize_after_graph_partition(number_of_devices=4, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0})
