@@ -10,7 +10,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.model.graph import determine_node_order, create_topological_position_dict, from_topo_list_to_dict
 from optimizer.graph_partitioner.metis_partition import metis_partition
-from optimizer.graph_partitioner.subgraph_util import construct_sub_graph
+from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
     show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order, \
     get_incoming_and_outing_cut_off_edges_in_subgraph
@@ -20,7 +20,7 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   adjust_matrix=None, if_weight_norm=False):
+                                   adjust_matrix=None, weight_norm_function: WeightNormalizationFunction = None):
 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
@@ -33,7 +33,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                                          num_partitions=number_of_devices,
                                                                                          edge_weight_function=edge_weight_function,
                                                                                          adjust_matrix=adjust_matrix,
-                                                                                         weight_normalize=if_weight_norm)
+                                                                                         weight_normalize=weight_norm_function)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     # global_topo_dict will decide the
@@ -213,4 +213,4 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 
 if __name__ == '__main__':
-    optimize_after_graph_partition(number_of_devices=8, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0}, if_weight_norm=True)
+    optimize_after_graph_partition(number_of_devices=4, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0}, weight_norm_function=WeightNormalizationFunction.SQUARE_ROOT)
