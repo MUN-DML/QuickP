@@ -1,4 +1,6 @@
 # python3 after_graph_partition.py
+import argparse
+
 from gurobipy import *
 import torch
 import tensorflow as tf
@@ -213,4 +215,17 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
+    parser.add_argument('--number_of_device', type=str, default=4)
+    parser.add_argument('--model', type=int, default='VGG')
+    parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
+    parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
+    parser.add_argument('--edge_weight_function', default='comm_cost', type=str, help='')
+
+    args = parser.parse_args()
+
+    model_mapping_dict = {}
+    weight_normalization_dict = {}
+
+
     optimize_after_graph_partition(number_of_devices=4, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0}, weight_norm_function=WeightNormalizationFunction.SQUARE_ROOT)
