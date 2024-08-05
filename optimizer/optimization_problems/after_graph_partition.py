@@ -216,7 +216,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=str, default=4)
+    parser.add_argument('--number_of_device', type=int, default=4)
     parser.add_argument('--model', type=str, default='VGG')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
@@ -227,6 +227,6 @@ if __name__ == '__main__':
     model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL}
     weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
 
-    optimize_after_graph_partition(number_of_devices=4, model_type=model_mapping_dict[args.model],
+    optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
                                    adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
                                    weight_norm_function=weight_normalization_dict[args.normalization_function])
