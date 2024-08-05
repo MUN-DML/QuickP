@@ -23,7 +23,6 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
                                    adjust_matrix=None, weight_norm_function: WeightNormalizationFunction = None):
-
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
@@ -163,11 +162,12 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
     for subgraph_id in subgraph_dict.keys():
-        local_cut_off_list = get_incoming_and_outing_cut_off_edges_in_subgraph(edge_cut_list, subgraph_id, partition_dict)
+        local_cut_off_list = get_incoming_and_outing_cut_off_edges_in_subgraph(edge_cut_list, subgraph_id,
+                                                                               partition_dict)
         sorted_local_cut_off_list = sort_edges_by_topo_order(local_cut_off_list, global_topo_dict)
-        for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(sorted_local_cut_off_list, sorted_local_cut_off_list[1:]):
+        for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(sorted_local_cut_off_list,
+                                                                              sorted_local_cut_off_list[1:]):
             model.addConstr(comm_end[source_op_ID1, dest_op_ID1] <= comm_start[source_op_ID2, dest_op_ID2])
-
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -217,15 +217,16 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=str, default=4)
-    parser.add_argument('--model', type=int, default='VGG')
+    parser.add_argument('--model', type=str, default='VGG')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
     parser.add_argument('--edge_weight_function', default='comm_cost', type=str, help='')
 
     args = parser.parse_args()
 
-    model_mapping_dict = {}
-    weight_normalization_dict = {}
+    model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL}
+    weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
 
-
-    optimize_after_graph_partition(number_of_devices=4, model_type=TFModelEnum.VGG, adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0}, weight_norm_function=WeightNormalizationFunction.SQUARE_ROOT)
+    optimize_after_graph_partition(number_of_devices=4, model_type=model_mapping_dict[args.model],
+                                   adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
+                                   weight_norm_function=weight_normalization_dict[args.normalization_function])
