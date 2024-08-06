@@ -10,7 +10,7 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import create_topological_position_dict, TopoSortFunction
+from optimizer.optimization_problems.scheduling_algorithm import create_topological_position_dict, TopoSortFunction
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
@@ -22,7 +22,8 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   adjust_matrix=None, weight_norm_function: WeightNormalizationFunction = None):
+                                   adjust_matrix=None, weight_norm_function: WeightNormalizationFunction = None,
+                                   scheduling_algorithm=TopoSortFunction.KAHN_PRIORITY):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
@@ -38,7 +39,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     # global_topo_dict will decide the
-    global_topo_dict = create_topological_position_dict(comp_graph)
+    global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm)
     # operator scheduling within each device
     subgraph_topo_list = get_subgraph_topo_dict(global_topo_dict, partition_dict)
 
@@ -219,14 +220,15 @@ if __name__ == '__main__':
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
     parser.add_argument('--edge_weight_function', default='comm_cost', type=str, help='')
-    parser.add_argument('--topo_sort_function', default='', type=str, help='it is regarding operator and communication scheduling')
+    parser.add_argument('--topo_sort_function', default='KahnPriority', type=str, help='it is regarding operator and communication scheduling')
 
     args = parser.parse_args()
 
     model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL}
     weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
-    topo_sort_dict = {"Kahn": TopoSortFunction.KAHN, "Default": TopoSortFunction.DEFAULT}
+    topo_sort_dict = {"Kahn": TopoSortFunction.KAHN, "Default": TopoSortFunction.DEFAULT, "KahnPriority": TopoSortFunction.KAHN_PRIORITY}
 
     optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
                                    adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
-                                   weight_norm_function=weight_normalization_dict[args.normalization_function])
+                                   weight_norm_function=weight_normalization_dict[args.normalization_function],
+                                   scheduling_algorithm=topo_sort_dict[args.topo_sort_function])

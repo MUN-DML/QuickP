@@ -9,7 +9,8 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import determine_node_order, create_topological_position_dict
+from optimizer.model.graph import determine_node_order
+from optimizer.optimization_problems.scheduling_algorithm import create_topological_position_dict
 from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
     show_optimization_solution, sort_edges_by_topo_order
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum

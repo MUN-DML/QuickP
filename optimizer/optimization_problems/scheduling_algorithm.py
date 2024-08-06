@@ -4,8 +4,10 @@ from enum import Enum
 
 from networkx import topological_sort
 
+from optimizer.model.graph import from_topo_list_to_dict, CompGraph
 
-def topo_sort_Kahn(graph):
+
+def topo_sort_Kahn(graph: CompGraph):
     # Compute the in-degree of each node
     in_degrees = {node: graph.in_degree(node) for node in graph.nodes()}
 
@@ -26,11 +28,11 @@ def topo_sort_Kahn(graph):
     return topo_order
 
 
-def topo_sort_default(graph):
+def topo_sort_default(graph: CompGraph):
     return topological_sort(graph)
 
 
-def topo_sort_Kahn_priority(graph):
+def topo_sort_Kahn_priority(graph: CompGraph):
     priority = {node: graph.getOperatorCompCostAve(node) for node in graph.nodes()}
 
         # Compute the in-degree of each node
@@ -55,7 +57,7 @@ def topo_sort_Kahn_priority(graph):
     return topo_order
 
 
-def is_topological_sort(graph, node_list):
+def is_topological_sort(graph: CompGraph, node_list):
     # Create a dictionary to record the position of each node in the node_list
     position = {node: i for i, node in enumerate(node_list)}
 
@@ -72,3 +74,17 @@ class TopoSortFunction(Enum):
     KAHN = topo_sort_Kahn
     DEFAULT = topo_sort_default
     KAHN_PRIORITY = topo_sort_Kahn_priority
+
+
+def create_topological_position_dict(graph: CompGraph, sort_function: TopoSortFunction):
+    """
+    Creates a dictionary mapping each node to its position in the topologically sorted order.
+
+    Parameters:
+    graph (nx.DiGraph): The directed graph.
+
+    Returns:
+    dict: A dictionary where keys are nodes and values are their positions in the topologically sorted order.
+    """
+    sorted_nodes = sort_function(graph)
+    return from_topo_list_to_dict(sorted_nodes)

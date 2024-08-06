@@ -8,10 +8,9 @@ import tensorflow as tf
 
 from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels, node_link_graph, \
-    node_link_data, number_weakly_connected_components, has_path, NetworkXError, topological_sort, algorithms
+    node_link_data, number_weakly_connected_components, algorithms
 
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
-from optimizer.optimization_problems.scheduling_algorithm import TopoSortFunction
 from py_util import convert_data_size, convert_time, tensor_shape_to_bits
 
 
@@ -464,18 +463,6 @@ def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
 
 
 # This method is to reduce the time complexity when determining the topo order between two nodes
-def create_topological_position_dict(graph, sort_function: TopoSortFunction = TopoSortFunction.KAHN_PRIORITY):
-    """
-    Creates a dictionary mapping each node to its position in the topologically sorted order.
-
-    Parameters:
-    graph (nx.DiGraph): The directed graph.
-
-    Returns:
-    dict: A dictionary where keys are nodes and values are their positions in the topologically sorted order.
-    """
-    sorted_nodes = sort_function(graph)
-    return from_topo_list_to_dict(sorted_nodes)
 
 
 def from_topo_list_to_dict(sorted_nodes):
