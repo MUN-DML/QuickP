@@ -2,6 +2,7 @@ import json
 import os
 import random
 from collections import deque
+from enum import Enum
 from typing import Union
 
 import networkx as nx
@@ -417,22 +418,7 @@ def keep_largest_component(digraph):
     return largest_component_subgraph
 
 
-# This method is to reduce the time complexity when determining the topo order between two nodes
-def create_topological_position_dict(graph):
-    """
-    Creates a dictionary mapping each node to its position in the topologically sorted order.
-
-    Parameters:
-    graph (nx.DiGraph): The directed graph.
-
-    Returns:
-    dict: A dictionary where keys are nodes and values are their positions in the topologically sorted order.
-    """
-    sorted_nodes = create_topological_order_list(graph)
-    return from_topo_list_to_dict(sorted_nodes)
-
-
-def create_topological_order_list(graph):
+def topo_sort_Kahn(graph):
     # Compute the in-degree of each node
     in_degrees = {node: graph.in_degree(node) for node in graph.nodes()}
 
@@ -442,24 +428,19 @@ def create_topological_order_list(graph):
     topo_order = []
 
     while zero_in_degree_queue:
-        # Sort nodes in the queue based on in-degrees in descending order
-        zero_in_degree_queue = deque(sorted(zero_in_degree_queue, key=lambda node: in_degrees[node], reverse=True))
-
-        # Process the node with the highest in-degree
         current = zero_in_degree_queue.popleft()
         topo_order.append(current)
 
-        # Decrease the in-degree of neighboring nodes
         for neighbor in graph.successors(current):
             in_degrees[neighbor] -= 1
             if in_degrees[neighbor] == 0:
                 zero_in_degree_queue.append(neighbor)
-
+    assert is_topological_sort(graph, topo_order)
     return topo_order
 
 
-def from_topo_list_to_dict(sorted_nodes):
-    return {node: pos for pos, node in enumerate(sorted_nodes)}
+def topo_sort_default(graph):
+    return topological_sort(graph)
 
 
 def determine_node_order(topo_positions, node1, node2):
@@ -506,3 +487,40 @@ def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
     gm = algorithms.isomorphism.DiGraphMatcher(original_g, sub_g)
     # Returns True if a subgraph of G1 is isomorphic to G2.
     return gm.subgraph_is_isomorphic()
+
+
+def is_topological_sort(graph, node_list):
+    # Create a dictionary to record the position of each node in the node_list
+    position = {node: i for i, node in enumerate(node_list)}
+
+    # Iterate through all edges in the graph
+    for u, v in graph.edges():
+        # For a valid topological sort, u must come before v
+        if position[u] > position[v]:
+            return False
+
+    return True
+
+
+class TopoSortFunction(Enum):
+    KAHN = topo_sort_Kahn
+    DEFAULT = topo_sort_default
+
+
+# This method is to reduce the time complexity when determining the topo order between two nodes
+def create_topological_position_dict(graph, sort_function: TopoSortFunction = TopoSortFunction.KAHN):
+    """
+    Creates a dictionary mapping each node to its position in the topologically sorted order.
+
+    Parameters:
+    graph (nx.DiGraph): The directed graph.
+
+    Returns:
+    dict: A dictionary where keys are nodes and values are their positions in the topologically sorted order.
+    """
+    sorted_nodes = sort_function(graph)
+    return from_topo_list_to_dict(sorted_nodes)
+
+
+def from_topo_list_to_dict(sorted_nodes):
+    return {node: pos for pos, node in enumerate(sorted_nodes)}

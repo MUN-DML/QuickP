@@ -7,9 +7,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.computing_graph.op_graph_util import get_proper_optimizer
-from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component, \
-    create_topological_order_list
-from DNN_model_tf.small import small_tf
+from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
