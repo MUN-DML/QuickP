@@ -10,7 +10,7 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import create_topological_position_dict
+from optimizer.model.graph import create_topological_position_dict, TopoSortFunction
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
@@ -41,8 +41,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     global_topo_dict = create_topological_position_dict(comp_graph)
     # operator scheduling within each device
     subgraph_topo_list = get_subgraph_topo_dict(global_topo_dict, partition_dict)
-    # communication scheduling between devices
-    edge_cut_topo_ordered_list = sort_edges_by_topo_order(edge_cut_list, global_topo_dict)
 
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
@@ -221,11 +219,13 @@ if __name__ == '__main__':
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
     parser.add_argument('--edge_weight_function', default='comm_cost', type=str, help='')
+    parser.add_argument('--topo_sort_function', default='', type=str, help='it is regarding operator and communication scheduling')
 
     args = parser.parse_args()
 
     model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL}
     weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
+    topo_sort_dict = {"Kahn": TopoSortFunction.KAHN, "Default": TopoSortFunction.DEFAULT}
 
     optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
                                    adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},

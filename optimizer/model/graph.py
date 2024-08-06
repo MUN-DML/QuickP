@@ -1,8 +1,6 @@
 import json
 import os
 import random
-from collections import deque
-from enum import Enum
 from typing import Union
 
 import networkx as nx
@@ -13,6 +11,7 @@ from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_ne
     node_link_data, number_weakly_connected_components, has_path, NetworkXError, topological_sort, algorithms
 
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
+from optimizer.optimization_problems.scheduling_algorithm import TopoSortFunction
 from py_util import convert_data_size, convert_time, tensor_shape_to_bits
 
 
@@ -418,31 +417,6 @@ def keep_largest_component(digraph):
     return largest_component_subgraph
 
 
-def topo_sort_Kahn(graph):
-    # Compute the in-degree of each node
-    in_degrees = {node: graph.in_degree(node) for node in graph.nodes()}
-
-    # Queue of nodes with no incoming edges
-    zero_in_degree_queue = deque([node for node in graph.nodes() if in_degrees[node] == 0])
-
-    topo_order = []
-
-    while zero_in_degree_queue:
-        current = zero_in_degree_queue.popleft()
-        topo_order.append(current)
-
-        for neighbor in graph.successors(current):
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                zero_in_degree_queue.append(neighbor)
-    assert is_topological_sort(graph, topo_order)
-    return topo_order
-
-
-def topo_sort_default(graph):
-    return topological_sort(graph)
-
-
 def determine_node_order(topo_positions, node1, node2):
     """
     Determines if node1 is prior or later than node2 in the topologically sorted order.
@@ -487,24 +461,6 @@ def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
     gm = algorithms.isomorphism.DiGraphMatcher(original_g, sub_g)
     # Returns True if a subgraph of G1 is isomorphic to G2.
     return gm.subgraph_is_isomorphic()
-
-
-def is_topological_sort(graph, node_list):
-    # Create a dictionary to record the position of each node in the node_list
-    position = {node: i for i, node in enumerate(node_list)}
-
-    # Iterate through all edges in the graph
-    for u, v in graph.edges():
-        # For a valid topological sort, u must come before v
-        if position[u] > position[v]:
-            return False
-
-    return True
-
-
-class TopoSortFunction(Enum):
-    KAHN = topo_sort_Kahn
-    DEFAULT = topo_sort_default
 
 
 # This method is to reduce the time complexity when determining the topo order between two nodes
