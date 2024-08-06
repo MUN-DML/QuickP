@@ -460,10 +460,3 @@ def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
     gm = algorithms.isomorphism.DiGraphMatcher(original_g, sub_g)
     # Returns True if a subgraph of G1 is isomorphic to G2.
     return gm.subgraph_is_isomorphic()
-
-
-# This method is to reduce the time complexity when determining the topo order between two nodes
-
-
-def from_topo_list_to_dict(sorted_nodes):
-    return {node: pos for pos, node in enumerate(sorted_nodes)}

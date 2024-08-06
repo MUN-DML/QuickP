@@ -4,7 +4,7 @@ from enum import Enum
 
 from networkx import topological_sort
 
-from optimizer.model.graph import from_topo_list_to_dict, CompGraph
+from optimizer.model.graph import CompGraph
 
 
 def topo_sort_Kahn(graph: CompGraph):
@@ -35,7 +35,7 @@ def topo_sort_default(graph: CompGraph):
 def topo_sort_Kahn_priority(graph: CompGraph):
     priority = {node: graph.getOperatorCompCostAve(node) for node in graph.nodes()}
 
-        # Compute the in-degree of each node
+    # Compute the in-degree of each node
     in_degrees = {node: graph.in_degree(node) for node in graph.nodes()}
 
     # Priority queue of nodes with no incoming edges
@@ -74,6 +74,10 @@ class TopoSortFunction(Enum):
     KAHN = topo_sort_Kahn
     DEFAULT = topo_sort_default
     KAHN_PRIORITY = topo_sort_Kahn_priority
+
+
+def from_topo_list_to_dict(sorted_nodes):
+    return {node: pos for pos, node in enumerate(sorted_nodes)}
 
 
 def create_topological_position_dict(graph: CompGraph, sort_function: TopoSortFunction):
