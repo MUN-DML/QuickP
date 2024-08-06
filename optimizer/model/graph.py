@@ -464,7 +464,7 @@ def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
 
 
 # This method is to reduce the time complexity when determining the topo order between two nodes
-def create_topological_position_dict(graph, sort_function: TopoSortFunction = TopoSortFunction.KAHN):
+def create_topological_position_dict(graph, sort_function: TopoSortFunction = TopoSortFunction.KAHN_PRIORITY):
     """
     Creates a dictionary mapping each node to its position in the topologically sorted order.
 

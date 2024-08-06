@@ -30,10 +30,8 @@ def topo_sort_default(graph):
     return topological_sort(graph)
 
 
-def topo_sort_Kahn_priority(graph, priority=None):
-    if priority is None:
-        # Default priority is 0 for all nodes if not specified
-        priority = {node: 0 for node in graph.nodes()}
+def topo_sort_Kahn_priority(graph):
+    priority = {node: graph.getOperatorCompCostAve(node) for node in graph.nodes()}
 
         # Compute the in-degree of each node
     in_degrees = {node: graph.in_degree(node) for node in graph.nodes()}
