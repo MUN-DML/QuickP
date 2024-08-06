@@ -1,6 +1,7 @@
 import json
 import os
 import random
+from collections import deque
 from typing import Union
 
 import networkx as nx
@@ -432,7 +433,29 @@ def create_topological_position_dict(graph):
 
 
 def create_topological_order_list(graph):
-    return list(topological_sort(graph))
+    # Compute the in-degree of each node
+    in_degrees = {node: graph.in_degree(node) for node in graph.nodes()}
+
+    # Queue of nodes with no incoming edges
+    zero_in_degree_queue = deque([node for node in graph.nodes() if in_degrees[node] == 0])
+
+    topo_order = []
+
+    while zero_in_degree_queue:
+        # Sort nodes in the queue based on in-degrees in descending order
+        zero_in_degree_queue = deque(sorted(zero_in_degree_queue, key=lambda node: in_degrees[node], reverse=True))
+
+        # Process the node with the highest in-degree
+        current = zero_in_degree_queue.popleft()
+        topo_order.append(current)
+
+        # Decrease the in-degree of neighboring nodes
+        for neighbor in graph.successors(current):
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                zero_in_degree_queue.append(neighbor)
+
+    return topo_order
 
 
 def from_topo_list_to_dict(sorted_nodes):

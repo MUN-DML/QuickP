@@ -10,7 +10,7 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import determine_node_order, create_topological_position_dict, from_topo_list_to_dict
+from optimizer.model.graph import create_topological_position_dict
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
