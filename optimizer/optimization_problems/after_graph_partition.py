@@ -39,7 +39,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     # global_topo_dict will decide the
-    global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm)
+    global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm, edge_cut_list)
     # operator scheduling within each device; global_topo_dict.keys() maintains the self-defined topo sorting
     subgraph_topo_dict = get_subgraph_topo_dict(global_topo_dict.keys(), partition_dict)
 
@@ -215,7 +215,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=4)
+    parser.add_argument('--number_of_device', type=int, default=8)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
