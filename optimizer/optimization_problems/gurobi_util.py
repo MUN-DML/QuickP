@@ -175,10 +175,9 @@ def show_graph_partition_info(weighted_graph: CompGraph, partition_dict, edge_cu
     print("sum of weight of edge cut", weight_cut_sum)
 
 
-def get_subgraph_topo_dict(original_topo_dict, partition_dict) -> dict[int, list]:
+def get_subgraph_topo_dict(original_topo_list, partition_dict) -> dict[int, list]:
     subgraph_topo_dict = {}
-    for node in original_topo_dict:
-        print("fuck", node)
+    for node in original_topo_list:
         subgraph_id = partition_dict[node]
         if subgraph_id not in subgraph_topo_dict.keys():
             subgraph_topo_dict[subgraph_id] = []

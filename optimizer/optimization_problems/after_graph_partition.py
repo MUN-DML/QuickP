@@ -40,8 +40,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # global_topo_dict will decide the
     global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm)
-    # operator scheduling within each device
-    subgraph_topo_list = get_subgraph_topo_dict(global_topo_dict, partition_dict)
+    # operator scheduling within each device; global_topo_dict.keys() maintains the self-defined topo sorting
+    subgraph_topo_dict = get_subgraph_topo_dict(global_topo_dict.keys(), partition_dict)
 
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
@@ -152,7 +152,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    for topo_list in subgraph_topo_list.values():
+    for topo_list in subgraph_topo_dict.values():
         # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device
         # processes only one operator at a time. Also, it indicates the data dependency
         for a, b in zip(topo_list, topo_list[1:]):
