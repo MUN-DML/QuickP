@@ -78,8 +78,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                 name=f"comm_start_{source_op_ID}_{dest_op_ID}")
             comm_end[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
                                                               name=f"comm_end_{source_op_ID}_{dest_op_ID}")
-            comm_cost[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                               name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     '''
     Define Constraints
@@ -104,8 +102,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     # device_pairs is a Set obj with unique device pair
-    device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
-                    src != dest}
 
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
@@ -117,9 +113,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         communication_cost = comp_graph.getOperatorOutputInBit(edge_id_tuple[0]) * deviceTopo.calUnitCommCostInUS(
             source_assigned_device, destination_assigned_device)
 
-        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == communication_cost,
-                        f"comm_cost_{source_op_ID}_{dest_op_ID}")
-
         # Ensures the communication starts only after the source operation finishes.
         model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
                         f"bind_finish_to_comm_start_{source_op_ID}_{dest_op_ID}")
@@ -129,8 +122,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
 
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost[
-            source_op_ID, dest_op_ID],
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + communication_cost,
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
