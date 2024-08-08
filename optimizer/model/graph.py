@@ -1,6 +1,7 @@
 import json
 import os
 import random
+from itertools import combinations
 from typing import Union
 
 import networkx as nx
@@ -460,3 +461,38 @@ def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
     gm = algorithms.isomorphism.DiGraphMatcher(original_g, sub_g)
     # Returns True if a subgraph of G1 is isomorphic to G2.
     return gm.subgraph_is_isomorphic()
+
+
+# We need to identify all maximal sets of nodes where all nodes in each set are mutually non-reachable
+
+def find_non_connected_pairs(G):
+    # Compute the transitive closure of the graph
+    TC = nx.transitive_closure(G)
+
+    all_nodes = list(G.nodes())
+    non_connected_pairs = []
+
+    for i, node1 in enumerate(all_nodes):
+        for node2 in all_nodes[i + 1:]:
+            if not TC.has_edge(node1, node2) and not TC.has_edge(node2, node1):
+                non_connected_pairs.append((node1, node2))
+
+    return non_connected_pairs
+
+
+G = nx.DiGraph()
+G.add_edges_from([
+    ('A', 'B'),
+    ('A', 'C'),
+    ('A', 'P'),
+    ('C', 'D'),
+    ('B', 'D'),
+    ('D', 'E'),
+    ('D', 'F'),
+    ('E', 'G'),
+    ('F', 'G')
+])
+
+non_connected_sets = find_non_connected_pairs(G)
+for i, non_connected_set in enumerate(non_connected_sets):
+    print(f"Non-connected node set {i}: {non_connected_set}")

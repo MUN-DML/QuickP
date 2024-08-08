@@ -128,7 +128,11 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         # just for verification
         comm_cost[source_op_ID, dest_op_ID] = communication_cost
 
-    # It is an SCHEDULING problem within each device.
+    # specify the data dependency
+    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
+        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+
+    # It is an SCHEDULING problem within each device. The scheduling must follow the topo sorting. Thus, a possible sort
     for topo_list in subgraph_topo_dict.values():
         # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device
         # processes only one operator at a time. Also, it indicates the data dependency
