@@ -469,30 +469,14 @@ def find_non_connected_pairs(G):
     # Compute the transitive closure of the graph
     TC = nx.transitive_closure(G)
 
+    # Generate all unique pairs of nodes
     all_nodes = list(G.nodes())
-    non_connected_pairs = []
+    pairs = combinations(all_nodes, 2)
 
-    for i, node1 in enumerate(all_nodes):
-        for node2 in all_nodes[i + 1:]:
-            if not TC.has_edge(node1, node2) and not TC.has_edge(node2, node1):
-                non_connected_pairs.append((node1, node2))
+    # Filter pairs to find non-connected pairs
+    non_connected_pairs = [
+        (node1, node2) for node1, node2 in pairs
+        if not TC.has_edge(node1, node2) and not TC.has_edge(node2, node1)
+    ]
 
     return non_connected_pairs
-
-
-G = nx.DiGraph()
-G.add_edges_from([
-    ('A', 'B'),
-    ('A', 'C'),
-    ('A', 'P'),
-    ('C', 'D'),
-    ('B', 'D'),
-    ('D', 'E'),
-    ('D', 'F'),
-    ('E', 'G'),
-    ('F', 'G')
-])
-
-non_connected_sets = find_non_connected_pairs(G)
-for i, non_connected_set in enumerate(non_connected_sets):
-    print(f"Non-connected node set {i}: {non_connected_set}")

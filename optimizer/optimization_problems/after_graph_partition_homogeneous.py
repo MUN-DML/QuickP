@@ -5,6 +5,8 @@ from gurobipy import *
 import torch
 import tensorflow as tf
 
+from optimizer.model.graph import find_non_connected_pairs
+
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +40,9 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                                          adjust_matrix=adjust_matrix,
                                                                                          weight_normalize=weight_norm_function)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
+    for subgraph in subgraph_dict.values():
+        for op_pair in find_non_connected_pairs(subgraph):
+            print(op_pair)
 
     operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
     device_subgraph_dict = construct_sub_graph(comp_graph, operator_device_dict)
