@@ -464,7 +464,6 @@ def is_subgraph(sub_g: DiGraph, original_g: DiGraph) -> bool:
 
 
 # We need to identify all maximal sets of nodes where all nodes in each set are mutually non-reachable
-
 def find_non_connected_pairs(G):
     # Compute the transitive closure of the graph
     TC = nx.transitive_closure(G)
@@ -480,3 +479,41 @@ def find_non_connected_pairs(G):
     ]
 
     return non_connected_pairs
+
+
+# a way to break DAG into levels and simplify the scheduling problem
+def topological_sort_groups(G):
+    # Perform a topological sort on the DAG
+    topo_sorted = list(nx.topological_sort(G))
+
+    # Group nodes by levels (nodes with no incoming edges can be processed in parallel)
+    levels = []
+    current_level = set()
+    for node in topo_sorted:
+        if not any(predecessor in current_level for predecessor in G.predecessors(node)):
+            current_level.add(node)
+        else:
+            if len(current_level) > 1:  # Only append sets with more than 1 node
+                levels.append(current_level)
+            current_level = {node}
+
+    if len(current_level) > 1:  # Ensure the last set is also checked
+        levels.append(current_level)
+
+    return levels
+
+
+G = nx.DiGraph()
+G.add_edges_from([
+    ('A', 'B'),
+    ('A', 'P'),
+    ('A', 'C'),
+    ('B', 'D'),
+    ('C', 'D'),
+    ('D', 'E'),
+    ('D', 'F'),
+    ('E', 'G'),
+    ('F', 'G')
+])
+
+print(topological_sort_groups(G))
