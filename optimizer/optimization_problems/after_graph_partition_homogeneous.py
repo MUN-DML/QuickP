@@ -85,17 +85,17 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     Define Constraints
     '''
 
-    # device-subgraph one-to-one mapping
-    # Step 1: Ensure each subgraph is assigned to exactly one device
-    # Constraint: Each subgraph is assigned to exactly one device
+    # If we assume a homogeneous environment where each operator has the same time consumption on each device and the
+    # bandwidth is also the same. Once we get the graph partition, the device-operation placement is already solved
+    # because it does not matter where each sub-graph is placed.
     for device_id, subgraph in device_subgraph_dict.items():
         for node_id in subgraph.nodes:
             model.addConstr(x[node_id, device_id] == 1)
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
-        comp_cost = quicksum(x[node_id, device_id] * comp_graph.getOperatorCompCostByDevice(node_id, device_id)
-                             for device_id in deviceTopo.getDeviceIDs())
+        assigned_device = operator_device_dict[node_id]
+        comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
         # Add constraints that schedule every node on exactly one machine
@@ -106,26 +106,18 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # device_pairs is a Set obj with unique device pair
     device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
                     src != dest}
-    # unit_comm_costs[device_id_src, device_id_dest] means the com cost per bit from device with source device to dest device
-    unit_comm_costs = {
-        (src_device, dest_device): deviceTopo.calUnitCommCostInUS(src_device, dest_device)
-        for src_device, dest_device in device_pairs
-    }
-    tensor_sizes = {
-        (source_op_ID, dest_op_ID): comp_graph.getOperatorOutputInBit(source_op_ID)
-        for source_op_ID, dest_op_ID in edge_cut_list
-    }
+
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
         source_op_ID, dest_op_ID = edge_id_tuple
         # Aggregate communication cost
-        comm_cost_expr = quicksum(
-            unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
-            x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
-            for device_id_src, device_id_dest in device_pairs
-        )
-        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr,
+        source_assigned_device = operator_device_dict[source_op_ID]
+        destination_assigned_device = operator_device_dict[dest_op_ID]
+        communication_cost = comp_graph.getOperatorOutputInBit(edge_id_tuple[0]) * deviceTopo.calUnitCommCostInUS(
+            source_assigned_device, destination_assigned_device)
+
+        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == communication_cost,
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
         # Ensures the communication starts only after the source operation finishes.
