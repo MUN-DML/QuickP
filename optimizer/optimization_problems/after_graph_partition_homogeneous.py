@@ -125,6 +125,9 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + communication_cost,
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
+        # just for verification
+        comm_cost[source_op_ID, dest_op_ID] = communication_cost
+
     # It is an SCHEDULING problem within each device.
     for topo_list in subgraph_topo_dict.values():
         # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device
@@ -189,7 +192,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=4)
+    parser.add_argument('--number_of_device', type=int, default=8)
     parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
