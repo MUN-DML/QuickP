@@ -126,7 +126,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
         # just for verification
         comm_cost[source_op_ID, dest_op_ID] = communication_cost
-
+    '''
     # specify the data dependency
     for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
         model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
@@ -138,7 +138,23 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                 # Use logical constraints to enforce the or condition without big-M
                 model.addGenConstrIndicator(z, True, finish[op_a] <= start[op_b])
                 model.addGenConstrIndicator(z, False, finish[op_b] <= start[op_a])
+    '''
+    # It is an SCHEDULING problem within each device.
+    for topo_list in subgraph_topo_dict.values():
+        # Since all nodes in a subgraph will be allocated to the same device, add constraint to ensure each device
+        # processes only one operator at a time. Also, it indicates the data dependency
+        for a, b in zip(topo_list, topo_list[1:]):
+            model.addConstr(finish[a] <= start[b])
 
+    # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
+    # Only edges in the edge_cut_list will bring communication cost
+    for subgraph_id in subgraph_dict.keys():
+        local_cut_off_list = get_incoming_and_outing_cut_off_edges_in_subgraph(edge_cut_list, subgraph_id,
+                                                                               partition_dict)
+        sorted_local_cut_off_list = sort_edges_by_topo_order(local_cut_off_list, global_topo_dict)
+        for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(sorted_local_cut_off_list,
+                                                                              sorted_local_cut_off_list[1:]):
+            model.addConstr(comm_end[source_op_ID1, dest_op_ID1] <= comm_start[source_op_ID2, dest_op_ID2])
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
     for op_end in finish.values():
