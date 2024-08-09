@@ -29,7 +29,7 @@ def gurobi_setup(name: str):
     return model
 
 
-def init_computing_and_device_graph(num_device, filename: str, if_clean_extra_operator=False,
+def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rate, if_clean_extra_operator=False,
                                     model_type=TFModelEnum.SMALL):
     # init device topo
     deviceTopo = DeviceGraph()
@@ -39,7 +39,7 @@ def init_computing_and_device_graph(num_device, filename: str, if_clean_extra_op
         model = model_type()
         optimizer = get_proper_optimizer(model)
         comp_graph = get_computation_graph(model=model, optimizer=optimizer)
-        comp_graph.generata_random_cost(num_device)
+        comp_graph.generata_random_cost(num_device, hetero_adjust_rate)
         comp_graph.save_to_file(filename)
 
     comp_graph = CompGraph.load_from_file(filename)

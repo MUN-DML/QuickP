@@ -10,18 +10,18 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.model.graph import determine_node_order
-from optimizer.optimization_problems.scheduling_algorithm import create_topological_position_dict
+from optimizer.optimization_problems.scheduling_algorithm import create_topological_position_dict, TopoSortFunction
 from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
     show_optimization_solution, sort_edges_by_topo_order
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL):
+def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL, scheduling_algorithm=TopoSortFunction.KAHN):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph_baseline.json',
-                                                             model_type=model_type)
+                                                             None, model_type=model_type)
     # global_topo_dict will decide the
-    global_topo_dict = create_topological_position_dict(comp_graph)
+    global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm)
     edge_topo_ordered_list = sort_edges_by_topo_order(comp_graph.getEdgeIDs(), global_topo_dict)
 
     # Init solver

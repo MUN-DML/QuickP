@@ -91,7 +91,7 @@ def from_topo_list_to_dict(sorted_nodes):
     return {node: pos for pos, node in enumerate(sorted_nodes)}
 
 
-def create_topological_position_dict(graph: CompGraph, sort_function: TopoSortFunction, edge_cuts: list):
+def create_topological_position_dict(graph: CompGraph, sort_function: TopoSortFunction, edge_cuts: list = None):
     """
     Creates a dictionary mapping each node to its position in the topologically sorted order.
 

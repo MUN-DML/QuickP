@@ -84,12 +84,8 @@ class CompGraph(DiGraph):
         with open(file_path, 'w') as f:
             f.write(json_data)
 
-    def generata_random_cost(self, device_number: int, computing_cost_ratio: list = None,
+    def generata_random_cost(self, device_number: int,
                              adjustment_percent: int = None):
-        if computing_cost_ratio is None:
-            computing_cost_ratio = [1] * device_number
-        else:
-            assert len(computing_cost_ratio) == device_number
         if len(self.getOperatorIDs()) == 0:
             raise ValueError("need to profile the real DNN first")
         for node in self.getOperatorObjs():
@@ -98,7 +94,6 @@ class CompGraph(DiGraph):
             for i in range(device_number):
                 device_name = f"mock_device_{i}"
                 base = node["comp_cost"].values()
-                ratio = computing_cost_ratio[i]
                 base_num = sum(base) / len(base)
                 adjustment_range = adjustment_percent * base_num if adjustment_percent else 0
 
@@ -106,7 +101,7 @@ class CompGraph(DiGraph):
                 adjustment = random.uniform(-adjustment_range, adjustment_range)
 
                 # Apply the adjustment to the number
-                adjusted_number = (base_num + adjustment) * ratio
+                adjusted_number = (base_num + adjustment)
 
                 node["comp_cost"][device_name] = adjusted_number
 
