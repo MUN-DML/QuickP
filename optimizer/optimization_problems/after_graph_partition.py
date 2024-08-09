@@ -12,8 +12,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.optimization_problems.scheduling_algorithm import create_topological_position_dict, TopoSortFunction
 from optimizer.graph_partitioner.metis_partition import metis_partition
-from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, normalize_list, \
-    map_subgraph_to_device
+from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, normalize_list
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
     show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
@@ -41,9 +40,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                                          weight_normalize=weight_norm_function,
                                                                                          sub_graph_weight_sum_ratio=ratio)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
-
-    operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
-    device_subgraph_dict = construct_sub_graph(comp_graph, operator_device_dict)
 
     # global_topo_dict will decide the
     global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm, edge_cut_list)
@@ -86,14 +82,33 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     Define Constraints
     '''
 
-    for device_id, subgraph in device_subgraph_dict.items():
-        for node_id in subgraph.nodes:
-            model.addConstr(x[node_id, device_id] == 1)
+    # device-subgraph one-to-one mapping
+    # Step 1: Ensure each subgraph is assigned to exactly one device
+    # Constraint: Each subgraph is assigned to exactly one device
+    model.addConstrs((quicksum(y[subgraph_id, device] for device in deviceTopo.getDeviceIDs()) == 1 for subgraph_id in
+                      subgraph_dict.keys()), "SubgraphAssignment")
+    # Constraint: Each device is assigned to exactly one subgraph
+    model.addConstrs((quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == 1 for device in
+                      deviceTopo.getDeviceIDs()), "DeviceAssignment")
+
+    # Link the assignment of operators to devices with the assignment of subgraphs to devices
+    for subgraph_id, subgraph in subgraph_dict.items():
+        for device in deviceTopo.getDeviceIDs():
+            for op in subgraph.getOperatorIDs():
+                # Ensure that if the subgraph is assigned to the device, the operator is also assigned to the device
+                model.addConstr(x[op, device] == y[subgraph_id, device])
+
+    # Add constraints that operators assigned cannot exceed the capacity
+    for device in deviceTopo.getDeviceIDs():
+        mem_sum = quicksum(x[node_id, device] * comp_graph.getOperator(node_id)["mem"]
+                           for node_id in comp_graph.getOperatorIDs())
+        model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(device),
+                        f"satisfy_memory_constraint_{device}")
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
-        assigned_device = operator_device_dict[node_id]
-        comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
+        comp_cost = quicksum(x[node_id, device_id] * comp_graph.getOperatorCompCostByDevice(node_id, device_id)
+                             for device_id in deviceTopo.getDeviceIDs())
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
         # Add constraints that schedule every node on exactly one machine
@@ -102,13 +117,30 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     # device_pairs is a Set obj with unique device pair
+    device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
+                    src != dest}
+    # unit_comm_costs[device_id_src, device_id_dest] means the com cost per bit from device with source device to dest device
+    unit_comm_costs = {
+        (src_device, dest_device): deviceTopo.calUnitCommCostInUS(src_device, dest_device)
+        for src_device, dest_device in device_pairs
+    }
+    tensor_sizes = {
+        (source_op_ID, dest_op_ID): comp_graph.getOperatorOutputInBit(source_op_ID)
+        for source_op_ID, dest_op_ID in edge_cut_list
+    }
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
         source_op_ID, dest_op_ID = edge_id_tuple
         # Aggregate communication cost
-        communication_cost = comp_graph.getOperatorOutputInBit(source_op_ID) * deviceTopo.calUnitCommCostInUS(
-            operator_device_dict[source_op_ID], operator_device_dict[dest_op_ID])
+        comm_cost_expr = quicksum(
+            unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
+            x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
+            for device_id_src, device_id_dest in device_pairs
+        )
+        # this is just for record
+        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr,
+                        f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
         # Ensures the communication starts only after the source operation finishes.
         model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
@@ -119,12 +151,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
 
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + communication_cost,
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost_expr,
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
-
-        # just for verification
-        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == communication_cost,
-                        f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
     for topo_list in subgraph_topo_dict.values():
