@@ -135,6 +135,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
             for device_id_src, device_id_dest in device_pairs
         )
+        # this is just for record
         model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr,
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
@@ -147,8 +148,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
 
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost[
-            source_op_ID, dest_op_ID],
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost_expr,
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
