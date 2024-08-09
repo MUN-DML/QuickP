@@ -84,30 +84,46 @@ class CompGraph(DiGraph):
         with open(file_path, 'w') as f:
             f.write(json_data)
 
-    def generata_random_cost(self, device_number: int,
-                             adjustment_percent: int = None):
+    def generata_random_cost(self, device_number: int, adjustment_percent: int = None):
         if len(self.getOperatorIDs()) == 0:
             raise ValueError("need to profile the real DNN first")
+
+        # Identify the original real device keys before adding mock devices
+        original_real_devices = None
         for node in self.getOperatorObjs():
-            assert node["comp_cost"] is not None
-            existing_real_device = list(node["comp_cost"].keys())
-            base = node["comp_cost"].values()
-            base_num = sum(base) / len(base)
-            for i in range(device_number):
-                device_name = f"mock_device_{i}"
-                adjustment_range = adjustment_percent/100 * base_num if adjustment_percent else 0
+            original_real_devices = [key for key in node["comp_cost"].keys() if "mock_device_" not in key]
+            break  # We only need to do this once, as the keys are the same for all nodes
 
-                # Generate a random adjustment within the range [-adjustment_percent%, adjustment_percent%]
-                adjustment = random.uniform(-adjustment_range, adjustment_range)
+        # Loop over each mock device
+        for i in range(device_number):
+            device_name = f"mock_device_{i}"
 
-                # Apply the adjustment to the number
-                adjusted_number = base_num + adjustment
+            # Select a random adjustment percent within [-adjustment_percent, adjustment_percent]
+            if adjustment_percent:
+                random_adjustment_percent = random.uniform(-adjustment_percent, adjustment_percent)
+                # Calculate the adjustment factor
+                adjustment_factor = 1 + random_adjustment_percent / 100
+            else:
+                adjustment_factor = 1
 
+            # Apply the adjustment factor to all operators for this device
+            for node in self.getOperatorObjs():
+                assert node["comp_cost"] is not None
+
+                # Calculate base using only the original real device data
+                base = [node["comp_cost"][key] for key in original_real_devices]
+                base_num = sum(base) / len(base)
+
+                # Apply the adjustment factor to the base number
+                adjusted_number = base_num * adjustment_factor
                 node["comp_cost"][device_name] = adjusted_number
 
-            # Delete keys after iteration
+        # After processing all devices, remove the real devices' costs
+        for node in self.getOperatorObjs():
+            existing_real_device = list(node["comp_cost"].keys())
             for key in existing_real_device:
-                del node["comp_cost"][key]
+                if "mock_device_" not in key:  # Ensure only real devices are removed
+                    del node["comp_cost"][key]
 
     def get_node_weight_function(self, node_weight_function: NodeWeightFunction):
         functions = {
