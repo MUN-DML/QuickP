@@ -28,7 +28,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              100, model_type=model_type)
-    ratio = normalize_list(comp_graph.get_comp_cost_sum_ratio())
+    computing_cost_dict = comp_graph.get_comp_cost_sum_ratio()
+    partition_ratio = normalize_list(list(computing_cost_dict.values()))
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
@@ -39,10 +40,10 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                                          node_weight_function=node_weight_function,
                                                                                          adjust_matrix=adjust_matrix,
                                                                                          weight_normalize=weight_norm_function,
-                                                                                         sub_graph_weight_sum_ratio=ratio)
+                                                                                         sub_graph_weight_sum_ratio=partition_ratio)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
-    operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
+    operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs(), computing_cost_dict)
     device_subgraph_dict = construct_sub_graph(comp_graph, operator_device_dict)
 
     # global_topo_dict will decide the
@@ -171,7 +172,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
         show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
-        print("the weight sum ratio is ", ratio)
+        print("the weight sum ratio is ", partition_ratio)
         show_graph_partition_info(weighted_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         if model is not None:

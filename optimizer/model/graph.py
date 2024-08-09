@@ -234,7 +234,7 @@ class CompGraph(DiGraph):
             for device, cost in comp_cost.items():
                 device_sums[device] += cost
 
-        return list(device_sums.values())
+        return device_sums
 
     def __str__(self):
         nodes_str = "\n".join(

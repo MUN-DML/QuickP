@@ -59,7 +59,7 @@ def identify_edges_cut(weighted_digraph: DiGraph, partition_dict: dict[str, int]
     return cut_edges, sum_of_weights
 
 
-def map_subgraph_to_device(partition_dict, device_id_list):
+def map_subgraph_to_device(partition_dict, device_id_list, computing_cost_dict: dict[str, float] = None):
     # Extract unique subgraph IDs
     subgraph_id_list = list(set(partition_dict.values()))
 
@@ -70,7 +70,6 @@ def map_subgraph_to_device(partition_dict, device_id_list):
     # Ensure they have the same length
     if len(subgraph_id_list) != len(device_id_list):
         raise ValueError("Subgraph ID list and device ID list must have the same length")
-    print("fuckkkk", subgraph_id_list, "fuckkkk", device_id_list)
     # Create a mapping from subgraph IDs to device IDs
     subgraph_to_device_map = {subgraph_id: device_id for subgraph_id, device_id in
                               zip(subgraph_id_list, device_id_list)}
