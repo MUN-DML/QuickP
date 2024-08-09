@@ -26,8 +26,8 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    node_weight_function=NodeWeightFunction.AVE_COMP_COST,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   adjust_matrix=None, weight_norm_function: WeightNormalizationFunction = None,
-                                   scheduling_algorithm=TopoSortFunction.KAHN_PRIORITY):
+                                   adjust_matrix=None, weight_norm_function=WeightNormalizationFunction.MIN_MAX,
+                                   scheduling_algorithm=TopoSortFunction.KAHN):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
@@ -40,7 +40,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                                          node_weight_function=node_weight_function,
                                                                                          edge_weight_function=edge_weight_function,
                                                                                          adjust_matrix=adjust_matrix,
-                                                                                         weight_normalize=weight_norm_function)
+                                                                                         weight_normalize=weight_norm_function,
+                                                                                         sub_graph_weight_sum_ratio=None)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
@@ -203,7 +204,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=5)
+    parser.add_argument('--number_of_device', type=int, default=3)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')

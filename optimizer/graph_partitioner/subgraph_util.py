@@ -70,7 +70,7 @@ def map_subgraph_to_device(partition_dict, device_id_list):
     # Ensure they have the same length
     if len(subgraph_id_list) != len(device_id_list):
         raise ValueError("Subgraph ID list and device ID list must have the same length")
-
+    print("fuckkkk", subgraph_id_list, "fuckkkk", device_id_list)
     # Create a mapping from subgraph IDs to device IDs
     subgraph_to_device_map = {subgraph_id: device_id for subgraph_id, device_id in
                               zip(subgraph_id_list, device_id_list)}
@@ -227,3 +227,9 @@ class WeightNormalizationFunction(Enum):
 
 class WeightAdjustmentFunction(Enum):
     CRITICAL_SCORE = recalculate_weights_critical_score
+
+
+def normalize_list(weight_sum_list: list) -> list[float]:
+    array = np.array(weight_sum_list)
+    normalized_array = array / array.sum()
+    return normalized_array.tolist()

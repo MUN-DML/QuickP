@@ -22,11 +22,13 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    node_weight_function=NodeWeightFunction.AVE_COMP_COST,
                                    edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
-                                   adjust_matrix=None, weight_norm_function: WeightNormalizationFunction = None,
-                                   scheduling_algorithm=TopoSortFunction.KAHN_PRIORITY):
+                                   adjust_matrix=None, weight_norm_function=WeightNormalizationFunction.MIN_MAX,
+                                   scheduling_algorithm=TopoSortFunction.KAHN):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
+
+    ratio = comp_graph.get_comp_cost_sum_ratio()
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
@@ -36,7 +38,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                                          edge_weight_function=edge_weight_function,
                                                                                          node_weight_function=node_weight_function,
                                                                                          adjust_matrix=adjust_matrix,
-                                                                                         weight_normalize=weight_norm_function)
+                                                                                         weight_normalize=weight_norm_function,
+                                                                                         sub_graph_weight_sum_ratio=ratio)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     # global_topo_dict will decide the

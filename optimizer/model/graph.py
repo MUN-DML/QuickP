@@ -1,6 +1,7 @@
 import json
 import os
 import random
+from collections import defaultdict
 from itertools import combinations
 from typing import Union
 
@@ -213,6 +214,16 @@ class CompGraph(DiGraph):
                            self.in_degree(node) == 0 and self.getOperatorCompCostSum(node) == 0]
         print("removed nodes:", nodes_to_remove)
         self.remove_nodes_from(nodes_to_remove)
+
+    def get_comp_cost_sum_ratio(self):
+        device_sums = defaultdict(float)
+
+        for node_id in self.nodes():
+            comp_cost = self.nodes[node_id]['comp_cost']
+            for device, cost in comp_cost.items():
+                device_sums[device] += cost
+
+        return device_sums.values()
 
     def __str__(self):
         nodes_str = "\n".join(
