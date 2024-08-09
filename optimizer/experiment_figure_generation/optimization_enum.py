@@ -1,6 +1,6 @@
 from enum import Enum
 
-from optimizer.optimization_problems.after_graph_partition import optimize_after_graph_partition
+from optimizer.optimization_problems.after_graph_partition_hetero import optimize_after_graph_partition
 from optimizer.optimization_problems.baseline import optimize_baseline
 
 

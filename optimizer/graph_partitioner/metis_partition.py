@@ -32,10 +32,11 @@ from optimizer.graph_partitioner.subgraph_util import identify_edges_cut, recalc
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
-def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction = NodeWeightFunction.AVE_COMP_COST,
-                    edge_weight_function: EdgeWeightFunction = EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
+def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction,
+                    edge_weight_function: EdgeWeightFunction,
                     visualization=False, adjust_matrix=None,
-                    weight_normalize: WeightNormalizationFunction = None) -> tuple[dict[Any, Any], list[tuple], CompGraph, int]:
+                    weight_normalize: WeightNormalizationFunction = None,
+                    sub_graph_weight_sum_ratio: list = None) -> tuple[dict[Any, Any], list[tuple], CompGraph, int]:
     def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):
         # Visualize the partitioned graph
         nx.set_node_attributes(weight_graph, partition_result, 'partition')
@@ -78,7 +79,7 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
     metis_graph = metis.networkx_to_metis(G_undirected)
 
     # Perform graph partitioning using METIS
-    edgecuts, parts = metis.part_graph(metis_graph, nparts=num_partitions)
+    edgecuts, parts = metis.part_graph(metis_graph, nparts=num_partitions, tpwgts=sub_graph_weight_sum_ratio)
     # Assign partition labels to the original DiGraph nodes {node_id: placement_index}
     partition_dict = {node: part for node, part in zip(graph.nodes(), parts)}
 
