@@ -12,7 +12,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.optimization_problems.scheduling_algorithm import create_topological_position_dict, TopoSortFunction
 from optimizer.graph_partitioner.metis_partition import metis_partition
-from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction
+from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, normalize_list
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
     show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
@@ -28,7 +28,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              model_type=model_type)
 
-    ratio = comp_graph.get_comp_cost_sum_ratio()
+    ratio = normalize_list(comp_graph.get_comp_cost_sum_ratio())
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
