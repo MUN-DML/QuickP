@@ -27,9 +27,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              100, model_type=model_type)
-    print("fack", comp_graph.get_comp_cost_sum_ratio())
     ratio = normalize_list(comp_graph.get_comp_cost_sum_ratio())
-    print("fff", ratio)
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
@@ -201,6 +199,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
         show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
+        print("the weight sum ratio is ", ratio)
         show_graph_partition_info(weighted_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         if model is not None:
