@@ -26,9 +26,10 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                    scheduling_algorithm=TopoSortFunction.KAHN):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
-                                                             50, model_type=model_type)
-
+                                                             100, model_type=model_type)
+    print("fack", comp_graph.get_comp_cost_sum_ratio())
     ratio = normalize_list(comp_graph.get_comp_cost_sum_ratio())
+    print("fff", ratio)
     # Init solver
     model = gurobi_setup("minimize_maxload")
 

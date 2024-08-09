@@ -91,17 +91,17 @@ class CompGraph(DiGraph):
         for node in self.getOperatorObjs():
             assert node["comp_cost"] is not None
             existing_real_device = list(node["comp_cost"].keys())
+            base = node["comp_cost"].values()
+            base_num = sum(base) / len(base)
             for i in range(device_number):
                 device_name = f"mock_device_{i}"
-                base = node["comp_cost"].values()
-                base_num = sum(base) / len(base)
-                adjustment_range = adjustment_percent * base_num if adjustment_percent else 0
+                adjustment_range = adjustment_percent/100 * base_num if adjustment_percent else 0
 
-                # Generate a random adjustment within the range [-5%, 5%]
+                # Generate a random adjustment within the range [-adjustment_percent%, adjustment_percent%]
                 adjustment = random.uniform(-adjustment_range, adjustment_range)
 
                 # Apply the adjustment to the number
-                adjusted_number = (base_num + adjustment)
+                adjusted_number = base_num + adjustment
 
                 node["comp_cost"][device_name] = adjusted_number
 
