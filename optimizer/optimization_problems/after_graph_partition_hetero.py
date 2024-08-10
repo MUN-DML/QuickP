@@ -42,8 +42,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                          weight_normalize=weight_norm_function,
                                                                          sub_graph_weight_sum_ratio=partition_ratio)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
-    get_subgraph_op_num_weight_sum_dict(comp_graph, partition_dict)
-    operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs(), device_computing_cost_dict)
+    _, partition_weights = get_subgraph_op_num_weight_sum_dict(comp_graph, partition_dict)
+    operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs(), device_computing_cost_dict, partition_weights)
     device_subgraph_dict = construct_sub_graph(comp_graph, operator_device_dict)
 
     # global_topo_dict will decide the
