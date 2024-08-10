@@ -16,7 +16,7 @@ def gurobi_setup(name: str):
     model = Model(name)
     model.setParam("LogToConsole", 0)
     model.setParam("LogFile", "gurobi.log")
-    model.setParam("MIPGap", 0.01)
+    model.setParam("MIPGap", 0.31)
     model.setParam("TimeLimit", 2400)
     model.setParam("MIPFocus", 1)
 
