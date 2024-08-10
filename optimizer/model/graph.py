@@ -523,19 +523,3 @@ def topological_sort_groups(G):
         levels.append(current_level)
 
     return levels
-
-
-G = nx.DiGraph()
-G.add_edges_from([
-    ('A', 'B'),
-    ('A', 'P'),
-    ('A', 'C'),
-    ('B', 'D'),
-    ('C', 'D'),
-    ('D', 'E'),
-    ('D', 'F'),
-    ('E', 'G'),
-    ('F', 'G')
-])
-
-print(topological_sort_groups(G))
