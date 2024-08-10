@@ -65,8 +65,9 @@ def map_subgraph_to_device(partition_dict, device_id_list, computing_cost_dict: 
 
     # Sort to ensure consistency
     subgraph_id_list.sort()
-    device_id_list.sort()
-
+    if computing_cost_dict:
+        # Sort device_id_list based on the values in computing_cost_dict, the faster device will be placed first
+        device_id_list.sort(key=lambda device_id: computing_cost_dict.get(device_id, float('inf')))
     # Ensure they have the same length
     if len(subgraph_id_list) != len(device_id_list):
         raise ValueError("Subgraph ID list and device ID list must have the same length")

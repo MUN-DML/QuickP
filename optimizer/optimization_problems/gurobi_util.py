@@ -157,7 +157,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
     print("total_computing_time_per_device:", result['total_computing_time_per_device'])
 
 
-def show_graph_partition_info(weighted_graph: CompGraph, partition_dict, edge_cut_list, weight_cut_sum):
+def get_subgraph_op_num_weight_sum_dict(weighted_graph: CompGraph, partition_dict):
     # Count the number of nodes in each partition
     # Count the number of nodes and sum of weights in each partition
     partition_counts = {}
@@ -169,6 +169,11 @@ def show_graph_partition_info(weighted_graph: CompGraph, partition_dict, edge_cu
             partition_weights[part] = 0
         partition_counts[part] += 1
         partition_weights[part] += weighted_graph.nodes[node]['node_weight']
+    return partition_counts, partition_weights
+
+
+def show_graph_partition_info(weighted_graph: CompGraph, partition_dict, edge_cut_list, weight_cut_sum):
+    partition_counts, partition_weights = get_subgraph_op_num_weight_sum_dict(weighted_graph, partition_dict)
     print("how many operators for each subgraph", partition_counts, "the sum of weights for each subgraph",
           partition_weights)
     print("edges cut during partition", edge_cut_list)

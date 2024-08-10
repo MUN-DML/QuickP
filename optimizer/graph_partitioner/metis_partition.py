@@ -36,7 +36,7 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
                     edge_weight_function: EdgeWeightFunction,
                     visualization=False, adjust_matrix=None,
                     weight_normalize: WeightNormalizationFunction = None,
-                    sub_graph_weight_sum_ratio: list = None) -> tuple[dict[Any, Any], list[tuple], CompGraph, int]:
+                    sub_graph_weight_sum_ratio: list = None) -> tuple[dict[Any, Any], list[tuple], int]:
     def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):
         # Visualize the partitioned graph
         nx.set_node_attributes(weight_graph, partition_result, 'partition')
@@ -91,4 +91,4 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
         visualize_graph_partitioned(graph, partition_dict)
 
     # return the placement dict, list of edges cut and the weighted graph itself
-    return partition_dict, cut_edge_list, graph, edgecuts
+    return partition_dict, cut_edge_list, edgecuts

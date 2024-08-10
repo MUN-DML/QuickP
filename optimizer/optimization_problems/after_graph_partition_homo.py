@@ -35,13 +35,13 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     model = gurobi_setup("minimize_maxload")
 
     # Partition the computation graph
-    partition_dict, edge_cut_list, weighted_graph, edge_cut_weight_sum = metis_partition(comp_graph,
-                                                                                         num_partitions=number_of_devices,
-                                                                                         node_weight_function=node_weight_function,
-                                                                                         edge_weight_function=edge_weight_function,
-                                                                                         adjust_matrix=adjust_matrix,
-                                                                                         weight_normalize=weight_norm_function,
-                                                                                         sub_graph_weight_sum_ratio=None)
+    partition_dict, edge_cut_list, edge_cut_weight_sum = metis_partition(comp_graph,
+                                                                         num_partitions=number_of_devices,
+                                                                         node_weight_function=node_weight_function,
+                                                                         edge_weight_function=edge_weight_function,
+                                                                         adjust_matrix=adjust_matrix,
+                                                                         weight_normalize=weight_norm_function,
+                                                                         sub_graph_weight_sum_ratio=None)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
@@ -189,7 +189,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
         show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
-        show_graph_partition_info(weighted_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
+        show_graph_partition_info(comp_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         if model is not None:
             model.dispose()

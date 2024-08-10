@@ -15,7 +15,8 @@ from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, normalize_list, \
     map_subgraph_to_device
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order
+    show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order, \
+    get_subgraph_op_num_weight_sum_dict
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
@@ -28,22 +29,21 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              100, model_type=model_type)
-    computing_cost_dict = comp_graph.get_comp_cost_sum_ratio()
-    partition_ratio = normalize_list(list(computing_cost_dict.values()))
+    device_computing_cost_dict = comp_graph.get_comp_cost_sum_ratio()
+    partition_ratio = normalize_list(list(device_computing_cost_dict.values()))
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
     # Partition the computation graph
-    partition_dict, edge_cut_list, weighted_graph, edge_cut_weight_sum = metis_partition(comp_graph,
-                                                                                         num_partitions=number_of_devices,
-                                                                                         edge_weight_function=edge_weight_function,
-                                                                                         node_weight_function=node_weight_function,
-                                                                                         adjust_matrix=adjust_matrix,
-                                                                                         weight_normalize=weight_norm_function,
-                                                                                         sub_graph_weight_sum_ratio=partition_ratio)
+    partition_dict, edge_cut_list, edge_cut_weight_sum = metis_partition(comp_graph, num_partitions=number_of_devices,
+                                                                         edge_weight_function=edge_weight_function,
+                                                                         node_weight_function=node_weight_function,
+                                                                         adjust_matrix=adjust_matrix,
+                                                                         weight_normalize=weight_norm_function,
+                                                                         sub_graph_weight_sum_ratio=partition_ratio)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
-
-    operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs(), computing_cost_dict)
+    get_subgraph_op_num_weight_sum_dict(comp_graph, partition_dict)
+    operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs(), device_computing_cost_dict)
     device_subgraph_dict = construct_sub_graph(comp_graph, operator_device_dict)
 
     # global_topo_dict will decide the
@@ -173,7 +173,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     elif model.status == GRB.OPTIMAL:
         show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
         print("the weight sum ratio is ", partition_ratio)
-        show_graph_partition_info(weighted_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
+        show_graph_partition_info(comp_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         if model is not None:
             model.dispose()
