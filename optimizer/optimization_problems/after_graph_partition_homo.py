@@ -56,33 +56,16 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
 
     # Define variables
-    x = {}  # [operator_id, device_id] == 1 means this operator is assigned to this device
-    y = {}  # [subgraph_id, device_id] == 1 means this subgraph is assigned to this device
-    start = {}  # start[node_id] represent the starting time of this node
-    finish = {}  # finish[node_id] represent the finish time of this node
-    comm_start = {}  # comm_start[source_op, dest_op] represent the communication
-    comm_end = {}
-    comm_cost = {}
-
-    for node_id in comp_graph.getOperatorIDs():
-        for machine_id in deviceTopo.getDeviceIDs():
-            x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{node_id}_{machine_id}")
-        start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"start_{node_id}")
-        finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"finish_{node_id}")
-
-    for subgraph_id in subgraph_dict.keys():
-        for device in deviceTopo.getDeviceIDs():
-            y[subgraph_id, device] = model.addVar(vtype=GRB.BINARY, name=f"y_{subgraph_id}_{device}")
-
-    for edge_id_tuple in comp_graph.getEdgeIDs():
-        source_op_ID, dest_op_ID = edge_id_tuple
-        if edge_id_tuple in edge_cut_list:
-            comm_start[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                                name=f"comm_start_{source_op_ID}_{dest_op_ID}")
-            comm_end[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                              name=f"comm_end_{source_op_ID}_{dest_op_ID}")
-            comm_cost[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                               name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
+    x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
+                      name="x")  # [operator_id, device_id] == 1 means this operator is assigned to this device
+    start = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                          name="start")  # start[node_id] represent the starting time of this node
+    finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                           name="finish")  # finish[node_id] represent the finish time of this node
+    comm_start = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0,
+                               name="comm_start")  # comm_start[source_op, dest_op] represent the communication
+    comm_end = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
+    comm_cost = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="comm_cost")
 
     '''
     Define Constraints
