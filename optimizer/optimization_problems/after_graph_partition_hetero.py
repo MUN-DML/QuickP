@@ -29,7 +29,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              100, model_type=model_type)
-    device_computing_cost_dict = comp_graph.get_comp_cost_sum_ratio()
+    device_computing_cost_dict = comp_graph.get_comp_cost_sum_ratio(number_of_devices)
     partition_ratio = normalize_list(list(device_computing_cost_dict.values()))
     # Init solver
     model = gurobi_setup("minimize_maxload")

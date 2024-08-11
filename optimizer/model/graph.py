@@ -226,7 +226,7 @@ class CompGraph(DiGraph):
         print("removed nodes:", nodes_to_remove)
         self.remove_nodes_from(nodes_to_remove)
 
-    def get_comp_cost_sum_ratio(self):
+    def get_comp_cost_sum_ratio(self, number_of_device: int):
         device_sums = defaultdict(float)
 
         for node_id in self.nodes():
@@ -234,7 +234,7 @@ class CompGraph(DiGraph):
             for device, cost in comp_cost.items():
                 device_sums[device] += cost
 
-        return device_sums
+        return dict(list(device_sums.items())[:number_of_device])
 
     def __str__(self):
         nodes_str = "\n".join(
