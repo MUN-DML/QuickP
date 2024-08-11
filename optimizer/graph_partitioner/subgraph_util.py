@@ -62,7 +62,7 @@ def identify_edges_cut(weighted_digraph: DiGraph, partition_dict: dict[str, int]
 def map_subgraph_to_device(partition_dict, device_id_list, computing_cost_dict: dict[str, float] = None, subgraph_weight_dict: dict = None):
     # Extract unique subgraph IDs
     subgraph_id_list = list(set(partition_dict.values()))
-
+    assert len(subgraph_id_list) == len(device_id_list)
     # Sort to ensure consistency
     if subgraph_weight_dict:
         # Sort subgraph_id_list based on the weight sum of each graph, the subgraph with a higher weight sum will be placed first

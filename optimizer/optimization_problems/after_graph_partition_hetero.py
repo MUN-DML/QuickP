@@ -44,7 +44,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
     _, partition_weights = get_subgraph_op_num_weight_sum_dict(comp_graph, partition_dict)
     operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs(), device_computing_cost_dict, partition_weights)
-    device_subgraph_dict = construct_sub_graph(comp_graph, operator_device_dict)
 
     # global_topo_dict will decide the
     global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm, edge_cut_list)
@@ -66,19 +65,18 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     Define Constraints
     '''
 
-    for device_id, subgraph in device_subgraph_dict.items():
-        for node_id in subgraph.nodes:
-            model.addConstr(x[node_id, device_id] == 1)
+    for op_id in comp_graph.getOperatorIDs():
+        for device_id in deviceTopo.getDeviceIDs():
+            if device_id == operator_device_dict[op_id]:
+                model.addConstr(x[op_id, device_id] == 1)
+            else:
+                model.addConstr(x[op_id, device_id] == 0)
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
         assigned_device = operator_device_dict[node_id]
         comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
-
-        # Add constraints that schedule every node on exactly one machine
-        model.addConstr(quicksum(x[node_id, device] for device in deviceTopo.getDeviceIDs()) == 1,
-                        name=f"one_device_{node_id}")
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     # device_pairs is a Set obj with unique device pair
