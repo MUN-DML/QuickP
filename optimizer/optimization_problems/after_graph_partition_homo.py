@@ -47,9 +47,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
 
-    # global_topo_dict will decide the
-    global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm, edge_cut_list)
-
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
 
