@@ -44,8 +44,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                          sub_graph_weight_sum_ratio=None)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
+    # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
-    device_subgraph_dict = construct_sub_graph(comp_graph, operator_device_dict)
 
     # global_topo_dict will decide the
     global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm, edge_cut_list)
@@ -123,7 +123,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
             model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
             model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
-
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
