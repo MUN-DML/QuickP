@@ -76,9 +76,9 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
         source_op_ID, dest_op_ID = edge_id_tuple
         s_placement = None
         d_placement = None
-        comm_cost_var = model.getVarByName(f"comm_cost_{source_op_ID}_{dest_op_ID}")
-        comm_start_var = model.getVarByName(f"comm_start_{source_op_ID}_{dest_op_ID}")
-        comm_end_var = model.getVarByName(f"comm_end_{source_op_ID}_{dest_op_ID}")
+        comm_cost_var = model.getVarByName(f"comm_cost[{source_op_ID},{dest_op_ID}]")
+        comm_start_var = model.getVarByName(f"comm_start[{source_op_ID},{dest_op_ID}]")
+        comm_end_var = model.getVarByName(f"comm_end[{source_op_ID},{dest_op_ID}]")
         if comm_cost_var and comm_start_var and comm_end_var:
             comm_cost = comm_cost_var.X
             comm_start_time = comm_start_var.X
