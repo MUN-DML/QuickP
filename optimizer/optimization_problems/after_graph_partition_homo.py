@@ -126,9 +126,11 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
-    sorted_cut_off_list = sort_edges_by_topo_order(edge_cut_list, global_topo_dict)
-    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(sorted_cut_off_list, sorted_cut_off_list[1:]):
-        model.addConstr(comm_end[source_op_ID1, dest_op_ID1] <= comm_start[source_op_ID2, dest_op_ID2])
+    order_link = {}
+    for communication_a, communication_b in combinations(edge_cut_list, 2):
+        order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
+        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (1 - order_link[communication_a, communication_b]))
+        model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
