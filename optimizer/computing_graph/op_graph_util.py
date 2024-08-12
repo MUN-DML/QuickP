@@ -177,7 +177,7 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     for op in graph.get_operations():
         # name:  AssignAddVariableOp_1/resource outputs:  [<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>] inputs:  () control:  []
         # name:  AssignAddVariableOp_1 outputs:  [] inputs:  (<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>, <tf.Tensor 'Cast:0' shape=() dtype=float32>) control:  [<tf.Operation 'AssignAddVariableOp' type=AssignAddVariableOp>]
-        print("name: ", op.name, "outputs: ", op.outputs, "inputs: ", op.inputs, 'control: ', op.control_inputs)
+        # print("name: ", op.name, "outputs: ", op.outputs, "inputs: ", op.inputs, 'control: ', op.control_inputs)
         # op.outputs is a tf.Tensor
         shape: tf.TensorShape = op.outputs[0].shape if op.outputs else tf.TensorShape([])
         dtype: DType = op.outputs[0].dtype if op.outputs else tf.float32

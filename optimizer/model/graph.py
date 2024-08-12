@@ -222,7 +222,8 @@ class CompGraph(DiGraph):
 
     def clean_marginal_operators(self):
         nodes_to_remove = [node for node in self.nodes if self.getOperatorOutputInBit(node) == 0 and
-                           self.in_degree(node) == 0 and self.getOperatorCompCostSum(node) == 0]
+                           (self.in_degree(node) + self.out_degree(node)) == 0
+                           and self.getOperatorCompCostSum(node) == 0]
         print("removed nodes:", nodes_to_remove)
         self.remove_nodes_from(nodes_to_remove)
 
@@ -432,6 +433,10 @@ def keep_largest_component(digraph):
 
     # Find the largest component
     largest_component = max(weakly_connected_components, key=len)
+
+    # Identify nodes to be deleted (those not in the largest component)
+    nodes_to_delete = set(digraph.nodes()) - set(largest_component)
+    print(f"Nodes to be deleted: {nodes_to_delete}")
 
     # Create a subgraph containing only the largest component
     largest_component_subgraph = digraph.subgraph(largest_component).copy()

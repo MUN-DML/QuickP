@@ -7,7 +7,8 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.computing_graph.op_graph_util import get_proper_optimizer
-from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component
+from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component, \
+    visualize_graph
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
@@ -43,11 +44,8 @@ def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rat
         comp_graph.save_to_file(filename)
 
     comp_graph = CompGraph.load_from_file(filename)
-    if has_more_than_one_component(comp_graph):
-        comp_graph = keep_largest_component(comp_graph)
-        if if_clean_extra_operator:
-            comp_graph.clean_marginal_operators()
-
+    comp_graph.clean_marginal_operators()
+    visualize_graph(comp_graph, show_node_labels=False)
     return deviceTopo, comp_graph
 
 

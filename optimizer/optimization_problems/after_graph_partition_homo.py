@@ -13,7 +13,7 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.optimization_problems.scheduling_algorithm import create_topological_position_dict, TopoSortFunction
+from optimizer.optimization_problems.scheduling_algorithm import TopoSortFunction
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
     map_subgraph_to_device
@@ -26,8 +26,7 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    node_weight_function=NodeWeightFunction.AVE_COMP_COST,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   adjust_matrix=None, weight_norm_function=WeightNormalizationFunction.MIN_MAX,
-                                   scheduling_algorithm=TopoSortFunction.KAHN):
+                                   adjust_matrix=None, weight_norm_function=WeightNormalizationFunction.MIN_MAX):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              None, model_type=model_type)
@@ -193,5 +192,4 @@ if __name__ == '__main__':
 
     optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
                                    adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
-                                   weight_norm_function=weight_normalization_dict[args.normalization_function],
-                                   scheduling_algorithm=topo_sort_dict[args.topo_sort_function])
+                                   weight_norm_function=weight_normalization_dict[args.normalization_function])
