@@ -173,17 +173,22 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     G = CompGraph()
 
     # Add nodes and edges to the graph
+    # https://www.tensorflow.org/api_docs/python/tf/Operation
     for op in graph.get_operations():
+        # name:  AssignAddVariableOp_1/resource outputs:  [<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>] inputs:  () control:  []
+        # name:  AssignAddVariableOp_1 outputs:  [] inputs:  (<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>, <tf.Tensor 'Cast:0' shape=() dtype=float32>) control:  [<tf.Operation 'AssignAddVariableOp' type=AssignAddVariableOp>]
+        print("name: ", op.name, "outputs: ", op.outputs, "inputs: ", op.inputs, 'control: ', op.control_inputs)
+        # op.outputs is a tf.Tensor
         shape: tf.TensorShape = op.outputs[0].shape if op.outputs else tf.TensorShape([])
         dtype: DType = op.outputs[0].dtype if op.outputs else tf.float32
         # Each node is an operation in the TensorFlow graph
         G.add_new_node(op.name, op_type=op.type, output_size=shape, output_type=dtype)
-        for input_tensor in op.inputs:
+        for input_op in op.control_inputs:
             # Create an edge from input operation to the current operation
-            G.add_new_edge(input_tensor.op.name, op.name)
+            G.add_new_edge(input_op.name, op.name)
     if not nx.is_directed_acyclic_graph(G):
         raise "comp_graph is not directed acyclic"
-    # visualize_graph(G, show_labels=False)
+    visualize_graph(G, show_node_labels=False)
     return G
 
 
