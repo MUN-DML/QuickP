@@ -38,7 +38,7 @@ def compute_priority(graph, edge_cuts):
     speed = convert_data_size(20, 'GB', 'bit')
     # Adjust priority based on edge cuts
     for (u, v) in edge_cuts:
-        priority[v] += int(convert_time(graph.getOperatorOutputInBit(v) / speed, 's', 'us'))
+        priority[v] += int(convert_time(graph.getEdgeTensorSize(u, v) / speed, 's', 'us'))
 
     return priority
 

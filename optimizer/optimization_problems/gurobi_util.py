@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from gurobipy import *
 
 from py_util import compare_2d_list
@@ -30,8 +32,8 @@ def gurobi_setup(name: str):
     return model
 
 
-def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rate, if_clean_extra_operator=False,
-                                    model_type=TFModelEnum.SMALL):
+def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rate, model_type=TFModelEnum.SMALL) \
+        -> Tuple[DeviceGraph, CompGraph]:
     # init device topo
     deviceTopo = DeviceGraph()
     deviceTopo.generata_fat_tree_topo(num_device, 30, 20, 1)
@@ -44,7 +46,7 @@ def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rat
         comp_graph.save_to_file(filename)
 
     comp_graph = CompGraph.load_from_file(filename)
-    comp_graph.clean_marginal_operators()
+    comp_graph = keep_largest_component(comp_graph)
     visualize_graph(comp_graph, show_node_labels=False)
     return deviceTopo, comp_graph
 
@@ -83,7 +85,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
             comm_end_time = comm_end_var.X
             if comm_cost == 0:
                 continue
-            tensor_size = comp_graph.getOperatorOutputInBit(source_op_ID)
+            tensor_size = comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID)
             for device, ops in result['Assignment'].items():
                 if source_op_ID in [op[0] for op in ops]:
                     s_placement = device

@@ -135,19 +135,18 @@ class CompGraph(DiGraph):
     def get_edge_weight_function(self, edge_weight_function: EdgeWeightFunction):
         functions = {
             EdgeWeightFunction.MOCK_COMMUNICATION_COST: self.getOperatorMockCommCostInUS,
-            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getOperatorOutputWithComputingCost,
-            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getOperatorOutputInBit,
+            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getEdgeOutputWithComputingCost,
+            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getEdgeTensorSize,
             EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP: self.getOperatorMockCommCostWithComputingCost,
             EdgeWeightFunction.NODE_COMP_COST_AS_EDGE_WEIGHT: self.getOperatorCompCostAve
         }
         return functions[edge_weight_function]
 
-    def add_new_node(self, operator_id, op_type, output_size: tf.TensorShape, output_type):
-        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={}, output_size=output_size,
-                         output_type=output_type)
+    def add_new_node(self, operator_id, op_type):
+        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={})
 
-    def add_new_edge(self, source_id, dest_id):
-        super().add_edge(u_of_edge=source_id, v_of_edge=dest_id)
+    def add_new_edge(self, source_id, dest_id, tensor_size_in_bit):
+        super().add_edge(u_of_edge=source_id, v_of_edge=dest_id, tensor_size_in_bit=tensor_size_in_bit)
 
     def getOperator(self, node_id):
         return self.nodes[node_id]
@@ -155,20 +154,16 @@ class CompGraph(DiGraph):
     def getConnection(self, source_id, dest_id):
         return self.edges[source_id, dest_id]
 
-    def getOperatorOutputSizeAndType(self, node_id):
-        return self.nodes[node_id]["output_size"], self.nodes[node_id]["output_type"]
+    def getEdgeTensorSize(self, source_id, dest_id):
+        return self.edges[source_id, dest_id]['tensor_size_in_bit']
 
-    def getOperatorOutputInBit(self, node_id):
-        shape, dtype = self.getOperatorOutputSizeAndType(node_id)
-        return tensor_shape_to_bits(shape, dtype=dtype)
-
-    def getOperatorOutputWithComputingCost(self, node_id):
-        output_size = self.getOperatorOutputInBit(node_id)
-        average_comp_cost = self.getOperatorCompCostAve(node_id)
+    def getEdgeOutputWithComputingCost(self, source_id, dest_id):
+        output_size = self.getEdgeTensorSize(source_id, dest_id)
+        average_comp_cost = self.getOperatorCompCostAve(source_id)
         return output_size + average_comp_cost
 
-    def getOperatorMockCommCostInUS(self, node_id, mock_band_in_GB_per_second=20):
-        output_size = self.getOperatorOutputInBit(node_id)
+    def getOperatorMockCommCostInUS(self, source_id, dest_id, mock_band_in_GB_per_second=20):
+        output_size = self.getEdgeTensorSize(source_id, dest_id)
         result = convert_time(output_size / convert_data_size(mock_band_in_GB_per_second, 'GB', 'bit'), 's', 'us')
         return result
 
@@ -221,7 +216,7 @@ class CompGraph(DiGraph):
         return list(self.edges.values())
 
     def clean_marginal_operators(self):
-        nodes_to_remove = [node for node in self.nodes if self.getOperatorOutputInBit(node) == 0 and
+        nodes_to_remove = [node for node in self.nodes if
                            (self.in_degree(node) + self.out_degree(node)) == 0
                            and self.getOperatorCompCostSum(node) == 0]
         print("removed nodes:", nodes_to_remove)

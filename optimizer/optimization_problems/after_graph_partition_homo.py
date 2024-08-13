@@ -89,7 +89,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         # placed on different devices
         source_op_ID, dest_op_ID = edge_id_tuple
         # Aggregate communication cost
-        communication_cost = comp_graph.getOperatorOutputInBit(source_op_ID) * deviceTopo.calUnitCommCostInUS(
+        communication_cost = comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * deviceTopo.calUnitCommCostInUS(
             operator_device_dict[source_op_ID], operator_device_dict[dest_op_ID])
 
         # Ensures the communication starts only after the source operation finishes.

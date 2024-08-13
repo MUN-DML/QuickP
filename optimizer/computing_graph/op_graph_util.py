@@ -23,6 +23,7 @@ from transformers import TFGPT2LMHeadModel, GPT2Tokenizer
 from DNN_model_tf.openai_gpt2 import get_openai_gpt2_tokenizer
 from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import visualize_graph, CompGraph
+from py_util import tensor_shape_to_bits
 
 train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
 train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
@@ -177,15 +178,23 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     for op in graph.get_operations():
         # name:  AssignAddVariableOp_1/resource outputs:  [<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>] inputs:  () control:  []
         # name:  AssignAddVariableOp_1 outputs:  [] inputs:  (<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>, <tf.Tensor 'Cast:0' shape=() dtype=float32>) control:  [<tf.Operation 'AssignAddVariableOp' type=AssignAddVariableOp>]
-        # print("name: ", op.name, "outputs: ", op.outputs, "inputs: ", op.inputs, 'control: ', op.control_inputs)
-        # op.outputs is a tf.Tensor
-        shape: tf.TensorShape = op.outputs[0].shape if op.outputs else tf.TensorShape([])
-        dtype: DType = op.outputs[0].dtype if op.outputs else tf.float32
+        print("name: ", op.name, "outputs: ", op.outputs, "inputs: ", op.inputs, 'control: ', op.control_inputs)
+        # a very good example, one op will have more than one inputs and more than one outputs
+        # name:  sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits
+        # outputs:  [<tf.Tensor 'sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:0' shape=(200,) dtype=float32>, <tf.Tensor 'sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:1' shape=(200, 10) dtype=float32>]
+        # inputs:  (<tf.Tensor 'sequential_1/dense_1/Add:0' shape=(200, 10) dtype=float32>, <tf.Tensor 'sparse_categorical_crossentropy/Squeeze:0' shape=(200,) dtype=int64>) control:  []
+
         # Each node is an operation in the TensorFlow graph
-        G.add_new_node(op.name, op_type=op.type, output_size=shape, output_type=dtype)
-        for input_op in op.control_inputs:
+        G.add_new_node(op.name, op_type=op.type)
+        # op.inputs is a tuple of tf.Tensor objects
+        for input_tensor in op.inputs:
+            # get the source operator name by removing : and its successors
+            input_name = input_tensor.name.split(':')[0]
+            dtype = input_tensor.dtype
+            shape = input_tensor.shape
+            tensor_size_in_bits = tensor_shape_to_bits(shape, dtype)
             # Create an edge from input operation to the current operation
-            G.add_new_edge(input_op.name, op.name)
+            G.add_new_edge(input_name, op.name, tensor_size_in_bits)
     if not nx.is_directed_acyclic_graph(G):
         raise "comp_graph is not directed acyclic"
     visualize_graph(G, show_node_labels=False)

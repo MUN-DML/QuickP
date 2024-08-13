@@ -108,7 +108,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         for src_device, dest_device in device_pairs
     }
     tensor_sizes = {
-        (source_op_ID, dest_op_ID): comp_graph.getOperatorOutputInBit(source_op_ID)
+        (source_op_ID, dest_op_ID): comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID)
         for source_op_ID, dest_op_ID in edge_cut_list
     }
     for edge_id_tuple in edge_cut_list:

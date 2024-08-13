@@ -82,7 +82,7 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
         for src_device, dest_device in device_pairs
     }
     tensor_sizes = {
-        (source_op_ID, dest_op_ID): comp_graph.getOperatorOutputInBit(source_op_ID)
+        (source_op_ID, dest_op_ID): comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID)
         for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs()
     }
     for edge_id_tuple in list(comp_graph.getEdgeIDs()):
