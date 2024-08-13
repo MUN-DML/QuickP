@@ -27,8 +27,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
-from optimizer.graph_partitioner.subgraph_util import identify_edges_cut, recalculate_node_weights, \
-    normalize_weights_min_max, WeightNormalizationFunction
+from optimizer.graph_partitioner.subgraph_util import identify_edges_cut, WeightNormalizationFunction
+from optimizer.weight_adjustment_before_partition.weight_adjustment_function import recalculate_node_weights
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
@@ -67,7 +67,8 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
     for edge in graph.edges:
         source_op, dest_op = edge
         graph.edges[edge]['edge_weight'] = int(edge_weight_func(source_op, dest_op))
-    recalculate_node_weights(graph, adjust_matrix=adjust_matrix)
+    if adjust_matrix:
+        recalculate_node_weights(graph, adjust_matrix=adjust_matrix)
     if weight_normalize:
         weight_normalize(graph)
     graph.graph['node_weight_attr'] = 'node_weight'

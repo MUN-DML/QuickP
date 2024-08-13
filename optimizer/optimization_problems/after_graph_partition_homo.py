@@ -6,8 +6,6 @@ from gurobipy import *
 import torch
 import tensorflow as tf
 
-from optimizer.model.graph import find_non_connected_pairs
-
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -18,15 +16,19 @@ from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
     map_subgraph_to_device
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order
+    show_optimization_solution, show_graph_partition_info
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
+from optimizer.model.graph import find_non_connected_pairs
+from optimizer.weight_adjustment_before_partition.weight_adjustment_function import WeightAdjustMatrix, \
+    WeightAdjustmentFunction
 
 
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    node_weight_function=NodeWeightFunction.AVE_COMP_COST,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   adjust_matrix=None, weight_norm_function=WeightNormalizationFunction.MIN_MAX):
+                                   adjust_matrix: WeightAdjustMatrix=None,
+                                   weight_norm_function=WeightNormalizationFunction.MIN_MAX):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              None, model_type=model_type)
@@ -191,5 +193,5 @@ if __name__ == '__main__':
                       "KahnPriority": TopoSortFunction.KAHN_PRIORITY}
 
     optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
-                                   adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
+                                   adjust_matrix={"function_type": WeightAdjustmentFunction.Recursive_Increase, "node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
                                    weight_norm_function=weight_normalization_dict[args.normalization_function])
