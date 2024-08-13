@@ -47,7 +47,8 @@ def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rat
 
     comp_graph = CompGraph.load_from_file(filename)
     comp_graph = keep_largest_component(comp_graph)
-    visualize_graph(comp_graph, show_node_labels=False)
+    # comp_graph.clean_marginal_operators()
+    # visualize_graph(comp_graph, show_node_labels=False, show_edge_labels=False)
     return deviceTopo, comp_graph
 
 

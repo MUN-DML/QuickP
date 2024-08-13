@@ -197,8 +197,7 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
             G.add_new_edge(input_name, op.name, tensor_size_in_bits)
     if not nx.is_directed_acyclic_graph(G):
         raise "comp_graph is not directed acyclic"
-    visualize_graph(G, show_node_labels=False, show_edge_labels=False)
-    print("demo", list(G.nodes))
+    # visualize_graph(G, show_node_labels=False, show_edge_labels=False)
     return G
 
 

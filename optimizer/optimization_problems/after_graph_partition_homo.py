@@ -6,7 +6,7 @@ from gurobipy import *
 import torch
 import tensorflow as tf
 
-from optimizer.model.graph import find_non_connected_pairs, topological_sort_groups
+from optimizer.model.graph import find_non_connected_pairs
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
