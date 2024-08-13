@@ -29,12 +29,6 @@ class CompGraph(DiGraph):
         CompGraph: A CompGraph object.
         """
         data = json.loads(json_data)
-        # Convert tensor shapes from lists back to TensorShape objects
-        for node in data['nodes']:
-            if 'output_size' in node:
-                node['output_size'] = tf.TensorShape(node['output_size'])
-            if 'output_type' in node:
-                node['output_type'] = tf.dtypes.as_dtype(node['output_type'])
         graph = node_link_graph(data, directed=True)
         return CompGraph(graph)
 
@@ -65,12 +59,6 @@ class CompGraph(DiGraph):
         str: JSON data as a string.
         """
         data = node_link_data(self)
-        # Convert TensorShape objects to lists for JSON serialization
-        for node in data['nodes']:
-            if 'output_size' in node and isinstance(node['output_size'], tf.TensorShape):
-                node['output_size'] = node['output_size'].as_list()
-            if 'output_type' in node and isinstance(node['output_type'], tf.DType):
-                node['output_type'] = node['output_type'].name
         return json.dumps(data)
 
     def save_to_file(self, file_path):

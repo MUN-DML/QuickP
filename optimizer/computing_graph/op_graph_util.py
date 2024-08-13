@@ -178,7 +178,7 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
     for op in graph.get_operations():
         # name:  AssignAddVariableOp_1/resource outputs:  [<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>] inputs:  () control:  []
         # name:  AssignAddVariableOp_1 outputs:  [] inputs:  (<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>, <tf.Tensor 'Cast:0' shape=() dtype=float32>) control:  [<tf.Operation 'AssignAddVariableOp' type=AssignAddVariableOp>]
-        print("name: ", op.name, "outputs: ", op.outputs, "inputs: ", op.inputs, 'control: ', op.control_inputs)
+        # print("name: ", op.name, "outputs: ", op.outputs, "inputs: ", op.inputs, 'control: ', op.control_inputs)
         # a very good example, one op will have more than one inputs and more than one outputs
         # name:  sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits
         # outputs:  [<tf.Tensor 'sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:0' shape=(200,) dtype=float32>, <tf.Tensor 'sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:1' shape=(200, 10) dtype=float32>]
@@ -197,7 +197,8 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
             G.add_new_edge(input_name, op.name, tensor_size_in_bits)
     if not nx.is_directed_acyclic_graph(G):
         raise "comp_graph is not directed acyclic"
-    visualize_graph(G, show_node_labels=False)
+    visualize_graph(G, show_node_labels=False, show_edge_labels=False)
+    print("demo", list(G.nodes))
     return G
 
 

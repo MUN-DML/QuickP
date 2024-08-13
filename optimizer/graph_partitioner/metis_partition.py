@@ -66,7 +66,7 @@ def metis_partition(graph: CompGraph, num_partitions, node_weight_function: Node
         graph.nodes[node]['node_weight'] = int(node_weight_func(node))
     for edge in graph.edges:
         source_op, dest_op = edge
-        graph.edges[edge]['edge_weight'] = int(edge_weight_func(source_op))
+        graph.edges[edge]['edge_weight'] = int(edge_weight_func(source_op, dest_op))
     recalculate_node_weights(graph, adjust_matrix=adjust_matrix)
     if weight_normalize:
         weight_normalize(graph)

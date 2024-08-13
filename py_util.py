@@ -292,7 +292,8 @@ def tensor_shape_to_bits(tensor_shape, dtype: DType):
         raise ValueError(f"Unsupported data type: {dtype}")
 
     # Calculate the total size in bits
-    total_bits = total_elements * bits_per_element
+    total_bits = int(total_elements * bits_per_element)
+
     return total_bits
 
 
