@@ -511,3 +511,24 @@ def topological_sort_groups(G):
         levels.append(current_level)
 
     return levels
+
+
+def label_node_levels(G):
+    # Perform a topological sort on the DAG
+    topo_sorted = list(nx.topological_sort(G))
+
+    # Dictionary to store the level of each node
+    node_levels = {}
+
+    for node in topo_sorted:
+        # Initialize the level of the current node. Assign a -1 first
+        max_predecessor_level = -1
+
+        # Iterate through the predecessors to find the maximum level
+        for predecessor in G.predecessors(node):
+            max_predecessor_level = max(max_predecessor_level, node_levels[predecessor])
+
+        # Level is 1 + max level of its predecessors, or 0 if it has no predecessors
+        node_levels[node] = max_predecessor_level + 1
+
+    return node_levels
