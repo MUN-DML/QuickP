@@ -70,6 +70,25 @@ def recalculate_weights_critical_score(dag: CompGraph, adjust_matrix: dict = Non
                 dag[node][successor]['edge_weight'] = adjustment
 
 
+def longest_dependency_chain(dag: CompGraph, adjust_matrix: dict = None):
+    if adjust_matrix.get("edge_enable", False):
+        # 1. Identify the longest path
+        longest_path = nx.dag_longest_path(dag, weight='edge_weight')
+
+        # 2. Increase weights for the longest path
+        for u, v in zip(longest_path[:-1], longest_path[1:]):
+            dag[u][v]['edge_weight'] *= 5  # Increase weight for the critical longest path
+
+        # 3. Optionally, identify and weight significant sub-paths
+        for node in longest_path:
+            for target in dag.nodes():
+                if node != target:
+                    for sub_path in nx.all_simple_paths(dag, source=node, target=target):
+                        if len(sub_path) > 1 and sub_path != longest_path:
+                            for u, v in zip(sub_path[:-1], sub_path[1:]):
+                                dag[u][v]['edge_weight'] *= 2  # Increase weight for significant sub-paths
+
+
 class WeightAdjustmentFunction(Enum):
     Recursive_Increase = recursive_increase
     CRITICAL_SCORE = recalculate_weights_critical_score
