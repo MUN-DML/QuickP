@@ -17,10 +17,9 @@ from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
     map_subgraph_to_device
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info, initialize_queues, update_queue
+    show_optimization_solution, show_graph_partition_info, FIFO_scheduling
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
-from optimizer.model.graph import find_non_connected_pairs, label_node_levels
 from optimizer.weight_adjustment_before_partition.weight_adjustment_function import WeightAdjustMatrix, \
     WeightAdjustmentFunction
 
@@ -118,55 +117,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         model.addConstr(comm_cost[source_op_ID, dest_op_ID] == communication_cost,
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
-    # It is an SCHEDULING problem within each device.
-    device_queues = initialize_queues(subgraph_dict, comp_graph)
-    total_items = sum(len(queue) for queue in device_queues.values())
-    print("len of the init: ", total_items, 'The init device_queues is ', device_queues)
-
-    # Initialize the set to track completed tasks
-    completed_tasks = set()
-
-    # This list will store all the constraints that we batch before optimization
-    last_job_dict = {subgraph_id: None for subgraph_id in subgraph_dict.keys()}
-    # Process each subgraph independently
-    while any(queue for queue in device_queues.values()):
-        for subgraph_id, queue in device_queues.items():
-            if queue:
-                # Get the next task to execute for this subgraph
-                task = queue.popleft()
-
-                # check if this task get completed
-                if task in completed_tasks:
-                    raise ValueError("this is a repeated task")
-
-                # check if all dependency satisfy
-                for predecessor in ancestors(comp_graph, task):
-                    if predecessor not in completed_tasks:
-                        raise ValueError(f"{task} 's dependency {predecessor} not satisfied")
-
-                # Ensure the task starts after its ready time
-                model.addConstr(start[task] >= ready[task],
-                                name=f"start_after_ready_{task}_on_subgraph_{subgraph_id}")
-
-                # Ensure that the task starts after the previous task finishes within the same subgraph
-                if last_job_dict[subgraph_id] is not None:
-                    model.addConstr(start[task] >= finish[last_job_dict[subgraph_id]],
-                                    name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
-
-                # Track the finish time of the current task
-                last_job_dict[subgraph_id] = task
-                print("the current subgraph is", subgraph_id, "the new last job is ", last_job_dict[subgraph_id])
-
-                # Track task completion
-                completed_tasks.add(task)
-
-                # Update the queue based on the completion of the task
-                update_queue(device_queues, task, comp_graph, completed_tasks, partition_dict)
-
-    # Get the collection of nodes that are in the graph but not in completed_tasks
-    all_nodes = set(comp_graph.nodes())
-    remaining_nodes = all_nodes - completed_tasks
-    assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
+    FIFO_scheduling(model, start, ready, finish, comp_graph, subgraph_dict, partition_dict)
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
