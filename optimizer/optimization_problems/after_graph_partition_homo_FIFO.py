@@ -28,7 +28,7 @@ from optimizer.weight_adjustment_before_partition.weight_adjustment_function imp
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                    node_weight_function=NodeWeightFunction.AVE_COMP_COST,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   adjust_matrix: WeightAdjustMatrix=None,
+                                   adjust_matrix: WeightAdjustMatrix = None,
                                    weight_norm_function=WeightNormalizationFunction.MIN_MAX):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
@@ -60,7 +60,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="finish")  # finish[node_id] represent the finish time of this node
     ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                           name="finish")  # ready[node_id] represent the ready time of this node, simulating Queue
+                          name="finish")  # ready[node_id] represent the ready time of this node, simulating Queue
     comm_start = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0,
                                name="comm_start")  # comm_start[source_op, dest_op] represent the communication
     comm_end = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
@@ -120,6 +120,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # It is an SCHEDULING problem within each device.
     device_queues = initialize_queues(subgraph_dict, comp_graph)
+    print('The init device_queues is ', device_queues)
 
     # Initialize the set to track completed tasks
     completed_tasks = set()
@@ -144,23 +145,28 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
                 # Ensure the task starts after its ready time
                 model.addConstr(start[task] >= ready[task],
-                                                   name=f"start_after_ready_{task}_on_subgraph_{subgraph_id}")
+                                name=f"start_after_ready_{task}_on_subgraph_{subgraph_id}")
 
                 # Ensure that the task starts after the previous task finishes within the same subgraph
                 if last_job_dict[subgraph_id] is not None:
                     model.addConstr(start[task] >= finish[last_job_dict[subgraph_id]],
-                                                       name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
+                                    name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
 
-                print("the current subgraph is", subgraph_id, "the current last job ", last_job_dict[subgraph_id], 'ready to execute ', task)
                 # Track the finish time of the current task
                 last_job_dict[subgraph_id] = task
-                print("after ", task, "the new last job is ", last_job_dict[subgraph_id])
+                print("the current subgraph is", subgraph_id, "the new last job is ", last_job_dict[subgraph_id], 'The current queue is ', device_queues[subgraph_id])
 
                 # Track task completion
                 completed_tasks.add(task)
 
                 # Update the queue based on the completion of the task
                 update_queue(device_queues, task, comp_graph, completed_tasks, partition_dict)
+
+    # Get the collection of nodes that are in the graph but not in completed_tasks
+    all_nodes = set(comp_graph.nodes())
+    remaining_nodes = all_nodes - completed_tasks
+    print("how many nodes in total", comp_graph.number_of_nodes(), "how many unscheduled: ", len(remaining_nodes),
+          "unscheduled tasks:", remaining_nodes)
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
@@ -218,7 +224,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=4)
+    parser.add_argument('--number_of_device', type=int, default=2)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
@@ -234,5 +240,6 @@ if __name__ == '__main__':
                       "KahnPriority": TopoSortFunction.KAHN_PRIORITY}
 
     optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
-                                   adjust_matrix={"function_type": WeightAdjustmentFunction.Recursive_Increase, "node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
+                                   adjust_matrix={"function_type": WeightAdjustmentFunction.Recursive_Increase,
+                                                  "node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
                                    weight_norm_function=weight_normalization_dict[args.normalization_function])
