@@ -141,10 +141,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                     model.addConstr(start[task] >= last_finish_time[subgraph_id],
                                                        name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
 
-                assigned_device = operator_device_dict[task]
-                comp_cost = comp_graph.getOperatorCompCostByDevice(task, assigned_device)
                 # Track the finish time of the current task
-                last_finish_time[subgraph_id] = start[task] + comp_cost
+                last_finish_time[subgraph_id] = finish[task]
 
                 # Track task completion
                 completed_tasks.add(task)
