@@ -5,6 +5,7 @@ from itertools import combinations
 from gurobipy import *
 import torch
 import tensorflow as tf
+from networkx import ancestors
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
@@ -132,6 +133,15 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                 # Get the next task to execute for this subgraph
                 task = queue.popleft()
 
+                # check if this task get completed
+                if task in completed_tasks:
+                    raise ValueError("this is a repeated task")
+
+                # check if all dependency satisfy
+                for predecessor in ancestors(comp_graph, task):
+                    if predecessor not in completed_tasks:
+                        raise ValueError(f"{task} 's dependency {predecessor} not satisfied")
+
                 # Ensure the task starts after its ready time
                 model.addConstr(start[task] >= ready[task],
                                                    name=f"start_after_ready_{task}_on_subgraph_{subgraph_id}")
@@ -140,9 +150,11 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                 if last_finish_time[subgraph_id] is not None:
                     model.addConstr(start[task] >= last_finish_time[subgraph_id],
                                                        name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
-
+                print("the current last_finish_time ", last_finish_time[subgraph_id], 'ready to execute ', task)
                 # Track the finish time of the current task
                 last_finish_time[subgraph_id] = finish[task]
+                print("after ", task, "the new last_finish_time is ", last_finish_time[subgraph_id])
+
 
                 # Track task completion
                 completed_tasks.add(task)
