@@ -120,7 +120,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     completed_tasks = set()
 
     # This list will store all the constraints that we batch before optimization
-    last_finish_time = {subgraph_id: None for subgraph_id in range(len(subgraph_dict))}
+    last_finish_time = {subgraph_id: None for subgraph_id in subgraph_dict.keys()}
     # Process each subgraph independently
     while any(queue for queue in device_queues.values()):
         for subgraph_id, queue in device_queues.items():
