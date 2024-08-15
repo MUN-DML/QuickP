@@ -79,6 +79,10 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             else:
                 model.addConstr(x[op_id, device_id] == 0)
 
+    # Data dependency
+    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
+        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
         assigned_device = operator_device_dict[node_id]
@@ -110,9 +114,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
-        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
-    M = 100000
     device_queues = initialize_queues(subgraph_dict)
 
     # Initialize the set to track completed tasks
@@ -147,6 +148,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
+    M = 100000
     order_link = {}
     for communication_a, communication_b in combinations(edge_cut_list, 2):
         order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
