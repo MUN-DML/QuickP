@@ -206,14 +206,18 @@ def sort_edges_by_topo_order(edges, topo_order, sort_dest=False):
     return sorted(edges, key=key_func)
 
 
-def initialize_queues(subgraph_dict):
+def initialize_queues(subgraph_dict, dependency_graph):
     # Initialize a queue for each subgraph (device)
     device_queues = {subgraph_id: deque() for subgraph_id, subgraph in subgraph_dict.items()}
 
-    # Initialize with tasks that have no predecessors within the subgraph
+    # Initialize with tasks that have no predecessors in the global graph
     for subgraph_id, subgraph in subgraph_dict.items():
         for operator_id in subgraph.nodes():
-            if not list(subgraph.predecessors(operator_id)):  # No predecessors within the subgraph
+            # Check if the node has no predecessors in the global dependency graph
+            global_predecessors = list(dependency_graph.predecessors(operator_id))
+
+            # If the node has no predecessors in the global graph, it can be added to the queue
+            if not global_predecessors:
                 # Add to the appropriate subgraph's queue
                 device_queues[subgraph_id].append(operator_id)
 
