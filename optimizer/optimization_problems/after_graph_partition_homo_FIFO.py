@@ -166,8 +166,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # Get the collection of nodes that are in the graph but not in completed_tasks
     all_nodes = set(comp_graph.nodes())
     remaining_nodes = all_nodes - completed_tasks
-    print("how many nodes in total", comp_graph.number_of_nodes(), "how many unscheduled: ", len(remaining_nodes),
-          "unscheduled tasks:", remaining_nodes)
+    assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
@@ -225,7 +224,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=4)
+    parser.add_argument('--number_of_device', type=int, default=2)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
