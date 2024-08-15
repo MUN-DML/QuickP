@@ -89,6 +89,10 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
+    for node in comp_graph.nodes():
+        for predecessor in comp_graph.predecessors(node):
+            model.addConstr(ready[node] >= finish[predecessor], name=f"fifo_{predecessor}_to_{node}")
+
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
@@ -137,14 +141,16 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                     model.addConstr(start[task] >= last_finish_time[subgraph_id],
                                                        name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
 
+                assigned_device = operator_device_dict[task]
+                comp_cost = comp_graph.getOperatorCompCostByDevice(task, assigned_device)
                 # Track the finish time of the current task
-                last_finish_time[subgraph_id] = finish[task]
+                last_finish_time[subgraph_id] = start[task] + comp_cost
 
                 # Track task completion
                 completed_tasks.add(task)
 
                 # Update the queue based on the completion of the task
-                update_queue(queue, task, comp_graph, subgraph_dict[subgraph_id], completed_tasks)
+                update_queue(device_queues, task, comp_graph, completed_tasks, partition_dict)
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost

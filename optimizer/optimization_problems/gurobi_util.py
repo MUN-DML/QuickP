@@ -206,44 +206,6 @@ def sort_edges_by_topo_order(edges, topo_order, sort_dest=False):
     return sorted(edges, key=key_func)
 
 
-def sort_edges_by_subgraph_and_dependency(edges, topo_order):
-    # Function to get the relevant node within the subgraph for sorting
-    def relevant_node(edge):
-        src, dest = edge
-        if src in topo_order.keys():
-            return src
-        if dest in topo_order.keys():
-            return dest
-        ValueError("both src and dest are not in topo_order")
-
-    # Function to compare two edges
-    def compare_edges(edge1, edge2):
-        node1 = relevant_node(edge1)
-        node2 = relevant_node(edge2)
-
-        # Compare based on topological order of the relevant nodes
-        if topo_order[node1] != topo_order[node2]:
-            return topo_order[node1] - topo_order[node2]
-
-        # If the relevant nodes are the same, compare based on dependency
-        src1, dest1 = edge1
-        src2, dest2 = edge2
-
-        # Check if the first edge should come before the second based on dependency
-        if dest1 == node1 and src2 == node2:
-            return 1
-        if src1 == node1 and dest2 == node2:
-            return -1
-
-        # If none of the above conditions apply, consider them equal
-        return 0
-
-    # Sort the edges using the custom comparison function
-    sorted_edges = sorted(edges, key=cmp_to_key(compare_edges))
-
-    return sorted_edges
-
-
 def initialize_queues(subgraph_dict):
     # Initialize a queue for each subgraph (device)
     device_queues = {subgraph_id: deque() for subgraph_id, subgraph in subgraph_dict.items()}
@@ -258,7 +220,7 @@ def initialize_queues(subgraph_dict):
     return device_queues
 
 
-def update_queue(device_queue, finished_task, dependency_graph, subgraph, completed_tasks):
+def update_queue(device_queues, finished_task, dependency_graph, completed_tasks, partition_dict):
     # Check all successors of the finished task in the global dependency graph
     successors = list(dependency_graph.successors(finished_task))
     for succ in successors:
@@ -266,5 +228,7 @@ def update_queue(device_queue, finished_task, dependency_graph, subgraph, comple
         predecessors = list(dependency_graph.predecessors(succ))
         if all(predecessor in completed_tasks for predecessor in predecessors):
             # Enqueue the task to the task queue of this subgraph (device)
-            if succ in subgraph.nodes():  # Only enqueue if the successor belongs to the same subgraph
-                device_queue.append(succ)
+            subgraph_of_succ = partition_dict.get(succ)
+            if subgraph_of_succ:
+                # Enqueue the task to the task queue of the correct subgraph (device)
+                device_queues[subgraph_of_succ].append(succ)
