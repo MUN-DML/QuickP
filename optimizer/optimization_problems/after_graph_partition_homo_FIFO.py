@@ -125,7 +125,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     completed_tasks = set()
 
     # This list will store all the constraints that we batch before optimization
-    last_finish_time = {subgraph_id: None for subgraph_id in subgraph_dict.keys()}
+    last_job_dict = {subgraph_id: None for subgraph_id in subgraph_dict.keys()}
     # Process each subgraph independently
     while any(queue for queue in device_queues.values()):
         for subgraph_id, queue in device_queues.items():
@@ -147,14 +147,14 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                    name=f"start_after_ready_{task}_on_subgraph_{subgraph_id}")
 
                 # Ensure that the task starts after the previous task finishes within the same subgraph
-                if last_finish_time[subgraph_id] is not None:
-                    model.addConstr(start[task] >= last_finish_time[subgraph_id],
+                if last_job_dict[subgraph_id] is not None:
+                    model.addConstr(start[task] >= finish[last_job_dict[subgraph_id]],
                                                        name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
-                print("the current last_finish_time ", last_finish_time[subgraph_id], 'ready to execute ', task)
-                # Track the finish time of the current task
-                last_finish_time[subgraph_id] = finish[task]
-                print("after ", task, "the new last_finish_time is ", last_finish_time[subgraph_id])
 
+                print("the current subgraph is", subgraph_id, "the current last job ", last_job_dict[subgraph_id], 'ready to execute ', task)
+                # Track the finish time of the current task
+                last_job_dict[subgraph_id] = task
+                print("after ", task, "the new last job is ", last_job_dict[subgraph_id])
 
                 # Track task completion
                 completed_tasks.add(task)
