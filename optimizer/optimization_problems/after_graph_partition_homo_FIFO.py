@@ -16,7 +16,7 @@ from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
     map_subgraph_to_device
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info
+    show_optimization_solution, show_graph_partition_info, initialize_queues, update_queue
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 from optimizer.model.graph import find_non_connected_pairs, label_node_levels
@@ -85,10 +85,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
-    for node in comp_graph.nodes():
-        for predecessor in comp_graph.predecessors(node):
-            model.addConstr(ready[node] >= finish[predecessor], name=f"fifo_{predecessor}_to_{node}")
-
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
@@ -117,22 +113,37 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
         model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
     M = 100000
-    # Now schedule tasks on a device based on their ready times and enforce FIFO order on the device
-    for subgraph_id, subgraph in subgraph_dict.items():
-        previous_finish_time = None  # To track the finish time of the previous task on the device
+    device_queues = initialize_queues(subgraph_dict)
 
-        for operator_id in subgraph.getOperatorIDs():
-            # Ensure that the task cannot start before it is ready
-            model.addConstr(start[operator_id] >= ready[operator_id], name=f"start_after_ready_{operator_id}_on_{subgraph_id}")
+    # Initialize the set to track completed tasks
+    completed_tasks = set()
 
-            if previous_finish_time is not None:
-                # Enforce that each task starts after the previous task on the device has finished
-                model.addConstr(start[operator_id] >= previous_finish_time,
-                                name=f"fifo_{previous_task}_to_{operator_id}_on_{subgraph_id}")
+    # This list will store all the constraints that we batch before optimization
+    last_finish_time = {subgraph_id: None for subgraph_id in range(len(subgraph_dict))}
+    # Process each subgraph independently
+    while any(queue for queue in device_queues.values()):
+        for subgraph_id, queue in device_queues.items():
+            if queue:
+                # Get the next task to execute for this subgraph
+                task = queue.popleft()
 
-            # Update the finish time of the current task for the next iteration
-            previous_finish_time = finish[operator_id]
-            previous_task = operator_id  # Update the reference to the previous task
+                # Ensure the task starts after its ready time
+                model.addConstr(start[task] >= ready[task],
+                                                   name=f"start_after_ready_{task}_on_subgraph_{subgraph_id}")
+
+                # Ensure that the task starts after the previous task finishes within the same subgraph
+                if last_finish_time[subgraph_id] is not None:
+                    model.addConstr(start[task] >= last_finish_time[subgraph_id],
+                                                       name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
+
+                # Track the finish time of the current task
+                last_finish_time[subgraph_id] = finish[task]
+
+                # Track task completion
+                completed_tasks.add(task)
+
+                # Update the queue based on the completion of the task
+                update_queue(queue, task, comp_graph, subgraph_dict[subgraph_id], completed_tasks)
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
