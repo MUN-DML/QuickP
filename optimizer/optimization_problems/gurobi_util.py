@@ -232,7 +232,8 @@ def update_queue(device_queues, finished_task, dependency_graph, completed_tasks
         predecessors = list(dependency_graph.predecessors(succ))
         if all(predecessor in completed_tasks for predecessor in predecessors):
             # Enqueue the task to the task queue of this subgraph (device)
-            subgraph_of_succ = partition_dict.get(succ)
-            if subgraph_of_succ:
-                # Enqueue the task to the task queue of the correct subgraph (device)
-                device_queues[subgraph_of_succ].append(succ)
+            subgraph_of_succ = partition_dict[succ]
+            if subgraph_of_succ != partition_dict[finished_task]:
+                print(f"succ {succ} belongs to {subgraph_of_succ} while the current graph is {partition_dict[finished_task]}")
+            # Enqueue the task to the task queue of the correct subgraph (device)
+            device_queues[subgraph_of_succ].append(succ)

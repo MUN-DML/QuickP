@@ -120,7 +120,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
     # It is an SCHEDULING problem within each device.
     device_queues = initialize_queues(subgraph_dict, comp_graph)
-    print('The init device_queues is ', device_queues)
+    total_items = sum(len(queue) for queue in device_queues.values())
+    print("len of the init: ", total_items, 'The init device_queues is ', device_queues)
 
     # Initialize the set to track completed tasks
     completed_tasks = set()
@@ -154,7 +155,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
                 # Track the finish time of the current task
                 last_job_dict[subgraph_id] = task
-                print("the current subgraph is", subgraph_id, "the new last job is ", last_job_dict[subgraph_id], 'The current queue is ', device_queues[subgraph_id])
+                print("the current subgraph is", subgraph_id, "the new last job is ", last_job_dict[subgraph_id])
 
                 # Track task completion
                 completed_tasks.add(task)
@@ -224,7 +225,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=2)
+    parser.add_argument('--number_of_device', type=int, default=4)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
