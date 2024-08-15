@@ -1,7 +1,9 @@
+from collections import deque
 from functools import cmp_to_key
 from typing import Tuple
 
 from gurobipy import *
+from networkx import DiGraph
 
 from py_util import compare_2d_list
 
@@ -240,3 +242,29 @@ def sort_edges_by_subgraph_and_dependency(edges, topo_order):
     sorted_edges = sorted(edges, key=cmp_to_key(compare_edges))
 
     return sorted_edges
+
+
+def initialize_queues(subgraph_dict):
+    # Initialize a queue for each subgraph (device)
+    device_queues = {subgraph_id: deque() for subgraph_id, subgraph in subgraph_dict.items()}
+
+    # Initialize with tasks that have no predecessors within the subgraph
+    for subgraph_id, subgraph in subgraph_dict.items():
+        for operator_id in subgraph.nodes():
+            if not list(subgraph.predecessors(operator_id)):  # No predecessors within the subgraph
+                # Add to the appropriate subgraph's queue
+                device_queues[subgraph_id].append(operator_id)
+
+    return device_queues
+
+
+def update_queue(device_queue, finished_task, dependency_graph, subgraph, completed_tasks):
+    # Check all successors of the finished task in the global dependency graph
+    successors = list(dependency_graph.successors(finished_task))
+    for succ in successors:
+        # Check if all predecessors are complete in the global dependency graph
+        predecessors = list(dependency_graph.predecessors(succ))
+        if all(predecessor in completed_tasks for predecessor in predecessors):
+            # Enqueue the task to the task queue of this subgraph (device)
+            if succ in subgraph.nodes():  # Only enqueue if the successor belongs to the same subgraph
+                device_queue.append(succ)
