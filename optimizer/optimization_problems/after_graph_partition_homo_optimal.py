@@ -182,8 +182,6 @@ if __name__ == '__main__':
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
     parser.add_argument('--edge_weight_function', default='comm_cost', type=str, help='')
-    parser.add_argument('--topo_sort_function', default='Kahn', type=str,
-                        help='it is regarding operator and communication scheduling')
 
     args = parser.parse_args()
 

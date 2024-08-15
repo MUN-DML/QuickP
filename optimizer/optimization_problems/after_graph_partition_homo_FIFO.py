@@ -209,6 +209,11 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
         show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
+        print(f"This is the optimal solution of such configuration: \n"
+              f"number of operators: {comp_graph.number_of_nodes()} \n"
+              f"number of devices: {deviceTopo.number_of_nodes()} \n"
+              f"scheduling method in each device: FIFO queue \n"
+              f"The environment is homogenous")
         show_graph_partition_info(comp_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         if model is not None:
@@ -229,8 +234,6 @@ if __name__ == '__main__':
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
     parser.add_argument('--edge_weight_function', default='comm_cost', type=str, help='')
-    parser.add_argument('--topo_sort_function', default='Kahn', type=str,
-                        help='it is regarding operator and communication scheduling')
 
     args = parser.parse_args()
 
