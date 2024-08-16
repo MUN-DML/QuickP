@@ -31,7 +31,7 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
             comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
 
 
-def FIFO_scheduling(model: Model, start, ready, finish, comp_graph, subgraph_dict, partition_dict):
+def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list):
     def initialize_queues(subgraph_dict, dependency_graph):
         # Initialize a queue for each subgraph (device)
         device_queues = {subgraph_id: deque() for subgraph_id, subgraph in subgraph_dict.items()}
@@ -64,6 +64,13 @@ def FIFO_scheduling(model: Model, start, ready, finish, comp_graph, subgraph_dic
                 if subgraph_of_succ is not None:
                     # Enqueue the task to the task queue of the correct subgraph (device)
                     device_queues[subgraph_of_succ].append(succ)
+
+    ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                          name="finish")  # ready[node_id] represent the ready time of this node, simulating Queue
+
+    for node in comp_graph.nodes():
+        for predecessor in comp_graph.predecessors(node):
+            model.addConstr(ready[node] >= finish[predecessor], name=f"fifo_{predecessor}_to_{node}")
 
     # It is an SCHEDULING problem within each device.
     device_queues = initialize_queues(subgraph_dict, comp_graph)
@@ -115,16 +122,25 @@ def FIFO_scheduling(model: Model, start, ready, finish, comp_graph, subgraph_dic
     remaining_nodes = all_nodes - completed_tasks
     assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
 
+    # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
+    # Only edges in the edge_cut_list will bring communication cost
+    M = 100000
+    order_link = {}
+    for communication_a, communication_b in combinations(edge_cut_list, 2):
+        order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
+        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (1 - order_link[communication_a, communication_b]))
+        model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
+
 
 class SchedulingAlgorithm(Enum):
     FIFO = "FIFO"
     OPTIMIZED = "OPTIMIZED"
 
 
-def execute_scheduling_function(sch_fun_type: str, model: Model, start, ready, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list):
+def execute_scheduling_function(sch_fun_type: str, model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list):
 
     if sch_fun_type == SchedulingAlgorithm.FIFO.value:
-        return FIFO_scheduling(model, start, ready, finish, comp_graph, subgraph_dict, partition_dict)
+        return FIFO_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list)
     elif sch_fun_type == SchedulingAlgorithm.OPTIMIZED.value:
         return optimal_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list)
     else:

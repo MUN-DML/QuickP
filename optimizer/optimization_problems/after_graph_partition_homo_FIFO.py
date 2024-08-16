@@ -59,8 +59,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                           name="start")  # start[node_id] represent the starting time of this node
     finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="finish")  # finish[node_id] represent the finish time of this node
-    ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                          name="finish")  # ready[node_id] represent the ready time of this node, simulating Queue
     comm_start = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0,
                                name="comm_start")  # comm_start[source_op, dest_op] represent the communication
     comm_end = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
@@ -90,10 +88,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
-    for node in comp_graph.nodes():
-        for predecessor in comp_graph.predecessors(node):
-            model.addConstr(ready[node] >= finish[predecessor], name=f"fifo_{predecessor}_to_{node}")
-
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
@@ -119,16 +113,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # This is the FIFO queue like operator scheduling within each device
-    FIFO_scheduling(model, start, ready, finish, comp_graph, subgraph_dict, partition_dict)
-
-    # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
-    # Only edges in the edge_cut_list will bring communication cost
-    M = 100000
-    order_link = {}
-    for communication_a, communication_b in combinations(edge_cut_list, 2):
-        order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
-        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (1 - order_link[communication_a, communication_b]))
-        model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
+    FIFO_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)

@@ -54,8 +54,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                           name="start")  # start[node_id] represent the starting time of this node
     finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="finish")  # finish[node_id] represent the finish time of this node
-    ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                          name="finish")  # ready[node_id] represent the ready time of this node, simulating Queue
     comm_start = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0,
                                name="comm_start")  # comm_start[source_op, dest_op] represent the communication
     comm_end = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
@@ -85,10 +83,6 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
-    for node in comp_graph.nodes():
-        for predecessor in comp_graph.predecessors(node):
-            model.addConstr(ready[node] >= finish[predecessor], name=f"fifo_{predecessor}_to_{node}")
-
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
@@ -114,7 +108,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    execute_scheduling_function(scheduling_function, model, start, ready, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list)
+    execute_scheduling_function(scheduling_function, model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -168,7 +162,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=2)
+    parser.add_argument('--number_of_device', type=int, default=4)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--scheduling', default='FIFO', type=str, help='')
