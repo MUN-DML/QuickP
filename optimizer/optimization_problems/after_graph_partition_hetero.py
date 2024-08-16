@@ -176,7 +176,7 @@ if __name__ == '__main__':
 
     model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL, "ALEXNET": TFModelEnum.ALEXNET}
     weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
-    topo_sort_dict = {"Kahn": TopoSortFunction.KAHN, "Default": TopoSortFunction.DEFAULT, "KahnPriority": TopoSortFunction.KAHN_PRIORITY}
+    topo_sort_dict = {"Kahn": TopoSortFunction.KAHN}
 
     optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
                                    adjust_matrix={"node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
