@@ -108,7 +108,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    execute_scheduling_function(scheduling_function, model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list)
+    execute_scheduling_function(scheduling_function, model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list, partition_dict)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)

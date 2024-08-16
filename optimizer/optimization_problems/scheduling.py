@@ -25,13 +25,11 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
     order_link = {}
     for communication_a, communication_b in combinations(edge_cut_list, 2):
         order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
-        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (
-                1 - order_link[communication_a, communication_b]))
-        model.addConstr(
-            comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
+        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (1 - order_link[communication_a, communication_b]))
+        model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
 
 
-def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list):
+def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list, partition_dict):
     def initialize_queues(subgraph_dict, dependency_graph):
         # Initialize a queue for each subgraph (device)
         device_queues = {subgraph_id: deque() for subgraph_id, subgraph in subgraph_dict.items()}
@@ -66,7 +64,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                     device_queues[subgraph_of_succ].append(succ)
 
     ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                          name="finish")  # ready[node_id] represent the ready time of this node, simulating Queue
+                          name="ready")  # ready[node_id] represent the ready time of this node, simulating Queue
 
     for node in comp_graph.nodes():
         for predecessor in comp_graph.predecessors(node):
@@ -109,7 +107,6 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
 
                 # Track the finish time of the current task
                 last_job_dict[subgraph_id] = task
-                print("the current subgraph is", subgraph_id, "the new last job is ", last_job_dict[subgraph_id])
 
                 # Track task completion
                 completed_tasks.add(task)
@@ -140,7 +137,7 @@ class SchedulingAlgorithm(Enum):
 def execute_scheduling_function(sch_fun_type: str, model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list):
 
     if sch_fun_type == SchedulingAlgorithm.FIFO.value:
-        return FIFO_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list)
+        return FIFO_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list, partition_dict)
     elif sch_fun_type == SchedulingAlgorithm.OPTIMIZED.value:
         return optimal_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list)
     else:
