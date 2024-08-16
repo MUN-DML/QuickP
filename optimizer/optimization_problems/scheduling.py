@@ -1,4 +1,5 @@
 from collections import deque
+from enum import Enum
 from itertools import combinations
 
 import networkx as nx
@@ -24,8 +25,10 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
     order_link = {}
     for communication_a, communication_b in combinations(edge_cut_list, 2):
         order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
-        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (1 - order_link[communication_a, communication_b]))
-        model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
+        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (
+                1 - order_link[communication_a, communication_b]))
+        model.addConstr(
+            comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
 
 
 def FIFO_scheduling(model: Model, start, ready, finish, comp_graph, subgraph_dict, partition_dict):
@@ -111,3 +114,18 @@ def FIFO_scheduling(model: Model, start, ready, finish, comp_graph, subgraph_dic
     all_nodes = set(comp_graph.nodes())
     remaining_nodes = all_nodes - completed_tasks
     assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
+
+
+class SchedulingAlgorithm(Enum):
+    FIFO = "FIFO"
+    OPTIMIZED = "OPTIMIZED"
+
+
+def get_scheduling_function(sch_fun_type: str):
+    try:
+        return {
+            SchedulingAlgorithm.OPTIMIZED.value: optimal_scheduling,
+            SchedulingAlgorithm.FIFO.value: FIFO_scheduling,
+        }[sch_fun_type]
+    except KeyError:
+        raise ValueError(f"Unknown scheduling algorithm: {sch_fun_type}")
