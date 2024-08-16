@@ -6,29 +6,26 @@ from gurobipy import *
 import torch
 import tensorflow as tf
 
+from optimizer.optimization_problems.scheduling import execute_scheduling_function
+
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.optimization_problems.topo_sort import TopoSortFunction
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
     map_subgraph_to_device
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
     show_optimization_solution, show_graph_partition_info
-from optimizer.optimization_problems.scheduling import optimal_scheduling, SchedulingAlgorithm, get_scheduling_function
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
-from optimizer.weight_adjustment_before_partition.weight_adjustment_function import WeightAdjustMatrix, \
-    WeightAdjustmentFunction
 
 
 def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
-                                   scheduling_function=SchedulingAlgorithm.FIFO,
+                                   scheduling_function: str = "FIFO",
                                    node_weight_function=NodeWeightFunction.AVE_COMP_COST,
                                    edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   adjust_matrix: WeightAdjustMatrix = None,
                                    weight_norm_function=WeightNormalizationFunction.MIN_MAX):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
@@ -41,9 +38,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                                                                          num_partitions=number_of_devices,
                                                                          node_weight_function=node_weight_function,
                                                                          edge_weight_function=edge_weight_function,
-                                                                         adjust_matrix=adjust_matrix,
-                                                                         weight_normalize=weight_norm_function,
-                                                                         sub_graph_weight_sum_ratio=None)
+                                                                         weight_normalize=weight_norm_function)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
@@ -59,6 +54,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                           name="start")  # start[node_id] represent the starting time of this node
     finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="finish")  # finish[node_id] represent the finish time of this node
+    ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                          name="finish")  # ready[node_id] represent the ready time of this node, simulating Queue
     comm_start = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0,
                                name="comm_start")  # comm_start[source_op, dest_op] represent the communication
     comm_end = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
@@ -78,14 +75,19 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
             else:
                 model.addConstr(x[op_id, device_id] == 0)
 
+    # Data dependency
+    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
+        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
         assigned_device = operator_device_dict[node_id]
         comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
-    # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
-    # device_pairs is a Set obj with unique device pair
+    for node in comp_graph.nodes():
+        for predecessor in comp_graph.predecessors(node):
+            model.addConstr(ready[node] >= finish[predecessor], name=f"fifo_{predecessor}_to_{node}")
 
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
@@ -112,7 +114,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    optimal_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list)
+    execute_scheduling_function(scheduling_function, model, start, ready, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -146,6 +148,11 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
         show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
+        print(f"This is the optimal solution of such configuration: \n"
+              f"number of operators: {comp_graph.number_of_nodes()} \n"
+              f"number of devices: {deviceTopo.number_of_nodes()} \n"
+              f"scheduling method in each device: {scheduling_function} \n"
+              f"The environment is homogenous")
         show_graph_partition_info(comp_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         if model is not None:
@@ -164,8 +171,6 @@ if __name__ == '__main__':
     parser.add_argument('--number_of_device', type=int, default=2)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
-    parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
-    parser.add_argument('--edge_weight_function', default='comm_cost', type=str, help='')
     parser.add_argument('--scheduling', default='FIFO', type=str, help='')
 
     args = parser.parse_args()
@@ -174,7 +179,5 @@ if __name__ == '__main__':
     weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
 
     optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
-                                   scheduling_function=get_scheduling_function(args.scheduling),
-                                   adjust_matrix={"function_type": WeightAdjustmentFunction.Recursive_Increase,
-                                                  "node_enable": True, "edge_enable": False, 'adjustment_ratio': 0},
+                                   scheduling_function=args.scheduling,
                                    weight_norm_function=weight_normalization_dict[args.normalization_function])
