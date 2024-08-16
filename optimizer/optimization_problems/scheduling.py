@@ -5,7 +5,7 @@ from itertools import combinations
 import networkx as nx
 from gurobipy import Model, GRB
 
-from optimizer.model.graph import find_non_connected_pairs
+from optimizer.model.graph import find_non_connected_pairs, CompGraph
 
 
 def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list):
@@ -29,7 +29,8 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
         model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
 
 
-def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list, partition_dict):
+def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph, subgraph_dict: dict,
+                    edge_cut_list: list, partition_dict: dict):
     def initialize_queues(subgraph_dict, dependency_graph):
         # Initialize a queue for each subgraph (device)
         device_queues = {subgraph_id: deque() for subgraph_id, subgraph in subgraph_dict.items()}
@@ -80,6 +81,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
 
     # This list will store all the constraints that we batch before optimization
     last_job_dict = {subgraph_id: None for subgraph_id in subgraph_dict.keys()}
+    last_communication_dict = {subgraph_id: None for subgraph_id in subgraph_dict.keys()}
     # Process each subgraph independently
     while any(queue for queue in device_queues.values()):
         for subgraph_id, queue in device_queues.items():
@@ -101,9 +103,21 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                                 name=f"start_after_ready_{task}_on_subgraph_{subgraph_id}")
 
                 # Ensure that the task starts after the previous task finishes within the same subgraph
+                # Operator scheduling within device
                 if last_job_dict[subgraph_id] is not None:
                     model.addConstr(start[task] >= finish[last_job_dict[subgraph_id]],
                                     name=f"start_after_prev_finish_{task}_on_subgraph_{subgraph_id}")
+
+                # Communication Scheduling. One device can only send or receive from up to one link at the same time
+                for predecessor in comp_graph.predecessors(task):
+                    if (predecessor, task) in edge_cut_list:
+                        if last_communication_dict[subgraph_id] is not None:
+                            model.addConstr(comm_start[predecessor, task] >= comm_end[last_communication_dict[subgraph_id]])
+                        source_subgraph = partition_dict[predecessor]
+                        last_communication_dict[source_subgraph] = (predecessor, task)
+                        last_communication_dict[subgraph_id] = (predecessor, task)
+                        print("fuck", last_communication_dict[source_subgraph], last_communication_dict[subgraph_id])
+
 
                 # Track the finish time of the current task
                 last_job_dict[subgraph_id] = task
@@ -118,15 +132,6 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
     all_nodes = set(comp_graph.nodes())
     remaining_nodes = all_nodes - completed_tasks
     assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
-
-    # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
-    # Only edges in the edge_cut_list will bring communication cost
-    M = 100000
-    order_link = {}
-    for communication_a, communication_b in combinations(edge_cut_list, 2):
-        order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
-        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (1 - order_link[communication_a, communication_b]))
-        model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
 
 
 class SchedulingAlgorithm(Enum):
