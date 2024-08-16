@@ -1,5 +1,6 @@
 from collections import deque
 from functools import cmp_to_key
+from itertools import combinations
 from typing import Tuple
 
 import networkx as nx
@@ -14,7 +15,7 @@ sys.path.append(project_root)
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.computing_graph.op_graph_util import get_proper_optimizer
 from optimizer.model.graph import DeviceGraph, CompGraph, has_more_than_one_component, keep_largest_component, \
-    visualize_graph
+    visualize_graph, find_non_connected_pairs
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
@@ -328,3 +329,24 @@ def FIFO_scheduling(model: Model, start, ready, finish, comp_graph, subgraph_dic
     all_nodes = set(comp_graph.nodes())
     remaining_nodes = all_nodes - completed_tasks
     assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
+
+
+def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list):
+    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
+        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+    M = 100000
+    order = {}
+    for subgraph in subgraph_dict.values():
+        non_connected_pairs = find_non_connected_pairs(subgraph)
+        for op_a, op_b in non_connected_pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+
+    # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
+    # Only edges in the edge_cut_list will bring communication cost
+    order_link = {}
+    for communication_a, communication_b in combinations(edge_cut_list, 2):
+        order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
+        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (1 - order_link[communication_a, communication_b]))
+        model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])

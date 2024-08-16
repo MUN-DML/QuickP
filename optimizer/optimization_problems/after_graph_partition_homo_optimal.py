@@ -16,7 +16,7 @@ from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
     map_subgraph_to_device
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info
+    show_optimization_solution, show_graph_partition_info, optimal_scheduling
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 from optimizer.model.graph import find_non_connected_pairs, label_node_levels
@@ -111,24 +111,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
-        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
-    M = 100000
-    order = {}
-    for subgraph in subgraph_dict.values():
-        non_connected_pairs = find_non_connected_pairs(subgraph)
-        for op_a, op_b in non_connected_pairs:
-            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
-            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
-            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
-
-    # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
-    # Only edges in the edge_cut_list will bring communication cost
-    order_link = {}
-    for communication_a, communication_b in combinations(edge_cut_list, 2):
-        order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
-        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (1 - order_link[communication_a, communication_b]))
-        model.addConstr(comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
+    optimal_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)

@@ -117,6 +117,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
         model.addConstr(comm_cost[source_op_ID, dest_op_ID] == communication_cost,
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
+    # This is the FIFO queue like operator scheduling within each device
     FIFO_scheduling(model, start, ready, finish, comp_graph, subgraph_dict, partition_dict)
 
     # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
