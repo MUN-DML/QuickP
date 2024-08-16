@@ -123,10 +123,7 @@ class CompGraph(DiGraph):
     def get_edge_weight_function(self, edge_weight_function: EdgeWeightFunction):
         functions = {
             EdgeWeightFunction.MOCK_COMMUNICATION_COST: self.getOperatorMockCommCostInUS,
-            EdgeWeightFunction.SOURCE_OUTPUT_TENSOR_WITH_COMP: self.getEdgeOutputWithComputingCost,
             EdgeWeightFunction.SOURCE_OUTPUT_TENSOR: self.getEdgeTensorSize,
-            EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP: self.getOperatorMockCommCostWithComputingCost,
-            EdgeWeightFunction.NODE_COMP_COST_AS_EDGE_WEIGHT: self.getOperatorCompCostAve
         }
         return functions[edge_weight_function]
 
@@ -145,20 +142,10 @@ class CompGraph(DiGraph):
     def getEdgeTensorSize(self, source_id, dest_id):
         return self.edges[source_id, dest_id]['tensor_size_in_bit']
 
-    def getEdgeOutputWithComputingCost(self, source_id, dest_id):
-        output_size = self.getEdgeTensorSize(source_id, dest_id)
-        average_comp_cost = self.getOperatorCompCostAve(source_id)
-        return output_size + average_comp_cost
-
     def getOperatorMockCommCostInUS(self, source_id, dest_id, mock_band_in_GB_per_second=20):
         output_size = self.getEdgeTensorSize(source_id, dest_id)
         result = convert_time(output_size / convert_data_size(mock_band_in_GB_per_second, 'GB', 'bit'), 's', 'us')
         return result
-
-    def getOperatorMockCommCostWithComputingCost(self, node_id, mock_band_in_GB_per_second=20):
-        mock_comm_cost = self.getOperatorMockCommCostInUS(node_id, mock_band_in_GB_per_second)
-        average_comp_cost = self.getOperatorCompCostAve(node_id)
-        return mock_comm_cost + average_comp_cost
 
     def getOperatorCompCostByDevice(self, node_id, device_id):
         if self.nodes[node_id] is None:

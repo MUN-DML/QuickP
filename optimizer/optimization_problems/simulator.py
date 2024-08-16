@@ -22,11 +22,11 @@ from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, Edg
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
-                                   scheduling_function: str = "FIFO",
-                                   node_weight_function=NodeWeightFunction.AVE_COMP_COST,
-                                   edge_weight_function=EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-                                   weight_norm_function=WeightNormalizationFunction.MIN_MAX):
+def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
+             scheduling_function: str = "FIFO",
+             node_weight_function=NodeWeightFunction.AVE_COMP_COST,
+             edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
+             weight_norm_function=WeightNormalizationFunction.MIN_MAX):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
                                                              None, model_type=model_type)
@@ -174,6 +174,6 @@ if __name__ == '__main__':
     model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL, "ALEXNET": TFModelEnum.ALEXNET}
     weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
 
-    optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
-                                   scheduling_function=args.scheduling,
-                                   weight_norm_function=weight_normalization_dict[args.normalization_function])
+    simulate(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
+             scheduling_function=args.scheduling,
+             weight_norm_function=weight_normalization_dict[args.normalization_function])
