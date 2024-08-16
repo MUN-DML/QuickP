@@ -12,12 +12,13 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.optimization_problems.scheduling_algorithm import TopoSortFunction
+from optimizer.optimization_problems.topo_sort import TopoSortFunction
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
     map_subgraph_to_device
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info, FIFO_scheduling
+    show_optimization_solution, show_graph_partition_info
+from optimizer.optimization_problems.scheduling import FIFO_scheduling
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 from optimizer.weight_adjustment_before_partition.weight_adjustment_function import WeightAdjustMatrix, \
@@ -181,8 +182,8 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=2)
-    parser.add_argument('--model', type=str, default='SMALL')
+    parser.add_argument('--number_of_device', type=int, default=4)
+    parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--node_weight_function', default='comp_cost', type=str, help='')
     parser.add_argument('--edge_weight_function', default='comm_cost', type=str, help='')
@@ -191,8 +192,6 @@ if __name__ == '__main__':
 
     model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL, "ALEXNET": TFModelEnum.ALEXNET}
     weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
-    topo_sort_dict = {"Kahn": TopoSortFunction.KAHN, "Default": TopoSortFunction.DEFAULT,
-                      "KahnPriority": TopoSortFunction.KAHN_PRIORITY}
 
     optimize_after_graph_partition(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
                                    adjust_matrix={"function_type": WeightAdjustmentFunction.Recursive_Increase,

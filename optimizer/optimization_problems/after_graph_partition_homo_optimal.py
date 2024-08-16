@@ -11,12 +11,13 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.optimization_problems.scheduling_algorithm import TopoSortFunction
+from optimizer.optimization_problems.topo_sort import TopoSortFunction
 from optimizer.graph_partitioner.metis_partition import metis_partition
 from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
     map_subgraph_to_device
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
-    show_optimization_solution, show_graph_partition_info, optimal_scheduling
+    show_optimization_solution, show_graph_partition_info
+from optimizer.optimization_problems.scheduling import optimal_scheduling
 from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 from optimizer.model.graph import find_non_connected_pairs, label_node_levels
