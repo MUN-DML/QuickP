@@ -134,11 +134,13 @@ class SchedulingAlgorithm(Enum):
     OPTIMIZED = "OPTIMIZED"
 
 
-def execute_scheduling_function(sch_fun_type: str, model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, partition_dict, edge_cut_list):
+def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
+    scheduling_funcs = {
+        SchedulingAlgorithm.FIFO.value: FIFO_scheduling,
+        SchedulingAlgorithm.OPTIMIZED.value: optimal_scheduling
+    }
 
-    if sch_fun_type == SchedulingAlgorithm.FIFO.value:
-        return FIFO_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list, partition_dict)
-    elif sch_fun_type == SchedulingAlgorithm.OPTIMIZED.value:
-        return optimal_scheduling(model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list)
+    if sch_fun_type in scheduling_funcs:
+        return scheduling_funcs[sch_fun_type](model, **kwargs)
     else:
         raise ValueError(f"Unknown scheduling algorithm: {sch_fun_type}")
