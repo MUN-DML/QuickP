@@ -150,7 +150,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
               f"number of devices: {deviceTopo.number_of_nodes()} \n"
               f"scheduling method in each device: {scheduling_function} \n"
               f"The environment is homogenous")
-        show_graph_partition_info(comp_graph, partition_dict, edge_cut_list, edge_cut_weight_sum)
+        show_graph_partition_info(comp_graph, operator_device_mapping, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         if model is not None:
             model.dispose()
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--number_of_device', type=int, default=4)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
-    parser.add_argument('--scheduling', default='FIFO', type=str, help='')
+    parser.add_argument('--scheduling', default='PRIORITY_QUEUE', type=str, help='')
 
     args = parser.parse_args()
 

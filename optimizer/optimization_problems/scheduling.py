@@ -149,8 +149,7 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
                 # If the node has no predecessors in the global graph, it can be added to the queue
                 if not global_predecessors:
                     # Add to the appropriate subgraph's queue
-                    device_queue_dict[device].put((1, operator_id))
-                    # device_queues[subgraph_id].put((comp_graph.getOperatorCompCostByDevice(operator_id, ), operator_id))
+                    device_queue_dict[device].put((comp_graph.getOperatorCompCostByDevice(operator_id, device), operator_id))
 
         return device_queue_dict
 
@@ -170,7 +169,7 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
                 # cannot use "if subgraph_of_succ" since subgraph id can be 0
                 if device_of_successor is not None:
                     # Enqueue the task to the task queue of the correct subgraph (device)
-                    device_queue_dict[device_of_successor].put((1, successor))
+                    device_queue_dict[device_of_successor].put((comp_graph.getOperatorCompCostByDevice(successor, device_of_successor), successor))
 
     ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                           name="ready")  # ready[node_id] represent the ready time of this node, simulating Queue
