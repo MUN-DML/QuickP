@@ -39,13 +39,14 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                                                          node_weight_function=node_weight_function,
                                                                          edge_weight_function=edge_weight_function,
                                                                          weight_normalize=weight_norm_function)
-    subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
-    operator_device_dict = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
+    operator_device_mapping = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
+    device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
+
 
     # two_dime_node_list is to test whether the
-    two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in subgraph_dict.values()]
+    two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in device_subgraph_mapping.values()]
 
     # Define variables
     x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
@@ -68,7 +69,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
     # because it does not matter where each sub-graph is placed.
     for op_id in comp_graph.getOperatorIDs():
         for device_id in deviceTopo.getDeviceIDs():
-            if device_id == operator_device_dict[op_id]:
+            if device_id == operator_device_mapping[op_id]:
                 model.addConstr(x[op_id, device_id] == 1)
             else:
                 model.addConstr(x[op_id, device_id] == 0)
@@ -79,7 +80,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
-        assigned_device = operator_device_dict[node_id]
+        assigned_device = operator_device_mapping[node_id]
         comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
@@ -89,7 +90,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
         source_op_ID, dest_op_ID = edge_id_tuple
         # Aggregate communication cost
         communication_cost = comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * deviceTopo.calUnitCommCostInUS(
-            operator_device_dict[source_op_ID], operator_device_dict[dest_op_ID])
+            operator_device_mapping[source_op_ID], operator_device_mapping[dest_op_ID])
 
         # Ensures the communication starts only after the source operation finishes.
         model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
@@ -109,8 +110,8 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
 
     # It is an SCHEDULING problem within each device.
     execute_scheduling_function(scheduling_function, model, start=start, finish=finish, comm_start=comm_start,
-                                comm_end=comm_end, comp_graph=comp_graph, subgraph_dict=subgraph_dict,
-                                edge_cut_list=edge_cut_list, partition_dict=partition_dict)
+                                comm_end=comm_end, comp_graph=comp_graph, device_subgraph_mapping=device_subgraph_mapping,
+                                edge_cut_list=edge_cut_list, operator_device_mapping=operator_device_mapping)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
