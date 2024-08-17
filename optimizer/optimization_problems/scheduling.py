@@ -246,31 +246,31 @@ class SchedulingAlgorithm(Enum):
 
 
 def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
-    if sch_fun_type == SchedulingAlgorithm.FIFO.value:
-        # Explicitly select the arguments required by FIFO_scheduling
-        fifo_kwargs = {
-            key: kwargs[key] for key in
-            ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph', 'subgraph_dict', 'edge_cut_list',
-             'partition_dict'] if key in kwargs
-        }
-        return FIFO_scheduling(model, **fifo_kwargs)
+    # Define the required arguments for each scheduling algorithm
+    required_args = {
+        SchedulingAlgorithm.FIFO.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
+                                         'subgraph_dict', 'edge_cut_list', 'partition_dict'],
+        SchedulingAlgorithm.OPTIMIZED.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
+                                              'subgraph_dict', 'edge_cut_list'],
+        SchedulingAlgorithm.PRIORITY_QUEUE.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
+                                                   'subgraph_dict', 'edge_cut_list', 'partition_dict']
+    }
 
-    elif sch_fun_type == SchedulingAlgorithm.OPTIMIZED.value:
-        # Explicitly select the arguments required by optimal_scheduling
-        optimized_kwargs = {
-            key: kwargs[key] for key in
-            ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph', 'subgraph_dict', 'edge_cut_list'] if
-            key in kwargs
-        }
-        return optimal_scheduling(model, **optimized_kwargs)
-
-    elif sch_fun_type == SchedulingAlgorithm.PRIORITY_QUEUE.value:
-        # Explicitly select the arguments required by optimal_scheduling
-        pq_kwargs = {
-            key: kwargs[key] for key in
-            ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph', 'subgraph_dict', 'edge_cut_list',
-             'partition_dict'] if key in kwargs
-        }
-        return priority_queue_scheduling(model, **pq_kwargs)
-    else:
+    if sch_fun_type not in required_args:
         raise ValueError(f"Unknown scheduling algorithm: {sch_fun_type}")
+
+    # Check if all required arguments are provided
+    missing_args = [arg for arg in required_args[sch_fun_type] if arg not in kwargs]
+    if missing_args:
+        raise ValueError(f"Missing arguments for {sch_fun_type}: {', '.join(missing_args)}")
+
+    # Select the appropriate arguments for the scheduling function
+    selected_kwargs = {key: kwargs[key] for key in required_args[sch_fun_type]}
+
+    # Dynamically dispatch to the appropriate scheduling function
+    if sch_fun_type == SchedulingAlgorithm.FIFO.value:
+        return FIFO_scheduling(model, **selected_kwargs)
+    elif sch_fun_type == SchedulingAlgorithm.OPTIMIZED.value:
+        return optimal_scheduling(model, **selected_kwargs)
+    elif sch_fun_type == SchedulingAlgorithm.PRIORITY_QUEUE.value:
+        return priority_queue_scheduling(model, **selected_kwargs)

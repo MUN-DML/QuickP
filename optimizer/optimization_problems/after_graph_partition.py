@@ -40,7 +40,7 @@ def optimize_after_graph_partition(number_of_devices=2, model_type: TFModelEnum 
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict)
 
     # global_topo_dict will decide the
-    global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm, edge_cut_list)
+    global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm)
     # operator scheduling within each device; global_topo_dict.keys() maintains the self-defined topo sorting
     subgraph_topo_dict = get_subgraph_topo_dict(global_topo_dict.keys(), partition_dict)
 
