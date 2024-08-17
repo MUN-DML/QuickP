@@ -35,7 +35,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
 
     def initialize_queues(subgraph_dict, dependency_graph):
         # Initialize a queue for each subgraph (device)
-        device_queues = {subgraph_id: deque() for subgraph_id, subgraph in subgraph_dict.items()}
+        device_queue_dict = {device: deque() for device, subgraph in subgraph_dict.items()}
 
         # Initialize with tasks that have no predecessors in the global graph
         for subgraph_id, subgraph in subgraph_dict.items():
@@ -46,9 +46,9 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                 # If the node has no predecessors in the global graph, it can be added to the queue
                 if not global_predecessors:
                     # Add to the appropriate subgraph's queue
-                    device_queues[subgraph_id].append(operator_id)
+                    device_queue_dict[subgraph_id].append(operator_id)
 
-        return device_queues
+        return device_queue_dict
 
     def update_queue(device_queues, finished_task, dependency_graph, completed_tasks, partition_dict):
         # Check all successors of the finished task in the global dependency graph
@@ -137,11 +137,11 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
                               device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
 
     def initialize_queues(subgraph_dict, dependency_graph) -> dict[any, PriorityQueue]:
-        # Initialize a queue for each subgraph (device)
-        device_queues = {subgraph_id: PriorityQueue() for subgraph_id, subgraph in subgraph_dict.items()}
+        # Initialize a queue for each device
+        device_queue_dict = {device: PriorityQueue() for device, subgraph in subgraph_dict.items()}
 
         # Initialize with tasks that have no predecessors in the global graph
-        for subgraph_id, subgraph in subgraph_dict.items():
+        for device, subgraph in subgraph_dict.items():
             for operator_id in subgraph.nodes():
                 # Check if the node has no predecessors in the global dependency graph
                 global_predecessors = list(dependency_graph.predecessors(operator_id))
@@ -149,28 +149,28 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
                 # If the node has no predecessors in the global graph, it can be added to the queue
                 if not global_predecessors:
                     # Add to the appropriate subgraph's queue
-                    device_queues[subgraph_id].put((1, operator_id))
+                    device_queue_dict[device].put((1, operator_id))
                     # device_queues[subgraph_id].put((comp_graph.getOperatorCompCostByDevice(operator_id, ), operator_id))
 
-        return device_queues
+        return device_queue_dict
 
-    def update_queue(device_queues: dict[any, PriorityQueue], finished_task, dependency_graph, completed_tasks,
+    def update_queue(device_queue_dict: dict[any, PriorityQueue], finished_task, dependency_graph, completed_tasks,
                      partition_dict):
         # Check all successors of the finished task in the global dependency graph
         successors = list(dependency_graph.successors(finished_task))
-        for succ in successors:
+        for successor in successors:
             # Check if all predecessors are complete in the global dependency graph
-            predecessors = list(dependency_graph.predecessors(succ))
+            predecessors = list(dependency_graph.predecessors(successor))
             if all(predecessor in completed_tasks for predecessor in predecessors):
                 # Enqueue the task to the task queue of this subgraph (device)
-                subgraph_of_succ = partition_dict[succ]
-                if subgraph_of_succ != partition_dict[finished_task]:
+                device_of_successor = partition_dict[successor]
+                if device_of_successor != partition_dict[finished_task]:
                     print(
-                        f"succ {succ} belongs to {subgraph_of_succ} while the current graph is {partition_dict[finished_task]}")
+                        f"{successor} belongs to {device_of_successor} while the current graph is {partition_dict[finished_task]}")
                 # cannot use "if subgraph_of_succ" since subgraph id can be 0
-                if subgraph_of_succ is not None:
+                if device_of_successor is not None:
                     # Enqueue the task to the task queue of the correct subgraph (device)
-                    device_queues[subgraph_of_succ].put((1, succ))
+                    device_queue_dict[device_of_successor].put((1, successor))
 
     ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                           name="ready")  # ready[node_id] represent the ready time of this node, simulating Queue
