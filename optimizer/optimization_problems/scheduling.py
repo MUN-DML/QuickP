@@ -242,6 +242,7 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
 class SchedulingAlgorithm(Enum):
     FIFO = "FIFO"
     OPTIMIZED = "OPTIMIZED"
+    PRIORITY_QUEUE = "PRIORITY_QUEUE"
 
 
 def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
@@ -263,5 +264,13 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         }
         return optimal_scheduling(model, **optimized_kwargs)
 
+    elif sch_fun_type == SchedulingAlgorithm.PRIORITY_QUEUE.value:
+        # Explicitly select the arguments required by optimal_scheduling
+        pq_kwargs = {
+            key: kwargs[key] for key in
+            ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph', 'subgraph_dict', 'edge_cut_list',
+             'partition_dict'] if key in kwargs
+        }
+        return priority_queue_scheduling(model, **pq_kwargs)
     else:
         raise ValueError(f"Unknown scheduling algorithm: {sch_fun_type}")
