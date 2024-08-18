@@ -27,28 +27,16 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
     model = gurobi_setup("minimize_maxload")
 
     # Define variables
-    x = {}  # key will be (operator_id, machine_id), value will be 1 or 0; x[3, 1] = 1 means operator 3 get allocated to device 1
-    start = {}  # start[node_id] represent the starting time of this node
-    finish = {}  # finish[node_id] represent the finish time of this node
-    comm_start = {}  # comm_start[source_op, dest_op] represent the communication
-    comm_end = {}
-    comm_cost = {}
-
-    # Initialize all variables with names
-    for node_id in comp_graph.getOperatorIDs():
-        for machine_id in deviceTopo.getDeviceIDs():
-            x[node_id, machine_id] = model.addVar(vtype=GRB.BINARY, name=f"x_{node_id}_{machine_id}")
-        start[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"start_{node_id}")
-        finish[node_id] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0, name=f"finish_{node_id}")
-
-    for edge_id_tuple in comp_graph.getEdgeIDs():
-        source_op_ID, dest_op_ID = edge_id_tuple
-        comm_start[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                            name=f"comm_start_{source_op_ID}_{dest_op_ID}")
-        comm_end[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                          name=f"comm_end_{source_op_ID}_{dest_op_ID}")
-        comm_cost[source_op_ID, dest_op_ID] = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0,
-                                                           name=f"comm_cost_{source_op_ID}_{dest_op_ID}")
+    x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
+                      name="x")  # [operator_id, device_id] == 1 means this operator is assigned to this device
+    start = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                          name="start")  # start[node_id] represent the starting time of this node
+    finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                           name="finish")  # finish[node_id] represent the finish time of this node
+    comm_start = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                               name="comm_start")  # comm_start[source_op, dest_op] represent the communication
+    comm_end = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
+    comm_cost = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_cost")
 
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
