@@ -1,3 +1,4 @@
+import itertools
 from collections import deque
 from enum import Enum
 from itertools import combinations
@@ -7,6 +8,19 @@ import networkx as nx
 from gurobipy import Model, GRB
 
 from optimizer.model.graph import find_non_connected_pairs, CompGraph
+
+
+def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish, start):
+    # Iterate over topologically sorted nodes
+    for a, b in itertools.combinations(original_topo_list, 2):
+        # For each consecutive pair of operators, add a constraint for each device
+        for device_id in device_ids:
+            # Ensure the correct order for each potential device assignment
+            # This constraint will only apply if both a and b are assigned to the same device
+            model.addConstr(
+                (x[a, device_id] * x[b, device_id] == 1) >> (finish[a] <= start[b]),
+                name=f"topo_order_{a}_{b}_on_device_{device_id}"
+            )
 
 
 def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list):

@@ -1,28 +1,27 @@
 # python3 baseline.py
+import argparse
 
 from gurobipy import *
 import torch
 import tensorflow as tf
+from networkx import topological_sort
+
+from optimizer.optimization_problems.scheduling import add_topo_order_constraints
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import determine_node_order
-from optimizer.optimization_problems.topo_sort import create_topological_position_dict, TopoSortFunction
 from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
     show_optimization_solution, sort_edges_by_topo_order
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL, scheduling_algorithm=TopoSortFunction.KAHN):
+def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph_baseline.json',
                                                              None, model_type=model_type)
-    # global_topo_dict will decide the
-    global_topo_dict = create_topological_position_dict(comp_graph, scheduling_algorithm)
-    edge_topo_ordered_list = sort_edges_by_topo_order(comp_graph.getEdgeIDs(), global_topo_dict)
 
     # Init solver
     model = gurobi_setup("minimize_maxload")
@@ -109,45 +108,10 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
             source_op_ID, dest_op_ID],
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
-    # Add constraint to ensure each device processes only one operator at a time. This is a SCHEDULING problem.
-    for device in deviceTopo.getDeviceIDs():
-        # ensures that each pair of operations is only considered once
-        for op1, op2 in itertools.combinations(comp_graph.getOperatorIDs(), 2):
-            node_order = determine_node_order(global_topo_dict, op1, op2)
-            if node_order == 1:
-                y = model.addVar(vtype=GRB.BINARY)
-                model.addGenConstrIndicator(y, True, finish[op1] <= start[op2])
-            elif node_order == 2:
-                y = model.addVar(vtype=GRB.BINARY)
-                model.addGenConstrIndicator(y, True, finish[op2] <= start[op1])
-            else:
-                raise ValueError("Invalid node order")
-
-            # If on the same device, ensure that the operators do not overlap
-            model.addConstr(y >= x[op1, device] + x[op2, device] - 1)
-
-    # Add constraint to ensure each device can only send or receive from one link at a time, communication scheduling
-    for (source_op_ID1, dest_op_ID1), (source_op_ID2, dest_op_ID2) in zip(edge_topo_ordered_list,
-                                                                              edge_topo_ordered_list[1:]):
-        for device_id_src, device_id_dest in itertools.combinations(deviceTopo.getDeviceIDs(), 2):
-            no_overlap = model.addVar(vtype=GRB.BINARY)
-
-            # Enforce non-overlapping constraints using indicator constraints
-            model.addGenConstrIndicator(no_overlap, True, comm_end[source_op_ID1, dest_op_ID1] <= comm_start[
-                source_op_ID2, dest_op_ID2])
-
-            # if using the same link,
-            # either x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest]
-            # or x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src]
-            # will be 4
-            model.addConstr(
-                no_overlap >= (
-                    x[source_op_ID1, device_id_src] + x[dest_op_ID1, device_id_dest] + x[
-                        source_op_ID2, device_id_src] + x[dest_op_ID2, device_id_dest] +
-                    x[source_op_ID1, device_id_dest] + x[dest_op_ID1, device_id_src] + x[
-                        source_op_ID2, device_id_dest] + x[dest_op_ID2, device_id_src] - 3
-                )
-            )
+    # Global Data dependency
+    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
+        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+    add_topo_order_constraints(model, list(topological_sort(comp_graph)), x, deviceTopo.getDeviceIDs(), finish, start)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -187,4 +151,14 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
 
 
 if __name__ == '__main__':
-    optimize_baseline()
+    parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
+    parser.add_argument('--number_of_device', type=int, default=4)
+    parser.add_argument('--model', type=str, default='SMALL')
+    parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
+    parser.add_argument('--scheduling', default='PRIORITY_QUEUE', type=str, help='')
+
+    args = parser.parse_args()
+
+    model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL, "ALEXNET": TFModelEnum.ALEXNET}
+
+    optimize_baseline(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model])
