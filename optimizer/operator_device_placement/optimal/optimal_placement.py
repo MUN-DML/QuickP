@@ -126,16 +126,3 @@ def get_optimize_placement(number_of_devices=2, model_type: TFModelEnum = TFMode
         return optimal_value
     else:
         print(f"Optimization ended with status {model.status}")
-
-
-class PlacementGenerator(Enum):
-    METIS = "METIS"
-    OPTIMIZED = "OPTIMIZED"
-
-def get_placement_y_edge_cut(placement_fun_type: str):
-    if placement_fun_type == PlacementGenerator.METIS.value:
-        pass
-    elif placement_fun_type == PlacementGenerator.OPTIMIZED.value:
-        pass
-
-get_optimize_placement()

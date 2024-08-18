@@ -22,12 +22,12 @@ def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish,
                             name=f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
 
 
-def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list):
+def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, device_subgraph_mapping, edge_cut_list):
     for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
         model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
     M = 100000
     order = {}
-    for subgraph in subgraph_dict.values():
+    for subgraph in device_subgraph_mapping.values():
         non_connected_pairs = find_non_connected_pairs(subgraph)
         for op_a, op_b in non_connected_pairs:
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
