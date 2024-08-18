@@ -6,14 +6,13 @@ from itertools import combinations
 from typing import Union
 
 import networkx as nx
-import tensorflow as tf
 
 from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels, node_link_graph, \
     node_link_data, number_weakly_connected_components, algorithms
 
-from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
-from py_util import convert_data_size, convert_time, tensor_shape_to_bits
+from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
+from py_util import convert_data_size, convert_time
 
 
 class CompGraph(DiGraph):

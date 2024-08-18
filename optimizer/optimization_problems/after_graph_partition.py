@@ -2,8 +2,6 @@
 import argparse
 
 from gurobipy import *
-import torch
-import tensorflow as tf
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
@@ -11,11 +9,11 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.optimization_problems.topo_sort import create_topological_position_dict, TopoSortFunction
-from optimizer.graph_partitioner.metis_partition import metis_partition
-from optimizer.graph_partitioner.subgraph_util import construct_sub_graph, WeightNormalizationFunction, normalize_list
+from optimizer.operator_device_placement.metis.metis_partition import metis_partition
+from optimizer.operator_device_placement.metis.subgraph_util import construct_sub_graph, WeightNormalizationFunction
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
     show_optimization_solution, show_graph_partition_info, get_subgraph_topo_dict, sort_edges_by_topo_order
-from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
+from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 

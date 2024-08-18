@@ -6,7 +6,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
 from optimizer.experiment_figure_generation.optimization_enum import OptimizationProblem
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
-from optimizer.graph_partitioner.weight_functions import EdgeWeightFunction
+from optimizer.operator_device_placement.metis.weight_functions import EdgeWeightFunction
 
 
 def run_optimization_command(problem_type: OptimizationProblem,

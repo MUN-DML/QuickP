@@ -1,10 +1,8 @@
 from gurobipy import *
-import torch
-import tensorflow as tf
 from networkx import topological_sort
 from enum import Enum
 
-from optimizer.optimization_problems.scheduling import add_topo_order_constraints
+from optimizer.scheduling.scheduling import add_topo_order_constraints
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
@@ -12,13 +10,14 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
-    show_optimization_solution, sort_edges_by_topo_order
+    show_optimization_solution
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
 def get_optimize_placement(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL):
     # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph.json',
+    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices,
+                                                             '../../optimization_problems/comp_graph.json',
                                                              None, model_type=model_type)
 
     # Init solver
@@ -138,3 +137,5 @@ def get_placement_y_edge_cut(placement_fun_type: str):
         pass
     elif placement_fun_type == PlacementGenerator.OPTIMIZED.value:
         pass
+
+get_optimize_placement()

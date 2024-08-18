@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Tuple, Dict, Any, List
+from typing import Any
 
 import networkx as nx
 
@@ -27,9 +27,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
-from optimizer.graph_partitioner.subgraph_util import identify_edges_cut, WeightNormalizationFunction
+from optimizer.operator_device_placement.metis.subgraph_util import identify_edges_cut, WeightNormalizationFunction
 from optimizer.weight_adjustment_before_partition.weight_adjustment_function import recalculate_node_weights
-from optimizer.graph_partitioner.weight_functions import NodeWeightFunction, EdgeWeightFunction
+from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
 def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction,

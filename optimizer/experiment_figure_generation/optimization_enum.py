@@ -1,7 +1,7 @@
 from enum import Enum
 
 from optimizer.optimization_problems.after_graph_partition_hetero import optimize_after_graph_partition
-from optimizer.optimization_problems.baseline import get_optimize_placement
+from optimizer.operator_device_placement.optimal.placement import get_optimize_placement
 
 
 class OptimizationProblem(Enum):

@@ -122,7 +122,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                 if last_job_dict[subgraph_id] is not None:
                     model.addConstr(start[current_op] >= finish[last_job_dict[subgraph_id]], name=f"start_after_prev_finish_{current_op}_on_subgraph_{subgraph_id}")
 
-                # Communication Scheduling. One device can only send or receive from up to one link at the same time
+                # Communication scheduling. One device can only send or receive from up to one link at the same time
                 for predecessor in comp_graph.predecessors(current_op):
                     if (predecessor, current_op) in edge_cut_list:
                         if last_communication_dict[subgraph_id] is not None:
@@ -227,7 +227,7 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
                 if last_job_dict[device_id] is not None:
                     model.addConstr(start[task] >= finish[last_job_dict[device_id]], name=f"start_after_prev_finish_{task}_on_subgraph_{device_id}")
 
-                # Communication Scheduling. One device can only send or receive from up to one link at the same time
+                # Communication scheduling. One device can only send or receive from up to one link at the same time
                 for predecessor in comp_graph.predecessors(task):
                     if (predecessor, task) in edge_cut_list:
                         if last_communication_dict[device_id] is not None:
