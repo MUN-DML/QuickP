@@ -11,14 +11,9 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
     show_optimization_solution
-from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def get_optimize_placement(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL):
-    # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices,
-                                                             '../../optimization_problems/comp_graph.json',
-                                                             None, model_type=model_type)
+def get_optimize_placement(comp_graph, deviceTopo):
 
     # Init solver
     model = gurobi_setup("minimize_maxload")
