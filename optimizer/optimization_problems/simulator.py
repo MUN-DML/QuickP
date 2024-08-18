@@ -3,6 +3,7 @@ import argparse
 
 from gurobipy import *
 
+from optimizer.operator_device_placement.placement import get_placement_info
 from optimizer.scheduling.scheduling import execute_scheduling_function
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
@@ -21,6 +22,7 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
              scheduling_function: str = "FIFO",
+             placement: str = 'METIS',
              node_weight_function=NodeWeightFunction.AVE_COMP_COST,
              edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
              weight_norm_function=WeightNormalizationFunction.MIN_MAX):
@@ -31,14 +33,10 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
     model = gurobi_setup("minimize_maxload")
 
     # Partition the computation graph
-    partition_dict, edge_cut_list, edge_cut_weight_sum = metis_partition(comp_graph,
-                                                                         num_partitions=number_of_devices,
-                                                                         node_weight_function=node_weight_function,
-                                                                         edge_weight_function=edge_weight_function,
-                                                                         weight_normalize=weight_norm_function)
+    operator_device_mapping, edge_cut_list, edge_cut_weight_sum = (
+        get_placement_info(placement, comp_graph, deviceTopo, node_weight_function, edge_weight_function, weight_norm_function))
 
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
-    operator_device_mapping = map_subgraph_to_device(partition_dict, deviceTopo.getDeviceIDs())
     device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
 
@@ -145,6 +143,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
         print(f"This is the optimal solution of such configuration: \n"
               f"number of operators: {comp_graph.number_of_nodes()} \n"
               f"number of devices: {deviceTopo.number_of_nodes()} \n"
+              f"placement way of this DNN graph: {placement} \n"
               f"scheduling method in each device: {scheduling_function} \n"
               f"The environment is homogenous")
         show_graph_partition_info(comp_graph, operator_device_mapping, edge_cut_list, edge_cut_weight_sum)
