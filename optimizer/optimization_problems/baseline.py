@@ -20,7 +20,7 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL):
     # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph_baseline.json',
+    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph.json',
                                                              None, model_type=model_type)
 
     # Init solver
@@ -53,13 +53,6 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
         model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{op}")
-
-    # Add constraints that operators assigned cannot exceed the capacity
-    for machine_id in deviceTopo.getDeviceIDs():
-        mem_sum = quicksum(x[node_id, machine_id] * comp_graph.getOperator(node_id)["mem"]
-                           for node_id in comp_graph.getOperatorIDs())
-        model.addConstr(mem_sum <= deviceTopo.getDeviceMaxMem(machine_id),
-                        f"satisfy_memory_constraint_{machine_id}")
 
     # Add constraints that each device should have at least one operator assigned
     for machine_id in deviceTopo.getDeviceIDs():

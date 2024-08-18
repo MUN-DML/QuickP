@@ -28,7 +28,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
              edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
              weight_norm_function=WeightNormalizationFunction.MIN_MAX):
     # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph_after_partition.json",
+    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph.json",
                                                              None, model_type=model_type)
     # Init solver
     model = gurobi_setup("minimize_maxload")

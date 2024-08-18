@@ -17,10 +17,9 @@ def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish,
         for device_id in device_ids:
             # Ensure the correct order for each potential device assignment
             # This constraint will only apply if both a and b are assigned to the same device
-            model.addConstr(
-                (x[a, device_id] * x[b, device_id] == 1) >> (finish[a] <= start[b]),
-                name=f"topo_order_{a}_{b}_on_device_{device_id}"
-            )
+            y = model.addVar(vtype=GRB.BINARY)
+            model.addGenConstrIndicator(y, True, finish[a] <= start[b])
+            model.addConstr(y >= x[a, device_id] + x[b, device_id] - 1)
 
 
 def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list):
