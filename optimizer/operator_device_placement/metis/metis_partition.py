@@ -32,7 +32,7 @@ from optimizer.weight_adjustment_before_partition.weight_adjustment_function imp
 from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
-def metis_partition(graph: CompGraph, num_partitions, node_weight_function: NodeWeightFunction,
+def metis_partition(graph: CompGraph, num_partitions: int , node_weight_function: NodeWeightFunction,
                     edge_weight_function: EdgeWeightFunction,
                     visualization=False, adjust_matrix=None,
                     weight_normalize: WeightNormalizationFunction = None,

@@ -54,7 +54,7 @@ def identify_edges_cut(weighted_digraph: DiGraph, partition_dict: dict[str, int]
         for u, v in weighted_digraph.edges()
         if partition_dict[u] != partition_dict[v]
     ]
-    sum_of_weights = sum(weighted_digraph[u][v]['edge_weight'] for u, v in cut_edges)
+    sum_of_weights = sum(weighted_digraph[u][v].get('edge_weight', 0) for u, v in cut_edges)
 
     return cut_edges, sum_of_weights
 
