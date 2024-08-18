@@ -11,15 +11,15 @@ from optimizer.model.graph import find_non_connected_pairs, CompGraph
 
 
 def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish, start):
+    M = 1000000
     # Iterate over topologically sorted nodes
     for a, b in itertools.combinations(original_topo_list, 2):
         # For each consecutive pair of operators, add a constraint for each device
         for device_id in device_ids:
             # Ensure the correct order for each potential device assignment
             # This constraint will only apply if both a and b are assigned to the same device
-            y = model.addVar(vtype=GRB.BINARY)
-            model.addGenConstrIndicator(y, True, finish[a] <= start[b])
-            model.addConstr(y >= x[a, device_id] + x[b, device_id] - 1)
+            model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]),
+                            name=f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
 
 
 def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, subgraph_dict, edge_cut_list):
