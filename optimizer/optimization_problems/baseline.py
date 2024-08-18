@@ -1,10 +1,8 @@
-# python3 baseline.py
-import argparse
-
 from gurobipy import *
 import torch
 import tensorflow as tf
 from networkx import topological_sort
+from enum import Enum
 
 from optimizer.optimization_problems.scheduling import add_topo_order_constraints
 
@@ -18,7 +16,7 @@ from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_compu
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 
 
-def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL):
+def get_optimize_placement(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, 'comp_graph.json',
                                                              None, model_type=model_type)
@@ -131,15 +129,12 @@ def optimize_baseline(number_of_devices=2, model_type: TFModelEnum = TFModelEnum
         print(f"Optimization ended with status {model.status}")
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=4)
-    parser.add_argument('--model', type=str, default='SMALL')
-    parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
-    parser.add_argument('--scheduling', default='PRIORITY_QUEUE', type=str, help='')
+class PlacementGenerator(Enum):
+    METIS = "METIS"
+    OPTIMIZED = "OPTIMIZED"
 
-    args = parser.parse_args()
-
-    model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL, "ALEXNET": TFModelEnum.ALEXNET}
-
-    optimize_baseline(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model])
+def get_placement_y_edge_cut(placement_fun_type: str):
+    if placement_fun_type == PlacementGenerator.METIS.value:
+        pass
+    elif placement_fun_type == PlacementGenerator.OPTIMIZED.value:
+        pass
