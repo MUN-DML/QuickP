@@ -1,6 +1,5 @@
 from gurobipy import *
 from networkx import topological_sort
-from enum import Enum
 
 from optimizer.scheduling.scheduling import add_topo_order_constraints
 
@@ -9,11 +8,18 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.optimization_problems.gurobi_util import gurobi_setup, init_computing_and_device_graph, \
-    show_optimization_solution
+from optimizer.optimization_problems.gurobi_util import gurobi_setup
 
 
-def get_optimize_placement(comp_graph, deviceTopo):
+def get_optimize_placement(comp_graph, deviceTopo) -> dict:
+
+    def get_operator_device_mapping_through_x(x):
+        mapping = {}
+        for (operator_id, device_id), var in x.items():
+            # Check if the variable has a value of 1 (operator is assigned to device)
+            if var.X > 0.5:  # Since the variable is binary, this checks if it is assigned
+                mapping[operator_id] = device_id
+        return mapping
 
     # Init solver
     model = gurobi_setup("minimize_maxload")
@@ -113,11 +119,12 @@ def get_optimize_placement(comp_graph, deviceTopo):
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish)
-        print("number of operators in total", len(comp_graph))
-        optimal_value = model.ObjVal
+        # show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish)
+        print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
+
+        operator_device_mapping = get_operator_device_mapping_through_x(x)
         del model
         disposeDefaultEnv()
-        return optimal_value
+        return operator_device_mapping
     else:
         print(f"Optimization ended with status {model.status}")

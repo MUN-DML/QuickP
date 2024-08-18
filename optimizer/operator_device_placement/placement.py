@@ -12,7 +12,7 @@ class PlacementGenerator(Enum):
     OPTIMIZED = "OPTIMIZED"
 
 
-def get_placement_y_edge_cut(placement_type: str, comp_graph: CompGraph, device_topo: DeviceGraph,
+def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: DeviceGraph,
                              node_weight_function=None, edge_weight_function=None,
                              weight_norm_function=None):
     if placement_type == PlacementGenerator.METIS.value:
@@ -24,10 +24,11 @@ def get_placement_y_edge_cut(placement_type: str, comp_graph: CompGraph, device_
 
         # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
         operator_device_mapping = map_subgraph_to_device(partition_dict, device_topo.getDeviceIDs())
-        device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
     elif placement_type == PlacementGenerator.OPTIMIZED.value:
-        operator_device_mapping, device_subgraph_mapping = get_optimize_placement(comp_graph, device_topo)
+        operator_device_mapping = get_optimize_placement(comp_graph, device_topo)
         edge_cut_list, sum_of_cut_weight = identify_edges_cut(comp_graph, operator_device_mapping)
+
+    device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
     return operator_device_mapping, device_subgraph_mapping, edge_cut_list, edge_cut_weight_sum
