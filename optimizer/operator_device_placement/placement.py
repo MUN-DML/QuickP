@@ -12,15 +12,11 @@ class PlacementGenerator(Enum):
     OPTIMIZED = "OPTIMIZED"
 
 
-def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: DeviceGraph,
-                             node_weight_function=None, edge_weight_function=None,
-                             weight_norm_function=None):
+def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: DeviceGraph):
     if placement_type == PlacementGenerator.METIS.value:
         partition_dict, edge_cut_list, edge_cut_weight_sum = metis_partition(comp_graph,
                         num_partitions=len(device_topo.getDeviceIDs()),
-                        node_weight_function=node_weight_function,
-                        edge_weight_function=edge_weight_function,
-                        weight_normalize=weight_norm_function)
+            )
 
         # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
         operator_device_mapping = map_subgraph_to_device(partition_dict, device_topo.getDeviceIDs())

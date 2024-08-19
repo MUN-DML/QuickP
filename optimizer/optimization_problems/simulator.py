@@ -36,7 +36,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
 
     # Partition the computation graph
     operator_device_mapping, edge_cut_list, edge_cut_weight_sum = (
-        get_placement_info(placement, comp_graph, deviceTopo, node_weight_function, edge_weight_function, weight_norm_function))
+        get_placement_info(placement, comp_graph, deviceTopo))
 
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
@@ -166,8 +166,8 @@ if __name__ == '__main__':
     parser.add_argument('--number_of_device', type=int, default=4)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
-    parser.add_argument('--scheduling', default='OPTIMIZED', type=str, help='')
-    parser.add_argument('--placement', default='METIS', type=str, help='')
+    parser.add_argument('--scheduling', default='FIFO', type=str, help='')
+    parser.add_argument('--placement', default='OPTIMIZED', type=str, help='')
 
     args = parser.parse_args()
 
