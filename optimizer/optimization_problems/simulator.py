@@ -167,7 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--scheduling', default='OPTIMIZED', type=str, help='')
-    parser.add_argument('--placement', default='OPTIMIZED', type=str, help='')
+    parser.add_argument('--placement', default='METIS', type=str, help='')
 
     args = parser.parse_args()
 

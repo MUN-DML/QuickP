@@ -28,7 +28,6 @@ project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.model.graph import CompGraph
 from optimizer.operator_device_placement.metis.subgraph_util import identify_edges_cut, WeightNormalizationFunction
-from optimizer.weight_adjustment_before_partition.weight_adjustment_function import recalculate_node_weights
 from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
@@ -57,22 +56,6 @@ def metis_partition(graph: CompGraph, num_partitions: int , node_weight_function
                 font_size=16)
         plt.title(f'Graph Partitioning into {num_partitions} Parts using METIS', size=20)
         plt.show()
-
-    # Assign weight to each node
-    # Step 2: Calculate the node/edge weights based on the node_weight_function and edge_weight_function
-    node_weight_func = graph.get_node_weight_function(node_weight_function)
-    edge_weight_func = graph.get_edge_weight_function(edge_weight_function)
-    for node in graph.nodes:
-        graph.nodes[node]['node_weight'] = int(node_weight_func(node))
-    for edge in graph.edges:
-        source_op, dest_op = edge
-        graph.edges[edge]['edge_weight'] = int(edge_weight_func(source_op, dest_op))
-    if adjust_matrix:
-        recalculate_node_weights(graph, adjust_matrix=adjust_matrix)
-    if weight_normalize:
-        weight_normalize(graph)
-    graph.graph['node_weight_attr'] = 'node_weight'
-    graph.graph['edge_weight_attr'] = 'edge_weight'
 
     # Convert the DiGraph to an undirected graph for partitioning
     G_undirected = graph.to_undirected()
