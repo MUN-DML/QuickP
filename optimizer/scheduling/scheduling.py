@@ -20,14 +20,12 @@ def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish,
             # This constraint will only apply if both a and b are assigned to the same device
             model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]),
                             name=f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
-            # model.addConstr((x[a, device_id] + x[b, device_id] == 2) >> (finish[a] <= start[b]),
-            #                 name=f"conditional_order_{a}_{b}_on_device_{device_id}")
 
 
 def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, device_subgraph_mapping, edge_cut_list):
     for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
         model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
-    M = 100000
+    M = 1000000
     order = {}
     for subgraph in device_subgraph_mapping.values():
         non_connected_pairs = find_non_connected_pairs(subgraph)
