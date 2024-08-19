@@ -6,7 +6,7 @@ import pandas as pd
 from networkx import DiGraph
 
 from optimizer.model.graph import CompGraph
-from optimizer.weight_adjustment_before_partition.weight_adjustment_function import recalculate_weights_critical_score
+from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 
 
 # expand the subgraph by one node and make it still a subgraph of original_graph
@@ -59,7 +59,8 @@ def identify_edges_cut(weighted_digraph: DiGraph, partition_dict: dict[str, int]
     return cut_edges, sum_of_weights
 
 
-def map_subgraph_to_device(partition_dict, device_id_list, computing_cost_dict: dict[str, float] = None, subgraph_weight_dict: dict = None):
+def map_subgraph_to_device(partition_dict, device_id_list, computing_cost_dict: dict[str, float] = None,
+                           subgraph_weight_dict: dict = None):
     # Extract unique subgraph IDs
     subgraph_id_list = list(set(partition_dict.values()))
     assert len(subgraph_id_list) == len(device_id_list)
@@ -133,3 +134,21 @@ def normalize_list(weight_sum_list: list) -> list[float]:
     array = np.array(weight_sum_list)
     normalized_array = array / array.sum()
     return normalized_array.tolist()
+
+
+def init_graph_weight(graph: CompGraph, node_weight_function: NodeWeightFunction,
+                      edge_weight_function: EdgeWeightFunction,
+                      weight_normalize: WeightNormalizationFunction = None):
+    # Assign weight to each node
+    # Step 2: Calculate the node/edge weights based on the node_weight_function and edge_weight_function
+    node_weight_func = graph.get_node_weight_function(node_weight_function)
+    edge_weight_func = graph.get_edge_weight_function(edge_weight_function)
+    for node in graph.nodes:
+        graph.nodes[node]['node_weight'] = int(node_weight_func(node))
+    for edge in graph.edges:
+        source_op, dest_op = edge
+        graph.edges[edge]['edge_weight'] = int(edge_weight_func(source_op, dest_op))
+    if weight_normalize:
+        weight_normalize(graph)
+    graph.graph['node_weight_attr'] = 'node_weight'
+    graph.graph['edge_weight_attr'] = 'edge_weight'

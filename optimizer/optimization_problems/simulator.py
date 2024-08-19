@@ -3,21 +3,19 @@ import argparse
 
 from gurobipy import *
 
-from optimizer.operator_device_placement.placement import get_placement_info
-from optimizer.scheduling.scheduling import execute_scheduling_function
-
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.operator_device_placement.metis.metis_partition import metis_partition
 from optimizer.operator_device_placement.metis.subgraph_util import construct_sub_graph, WeightNormalizationFunction, \
-    map_subgraph_to_device
+    map_subgraph_to_device, init_graph_weight
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph, gurobi_setup, \
     show_optimization_solution, show_graph_partition_info
 from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
+from optimizer.operator_device_placement.placement import get_placement_info
+from optimizer.scheduling.scheduling import execute_scheduling_function
 
 
 def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
@@ -31,6 +29,10 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
                                                              None, model_type=model_type)
     # Init solver
     model = gurobi_setup("minimize_maxload")
+
+    # init graph node/edge weight
+    init_graph_weight(comp_graph, node_weight_function, edge_weight_function, weight_norm_function)
+
 
     # Partition the computation graph
     operator_device_mapping, edge_cut_list, edge_cut_weight_sum = (
