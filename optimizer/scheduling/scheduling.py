@@ -135,7 +135,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
     last_communication_dict = {subgraph_id: None for subgraph_id in device_subgraph_mapping.keys()}
     # Process each subgraph independently
     while any(queue for queue in device_queues.values()):
-        for subgraph_id, queue in device_queues.items():
+        for current_device, queue in device_queues.items():
             if queue:
                 # Get the next task to execute for this subgraph
                 current_op = queue.popleft()
@@ -151,24 +151,25 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
 
                 # Ensure the task starts after its ready time
                 model.addConstr(start[current_op] >= ready[current_op],
-                                name=f"start_after_ready_{current_op}_on_subgraph_{subgraph_id}")
+                                name=f"start_after_ready_{current_op}_on_subgraph_{current_device}")
 
                 # Ensure that the task starts after the previous task finishes within the same subgraph
                 # Operator scheduling within device
-                if last_job_dict[subgraph_id] is not None:
-                    model.addConstr(start[current_op] >= finish[last_job_dict[subgraph_id]], name=f"start_after_prev_finish_{current_op}_on_subgraph_{subgraph_id}")
+                if last_job_dict[current_device] is not None:
+                    model.addConstr(start[current_op] >= finish[last_job_dict[current_device]], name=f"start_after_prev_finish_{current_op}_on_subgraph_{current_device}")
 
-                # Communication scheduling. One device can only send or receive from up to one link at the same time
+                # Communication scheduling. One device can only send to up to one link at the same time
                 for predecessor in comp_graph.predecessors(current_op):
+                    # in edge_cut_list => there exists a cross-device communication
                     if (predecessor, current_op) in edge_cut_list:
-                        if last_communication_dict[subgraph_id] is not None:
-                            model.addConstr(comm_start[predecessor, current_op] >= comm_end[last_communication_dict[subgraph_id]])
-                        source_subgraph = operator_device_mapping[predecessor]
-                        last_communication_dict[source_subgraph] = (predecessor, current_op)
-                        last_communication_dict[subgraph_id] = (predecessor, current_op)
+                        source_device = operator_device_mapping[predecessor]
+                        assert source_device != current_device
+                        if last_communication_dict[source_device] is not None:
+                            model.addConstr(comm_start[predecessor, current_op] >= comm_end[last_communication_dict[source_device]])
+                        last_communication_dict[source_device] = (predecessor, current_op)
 
                 # Track the finish time of the current task
-                last_job_dict[subgraph_id] = current_op
+                last_job_dict[current_device] = current_op
 
                 # Track task completion
                 completed_tasks.add(current_op)
