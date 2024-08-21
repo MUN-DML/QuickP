@@ -107,8 +107,10 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
 
             result['CommunicationTimeLine'][s_placement].append(
                 (source_op_ID, dest_op_ID, comm_start_time, comm_end_time, comm_cost))
-            result['CommunicationTimeLine'][d_placement].append(
-                (source_op_ID, dest_op_ID, comm_start_time, comm_end_time, comm_cost))
+
+            # only show the sending timeline by device
+            # result['CommunicationTimeLine'][d_placement].append(
+            #     (source_op_ID, dest_op_ID, comm_start_time, comm_end_time, comm_cost))
     # Sort the communication timeline based on the starting time
     for device, timeline in result['CommunicationTimeLine'].items():
         result['CommunicationTimeLine'][device] = sorted(timeline, key=lambda x: x[2])

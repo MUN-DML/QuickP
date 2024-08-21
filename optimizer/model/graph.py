@@ -518,3 +518,9 @@ def label_node_levels(G):
         node_levels[node] = max_predecessor_level + 1
 
     return node_levels
+
+
+# Function to check if two nodes are not connected
+def is_not_connected(G, node_a, node_b):
+    # Check if there is no path from node_a to node_b and vice versa
+    return not nx.has_path(G, node_a, node_b) and not nx.has_path(G, node_b, node_a)
