@@ -75,6 +75,7 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
                                 name=f"FCFS_comm2_first_{source_node_1}_{source_node_2}")
             # in this case, a must be b's preceding node
             else:
+                assert nx.has_path(subgraph, source_node_1, source_node_2)
                 model.addConstr(comm_end[comm1] <= comm_start[comm2])
 
 
