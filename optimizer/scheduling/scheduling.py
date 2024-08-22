@@ -27,8 +27,6 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
     M = 1000000
     order = {}
     for subgraph in device_subgraph_mapping.values():
-        for source_op, dest_op in subgraph.getEdgeIDs():
-            model.addConstr(finish[source_op] <= start[dest_op])
         non_connected_pairs = find_non_connected_pairs(subgraph)
         for op_a, op_b in non_connected_pairs:
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
