@@ -477,6 +477,60 @@ def find_non_connected_pairs(G):
     return non_connected_pairs
 
 
+def compute_non_connected_nodes_with_closure(graph):
+    # Get the transitive closure of the graph
+    TC = nx.transitive_closure(graph)
+
+    # Get all nodes in the graph
+    all_nodes = set(graph.nodes())
+
+    # Create a dictionary to store non-connected nodes for each node
+    non_connected_nodes = {}
+
+    # Track the non-connected pairs (to avoid symmetric repeats)
+    processed_pairs = set()
+
+    # Compute non-connected nodes for each node
+    for node in graph.nodes():
+        # In the transitive closure, successors are all reachable nodes
+        reachable = set(TC.successors(node)) | {node}
+
+        # Non-connected nodes are those not in the connected set
+        non_connected_for_node = all_nodes - reachable
+
+        # Filter out nodes that have already been processed
+        non_connected_for_node = {n for n in non_connected_for_node if
+                                  (min(node, n), max(node, n)) not in processed_pairs}
+
+        # Store non-connected nodes for this node
+        non_connected_nodes[node] = non_connected_for_node
+
+        # Mark the pairs as processed
+        for n in non_connected_for_node:
+            processed_pairs.add((min(node, n), max(node, n)))
+
+    return non_connected_nodes
+
+def compute_node_non_connected_set_dict(graph):
+    # Get the transitive closure of the graph
+    TC = nx.transitive_closure(graph)
+
+    # Get all nodes in the graph
+    all_nodes = set(graph.nodes())
+
+    # Create a dictionary to store non-connected nodes for each node
+    non_connected_nodes = {}
+
+    # Compute non-connected nodes for each node
+    for node in graph.nodes():
+        # In the transitive closure, successors are all reachable nodes
+        reachable = set(TC.successors(node)) | {node}
+        # Non-connected nodes are those not in the connected set
+        non_connected_nodes[node] = all_nodes - reachable
+
+    return non_connected_nodes
+
+
 # a way to break DAG into levels and simplify the scheduling problem
 def topological_sort_groups(G):
     # Perform a topological sort on the DAG
