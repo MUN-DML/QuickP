@@ -21,9 +21,8 @@ def gurobi_setup(name: str):
     model.setParam("TimeLimit", 2400)
     model.setParam("MIPFocus", 1)
 
-    # if this is too large, then the reformulated
-    # ex-quadratic constraints can behave funky
-    model.setParam("IntFeasTol", 1e-6)
+    # This is strictly related to the value of big M
+    model.setParam("IntFeasTol", 1e-7)
     model.setParam("MemLimit", 4096)  # Example: Limit memory usage to 4 GB
     model.setParam("Threads", 4)  # Example: Use 4 threads
 

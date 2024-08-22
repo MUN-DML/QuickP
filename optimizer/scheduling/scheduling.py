@@ -23,8 +23,7 @@ def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish,
 
 
 def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, device_subgraph_mapping: dict, edge_cut_list):
-    for global_source_op, global_dest_op in comp_graph.getEdgeIDs():
-        model.addConstr(finish[global_source_op] <= start[global_dest_op])
+    # The global data dependency is already applied
     M = 1000000
     order = {}
     for subgraph in device_subgraph_mapping.values():
@@ -44,7 +43,7 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
         model.addConstr(
             comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
     '''
-    '''
+
     # Add constraint to ensure each device can only send one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
     for device, subgraph in device_subgraph_mapping.items():
@@ -80,7 +79,6 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
             else:
                 assert nx.has_path(subgraph, source_node_1, source_node_2)
                 model.addConstr(comm_end[comm1] <= comm_start[comm2])
-    '''
 
 
 def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
