@@ -17,12 +17,12 @@ def gurobi_setup(name: str):
     model = Model(name)
     model.setParam("LogToConsole", 0)
     model.setParam("LogFile", "gurobi.log")
-    model.setParam("MIPGap", 0.21)
+    model.setParam("MIPGap", 0.11)
     model.setParam("TimeLimit", 2400)
     model.setParam("MIPFocus", 1)
 
     # This is strictly related to the value of big M
-    model.setParam("IntFeasTol", 1e-7)
+    model.setParam("IntFeasTol", 1e-9)
     model.setParam("MemLimit", 4096)  # Example: Limit memory usage to 4 GB
     model.setParam("Threads", 4)  # Example: Use 4 threads
 

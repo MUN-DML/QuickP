@@ -166,7 +166,7 @@ if __name__ == '__main__':
     parser.add_argument('--number_of_device', type=int, default=8)
     parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
-    parser.add_argument('--scheduling', default='OPTIMIZED', type=str, help='')
+    parser.add_argument('--scheduling', default='FIFO_SOLVER', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
 
     args = parser.parse_args()
