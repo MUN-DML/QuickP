@@ -114,12 +114,6 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                     # Enqueue the task to the task queue of the correct subgraph (device)
                     device_queues[subgraph_of_succ].append(succ)
 
-    ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                          name="ready")  # ready[node_id] represent the ready time of this node, simulating Queue
-
-    for node in comp_graph.nodes():
-        for predecessor in comp_graph.predecessors(node):
-            model.addConstr(ready[node] >= finish[predecessor], name=f"fifo_{predecessor}_to_{node}")
 
     # It is an SCHEDULING problem within each device.
     device_queues = initialize_queues(device_subgraph_mapping, comp_graph)
@@ -147,10 +141,6 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                 for predecessor in nx.ancestors(comp_graph, current_op):
                     if predecessor not in completed_tasks:
                         raise ValueError(f"{current_op} 's dependency {predecessor} not satisfied")
-
-                # Ensure the task starts after its ready time
-                model.addConstr(start[current_op] >= ready[current_op],
-                                name=f"start_after_ready_{current_op}_on_subgraph_{current_device}")
 
                 # Ensure that the task starts after the previous task finishes within the same subgraph
                 # Operator scheduling within device
@@ -217,13 +207,6 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
                     # Enqueue the task to the task queue of the correct subgraph (device)
                     device_queue_dict[device_of_successor].put((comp_graph.getOperatorCompCostByDevice(successor, device_of_successor), successor))
 
-    ready = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                          name="ready")  # ready[node_id] represent the ready time of this node, simulating Queue
-
-    for node in comp_graph.nodes():
-        for predecessor in comp_graph.predecessors(node):
-            model.addConstr(ready[node] >= finish[predecessor], name=f"fifo_{predecessor}_to_{node}")
-
     # It is an SCHEDULING problem within each device.
     device_queues = initialize_queues(device_subgraph_mapping, comp_graph)
     total_items = sum(queue.qsize() for queue in device_queues.values())
@@ -250,10 +233,6 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
                 for predecessor in nx.ancestors(comp_graph, task):
                     if predecessor not in completed_tasks:
                         raise ValueError(f"{task} 's dependency {predecessor} not satisfied")
-
-                # Ensure the task starts after its ready time
-                model.addConstr(start[task] >= ready[task],
-                                name=f"start_after_ready_{task}_on_subgraph_{device_id}")
 
                 # Ensure that the task starts after the previous task finishes within the same subgraph
                 # Operator scheduling within device
