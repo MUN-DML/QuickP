@@ -40,12 +40,12 @@ def get_hetero_balanced_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph
     for op in comp_graph.getOperatorIDs():
         model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{op}")
 
-
+    '''
     # No connected pair cannot be allocated to the same device
     for device in deviceTopo.getDeviceIDs():
         for node_a, node_b in non_connected_pairs:
             model.addConstr(x[node_a, device] + x[node_b, device] <= 1)
-
+    '''
 
     # Add constraints that each op's
     for node_id in comp_graph.getOperatorIDs():
@@ -93,9 +93,16 @@ def get_hetero_balanced_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph
     max_weight = model.addVar(vtype=GRB.CONTINUOUS, name="max_weight")
     for device in deviceTopo.getDeviceIDs():
         model.addConstr(total_weight_device[device] <= max_weight, name=f"max_weight_constraint_{device}")
+    min_weight = model.addVar(vtype=GRB.CONTINUOUS, name="max_weight")
+    for device in deviceTopo.getDeviceIDs():
+        model.addConstr(total_weight_device[device] >= min_weight, name=f"max_weight_constraint_{device}")
+    # Minimize the maximum weight assigned to any device
+    entire_weight = model.addVar(vtype=GRB.CONTINUOUS, name="max_weight")
+    model.addConstr(entire_weight == quicksum(total_weight_device[device] for device in deviceTopo.getDeviceIDs()),
+                        name="entire_weight_constraint")
 
     # Set the target of solver
-    model.setObjective(max_weight, GRB.MINIMIZE)
+    model.setObjective(max_weight-min_weight, GRB.MINIMIZE)
 
     # Run the solver
     sys.stdout.flush()
