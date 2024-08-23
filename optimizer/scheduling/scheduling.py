@@ -109,8 +109,6 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
             if all(predecessor in completed_tasks for predecessor in predecessors):
                 # Enqueue the task to the task queue of this subgraph (device)
                 subgraph_of_succ = partition_dict[succ]
-                if subgraph_of_succ != partition_dict[finished_task]:
-                    print(f"succ {succ} belongs to {subgraph_of_succ} while the current graph is {partition_dict[finished_task]}")
                 # cannot use "if subgraph_of_succ" since subgraph id can be 0
                 if subgraph_of_succ is not None:
                     # Enqueue the task to the task queue of the correct subgraph (device)
@@ -214,9 +212,6 @@ def priority_queue_scheduling(model: Model, start, finish, comm_start, comm_end,
             if all(predecessor in completed_tasks for predecessor in predecessors):
                 # Enqueue the task to the task queue of this subgraph (device)
                 device_of_successor = partition_dict[successor]
-                if device_of_successor != partition_dict[finished_task]:
-                    print(
-                        f"{successor} belongs to {device_of_successor} while the current graph is {partition_dict[finished_task]}")
                 # cannot use "if subgraph_of_succ" since subgraph id can be 0
                 if device_of_successor is not None:
                     # Enqueue the task to the task queue of the correct subgraph (device)
@@ -300,8 +295,11 @@ def optimal_scheduling_with_prob_function(model: Model, start, finish, comm_star
         non_connected_pairs = find_non_connected_pairs(subgraph)
         high_cost_pairs, other_pairs = split_non_connected_pairs(comp_graph, device, non_connected_pairs)
         other_nodes = set(node for pair in other_pairs for node in pair)
-        # sort other_nodes based on the FIFO order
+        # get the FIFO order
         local_fifo_order = fifo_operator_order[device]
+        node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
+        # sort other_nodes based on the FIFO order
+        other_nodes = sorted(other_nodes, key=lambda op: node_order_dict[op])
 
         for op_a, op_b in high_cost_pairs:
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
