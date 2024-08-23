@@ -86,7 +86,7 @@ def get_hetero_balanced_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph
     # Constraints: Define total weight for each device based on assigned operators
     for device in deviceTopo.getDeviceIDs():
         model.addConstr(
-            total_weight_device[device] == quicksum(computing_cost[op, device] * x[op, device] for op in comp_graph.getOperatorIDs()),
+            total_weight_device[device] == quicksum(computing_cost[op] * x[op, device] for op in comp_graph.getOperatorIDs()),
             name=f"weight_device_{device}")
 
     # Minimize the maximum weight assigned to any device

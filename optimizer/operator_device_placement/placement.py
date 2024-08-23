@@ -12,7 +12,7 @@ from optimizer.operator_device_placement.optimal.optimal_placement import get_op
 class PlacementGenerator(Enum):
     METIS = "METIS"
     OPTIMIZED = "OPTIMIZED",
-    HETERO_BALANCED = "HETERO_BALANCED",
+    HETERO = "HETERO",
 
 
 def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: DeviceGraph):
@@ -28,8 +28,10 @@ def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: 
         operator_device_mapping = get_optimize_placement(comp_graph, device_topo)
         edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
 
-    elif placement_type == PlacementGenerator.HETERO_BALANCED.value:
+    elif placement_type == "HETERO":
         operator_device_mapping = get_hetero_balanced_placement(comp_graph, device_topo)
         edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
+    else:
+        print(placement_type, "does not support this placement type")
 
     return operator_device_mapping, edge_cut_list, edge_cut_weight_sum
