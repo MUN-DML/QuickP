@@ -168,7 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--scheduling', default='FIFO', type=str, help='')
-    parser.add_argument('--placement', default='METIS', type=str, help='')
+    parser.add_argument('--placement', default='HETERO_BALANCED', type=str, help='')
     parser.add_argument('--hetero_rate', default=100, type=int, help='')
 
     args = parser.parse_args()

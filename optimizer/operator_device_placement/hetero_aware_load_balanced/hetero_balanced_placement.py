@@ -1,7 +1,7 @@
 from gurobipy import *
 from networkx import topological_sort
 
-from optimizer.model.graph import find_non_connected_pairs
+from optimizer.model.graph import find_non_connected_pairs, DeviceGraph, CompGraph
 from optimizer.scheduling.scheduling import add_topo_order_constraints
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
@@ -12,7 +12,7 @@ sys.path.append(project_root)
 from optimizer.optimization_problems.gurobi_util import gurobi_setup
 
 
-def get_hetero_balanced_placement(comp_graph, deviceTopo) -> dict:
+def get_hetero_balanced_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph) -> dict:
 
     def get_operator_device_mapping_through_x(x):
         mapping = {}
@@ -32,7 +32,7 @@ def get_hetero_balanced_placement(comp_graph, deviceTopo) -> dict:
 
     computing_cost = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="computing_cost")
-    total_weight_device = model.addVars(deviceTopo.getDeviceIDs, vtype=GRB.CONTINUOUS, name="total_weight_device")
+    total_weight_device = model.addVars(deviceTopo.getDeviceIDs(), vtype=GRB.CONTINUOUS, name="total_weight_device")
 
     comm_cost = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_cost")
 
@@ -116,7 +116,6 @@ def get_hetero_balanced_placement(comp_graph, deviceTopo) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        # show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish)
         print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
 
         operator_device_mapping = get_operator_device_mapping_through_x(x)
