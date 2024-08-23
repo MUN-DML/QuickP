@@ -23,10 +23,11 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
              placement: str = 'METIS',
              node_weight_function=NodeWeightFunction.AVE_COMP_COST,
              edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
-             weight_norm_function=WeightNormalizationFunction.MIN_MAX):
+             weight_norm_function=WeightNormalizationFunction.MIN_MAX,
+             hetero_adjust_rate = None):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph.json",
-                                                             None, model_type=model_type)
+                                                             hetero_adjust_rate, model_type=model_type)
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
@@ -163,11 +164,12 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=8)
-    parser.add_argument('--model', type=str, default='ALEXNET')
+    parser.add_argument('--number_of_device', type=int, default=4)
+    parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
-    parser.add_argument('--scheduling', default='NEAR_OPTIMAL', type=str, help='')
+    parser.add_argument('--scheduling', default='FIFO', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
+    parser.add_argument('--hetero_rate', default=100, type=int, help='')
 
     args = parser.parse_args()
 
@@ -177,4 +179,5 @@ if __name__ == '__main__':
     simulate(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
              scheduling_function=args.scheduling,
              placement = args.placement,
-             weight_norm_function=weight_normalization_dict[args.normalization_function])
+             weight_norm_function=weight_normalization_dict[args.normalization_function],
+             hetero_adjust_rate = args.hetero_rate)
