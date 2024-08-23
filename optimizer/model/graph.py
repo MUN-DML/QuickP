@@ -155,6 +155,20 @@ class CompGraph(DiGraph):
             raise ValueError(f"no {device_id} found")
         return self.nodes[node_id]["comp_cost"][device_id]
 
+    def getOpCompCostMapByDevice(self, device_id):
+        comp_cost_map = {}
+        for node_id in self.nodes:
+            # Check if node exists and has computing cost for the specified device
+            if self.nodes[node_id] is None:
+                raise ValueError(f"node {node_id} does not exist")
+            if "comp_cost" not in self.nodes[node_id] or self.nodes[node_id]["comp_cost"] is None:
+                raise ValueError(f"no comp_cost found for node {node_id}")
+            if device_id not in self.nodes[node_id]["comp_cost"].keys():
+                raise ValueError(f"device {device_id} not found for node {node_id}")
+            # Add the computing cost for the current node to the result dictionary
+            comp_cost_map[node_id] = self.nodes[node_id]["comp_cost"][device_id]
+        return comp_cost_map
+
     def getOperatorCompCostSum(self, node_id):
         if node_id not in self.nodes:
             raise ValueError("node {0} does not exist".format(node_id))
@@ -578,3 +592,21 @@ def label_node_levels(G):
 def is_not_connected(G, node_a, node_b):
     # Check if there is no path from node_a to node_b and vice versa
     return not nx.has_path(G, node_a, node_b) and not nx.has_path(G, node_b, node_a)
+
+
+def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
+    computing_cost = graph.getOpCompCostMapByDevice(device)
+    # List to store pairs where both nodes have a computing cost > 5
+    high_cost_pairs = []
+
+    # List to store other pairs
+    other_pairs = []
+
+    for node_a, node_b in non_connected_pairs:
+        # Check if both nodes have a computing cost higher than 5
+        if computing_cost[node_a] > 5 and computing_cost[node_b] > 5:
+            high_cost_pairs.append((node_a, node_b))
+        else:
+            other_pairs.append((node_a, node_b))
+
+    return high_cost_pairs, other_pairs
