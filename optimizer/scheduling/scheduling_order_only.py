@@ -6,8 +6,8 @@ from optimizer.model.graph import CompGraph
 from gurobipy import Model, GRB
 
 
-def FIFO_scheduling(comp_graph: CompGraph,
-                    device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
+def FIFO_scheduling_order(comp_graph: CompGraph,
+                          device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
     def initialize_queues(subgraph_dict, dependency_graph):
         # Initialize a queue for each subgraph (device)
         device_queue_dict = {device: deque() for device, subgraph in subgraph_dict.items()}
