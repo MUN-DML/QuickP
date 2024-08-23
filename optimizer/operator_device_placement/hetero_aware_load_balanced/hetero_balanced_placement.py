@@ -53,6 +53,7 @@ def get_hetero_balanced_placement(comp_graph, deviceTopo) -> dict:
                              for device_id in deviceTopo.getDeviceIDs())
         model.addConstr(computing_cost[node_id] == comp_cost, name=f"finish_start_{node_id}")
 
+
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
                     src != dest}
@@ -74,9 +75,13 @@ def get_hetero_balanced_placement(comp_graph, deviceTopo) -> dict:
             for device_id_src, device_id_dest in device_pairs
         )
         model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr, f"comm_cost_{source_op_ID}_{dest_op_ID}")
-
-
-    max_weight = model.addVar(vtype=GRB.CONTINUOUS, name="max_weight")
+    # Define a variable to represent the total sum of communication costs
+    total_comm_cost = model.addVar(vtype=GRB.CONTINUOUS, name="total_comm_cost")
+    # Set up the total communication cost as the sum of the communication costs between all pairs of operators
+    model.addConstr(
+        total_comm_cost == quicksum(comm_cost[source_op_ID, dest_op_ID] for source_op_ID, dest_op_ID in comm_cost),
+        name="total_comm_cost_constraint"
+    )
 
     # Constraints: Define total weight for each device based on assigned operators
     for device in deviceTopo.getDeviceIDs():
@@ -85,6 +90,7 @@ def get_hetero_balanced_placement(comp_graph, deviceTopo) -> dict:
             name=f"weight_device_{device}")
 
     # Minimize the maximum weight assigned to any device
+    max_weight = model.addVar(vtype=GRB.CONTINUOUS, name="max_weight")
     for device in deviceTopo.getDeviceIDs():
         model.addConstr(total_weight_device[device] <= max_weight, name=f"max_weight_constraint_{device}")
 
