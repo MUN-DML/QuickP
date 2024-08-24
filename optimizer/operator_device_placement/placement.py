@@ -8,6 +8,7 @@ from optimizer.operator_device_placement.metis.metis_partition import metis_part
 from optimizer.operator_device_placement.metis.subgraph_util import map_subgraph_to_device, construct_sub_graph, \
     identify_edges_cut
 from optimizer.operator_device_placement.optimal.optimal_placement import get_optimize_placement
+from optimizer.optimization_problems.gurobi_util import get_subgraph_op_num_weight_sum_dict
 
 
 class PlacementGenerator(Enum):
@@ -21,9 +22,10 @@ def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: 
         partition_dict, edge_cut_list, edge_cut_weight_sum = metis_partition(comp_graph,
                         num_partitions=len(device_topo.getDeviceIDs()),
             )
-
+        device_computing_cost_dict = comp_graph.get_comp_cost_sum_ratio(len(device_topo.getDeviceIDs()))
+        _, partition_weights = get_subgraph_op_num_weight_sum_dict(comp_graph, partition_dict)
         # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
-        operator_device_mapping = map_subgraph_to_device(partition_dict, device_topo.getDeviceIDs())
+        operator_device_mapping = map_subgraph_to_device(partition_dict, device_topo.getDeviceIDs(), device_computing_cost_dict, partition_weights)
 
     elif placement_type == PlacementGenerator.OPTIMIZED.value:
         operator_device_mapping = get_optimize_placement(comp_graph, device_topo)
