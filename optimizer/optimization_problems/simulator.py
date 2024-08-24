@@ -168,8 +168,8 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     parser.add_argument('--scheduling', default='FIFO', type=str, help='')
-    parser.add_argument('--placement', default='HETERO', type=str, help='')
-    parser.add_argument('--hetero_rate', default=100, type=int, help='')
+    parser.add_argument('--placement', default='HOMO', type=str, help='')
+    parser.add_argument('--hetero_rate', default=None, type=int, help='')
 
     args = parser.parse_args()
 
