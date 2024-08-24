@@ -80,8 +80,8 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
                 model.addConstr(comm_end[comm1] <= comm_start[comm2])
 
 
-def optimal_scheduling_with_prob_function(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                              device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
+def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
+                            device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
     # The global data dependency is already applied
     M = 1000000
     order = {}
@@ -244,7 +244,7 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
     elif sch_fun_type == SchedulingAlgorithm.PRIORITY_MIN_COMP.value:
         return priority_queue_min_comp_cost(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.NEAR_OPTIMAL.value:
-        return optimal_scheduling_with_prob_function(model, **selected_kwargs)
+        return near_optimal_scheduling(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.FIFO_SOLVER.value:
         return FIFO_scheduling_solver(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.PRIORITY_HETEROG.value:
