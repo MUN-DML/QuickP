@@ -11,13 +11,24 @@ def priority_queue_max_rank_heteroG(model: Model, start, finish, comm_start, com
 
     global_rank = {}
     topo_sorted = list(nx.topological_sort(comp_graph))
+
     for current_node in topo_sorted:
-        max_computing_cost = max(
-            comp_graph.getOperatorCompCostByDevice(pre_node, operator_device_mapping[pre_node])
-            for pre_node in comp_graph.predecessors(current_node)
+        # Check if the current node has any predecessors
+        predecessors = list(comp_graph.predecessors(current_node))
+
+        if predecessors:  # If there are predecessors, compute the max computing cost
+            max_pre_computing_cost = max(
+                comp_graph.getOperatorCompCostByDevice(pre_node, operator_device_mapping[pre_node])
+                for pre_node in predecessors
+            )
+        else:  # If there are no predecessors, set the max computing cost to 0
+            max_pre_computing_cost = 0
+
+        # Calculate the global rank for the current node
+        global_rank[current_node] = (
+                max_pre_computing_cost + comp_graph.getOperatorCompCostByDevice(current_node,
+                                                                            operator_device_mapping[current_node])
         )
-        global_rank[current_node] = (max_computing_cost + comp_graph.
-                              getOperatorCompCostByDevice(current_node, operator_device_mapping[current_node]))
 
     def initialize_queues(subgraph_dict, dependency_graph) -> dict[any, PriorityQueue]:
         # Initialize a queue for each device
