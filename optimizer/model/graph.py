@@ -604,7 +604,7 @@ def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
 
     for node_a, node_b in non_connected_pairs:
         # Check if both nodes have a computing cost higher than 5
-        if computing_cost[node_a] > 5 and computing_cost[node_b] > 5:
+        if computing_cost[node_a] > 1 and computing_cost[node_b] > 1:
             high_cost_pairs.append((node_a, node_b))
         else:
             other_pairs.append((node_a, node_b))
