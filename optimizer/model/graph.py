@@ -3,7 +3,7 @@ import os
 import random
 from collections import defaultdict
 from itertools import combinations
-from typing import Union
+from typing import Union, Set
 
 import networkx as nx
 
@@ -544,48 +544,14 @@ def compute_node_non_connected_set_dict(graph):
 
     return non_connected_nodes
 
-
-# a way to break DAG into levels and simplify the scheduling problem
-def topological_sort_groups(G):
-    # Perform a topological sort on the DAG
-    topo_sorted = list(nx.topological_sort(G))
-
-    # Group nodes by levels (nodes with no incoming edges can be processed in parallel)
-    levels = []
-    current_level = set()
-    for node in topo_sorted:
-        if not any(predecessor in current_level for predecessor in G.predecessors(node)):
-            current_level.add(node)
-        else:
-            if len(current_level) > 1:  # Only append sets with more than 1 node
-                levels.append(current_level)
-            current_level = {node}
-
-    if len(current_level) > 1:  # Ensure the last set is also checked
-        levels.append(current_level)
-
-    return levels
-
-
-def label_node_levels(G):
-    # Perform a topological sort on the DAG
-    topo_sorted = list(nx.topological_sort(G))
-
-    # Dictionary to store the level of each node
-    node_levels = {}
-
-    for node in topo_sorted:
-        # Initialize the level of the current node. Assign a -1 first
-        max_predecessor_level = -1
-
-        # Iterate through the predecessors to find the maximum level
-        for predecessor in G.predecessors(node):
-            max_predecessor_level = max(max_predecessor_level, node_levels[predecessor])
-
-        # Level is 1 + max level of its predecessors, or 0 if it has no predecessors
-        node_levels[node] = max_predecessor_level + 1
-
-    return node_levels
+def get_non_connected_set_by_operator(graph: CompGraph, operator_id) -> Set:
+    # Get the transitive closure of the graph
+    TC = nx.transitive_closure(graph)
+    # Get all nodes in the graph
+    all_nodes = set(graph.nodes())
+    # In the transitive closure, successors are all reachable nodes
+    reachable = set(TC.successors(operator_id)) | {operator_id}
+    return all_nodes - reachable
 
 
 # Function to check if two nodes are not connected
@@ -604,7 +570,8 @@ def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
 
     for node_a, node_b in non_connected_pairs:
         # Check if both nodes have a computing cost higher than 5
-        if computing_cost[node_a] > 50 or computing_cost[node_b] > 50:
+        # must use or instead of and because for a selected node, we must get the entire order chain
+        if computing_cost[node_a] > 100 or computing_cost[node_b] > 100:
             high_cost_pairs.append((node_a, node_b))
         else:
             other_pairs.append((node_a, node_b))
