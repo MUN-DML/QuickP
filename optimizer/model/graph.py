@@ -543,6 +543,9 @@ def get_non_connected_list_by_operator(graph, operator_id) -> list:
     # Non-connected nodes are those not in the connected set
     non_connected_nodes = all_nodes - connected_nodes
 
+    # add back
+    non_connected_nodes.add(operator_id)
+
     return list(non_connected_nodes)
 
 
