@@ -6,6 +6,7 @@ from gurobipy import Model, GRB
 
 from optimizer.model.graph import find_non_connected_pairs, CompGraph, is_not_connected
 from optimizer.scheduling.FIFO import FIFO_scheduling
+from optimizer.scheduling.near_opt import near_optimal_scheduling_revised
 from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_heteroG
 from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_cost
 from optimizer.scheduling.proposed_scheduling import near_optimal_scheduling
@@ -146,6 +147,8 @@ class SchedulingAlgorithm(Enum):
     NEAR_OPTIMAL = "NEAR_OPTIMAL"
     FIFO_SOLVER = "FIFO_SOLVER",
     PRIORITY_HETEROG = "PRIORITY_HETEROG"
+    NEAR_OPTIMAL_2 = "NEAR_OPTIMAL_2"
+
 
 
 
@@ -164,7 +167,9 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
                                                  'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping'],
         SchedulingAlgorithm.PRIORITY_HETEROG.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                                       'device_subgraph_mapping', 'edge_cut_list',
-                                                      'operator_device_mapping']
+                                                      'operator_device_mapping'],
+        SchedulingAlgorithm.NEAR_OPTIMAL_2.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
+                                                 'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping'],
     }
 
     if sch_fun_type not in required_args:
@@ -191,3 +196,5 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         return FIFO_scheduling_solver(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.PRIORITY_HETEROG.value:
         return priority_queue_max_rank_heteroG(model, **selected_kwargs)
+    elif sch_fun_type == SchedulingAlgorithm.NEAR_OPTIMAL_2.value:
+        return near_optimal_scheduling_revised(model, **selected_kwargs)
