@@ -526,7 +526,7 @@ def compute_non_connected_nodes_with_closure(graph):
     return non_connected_nodes
 
 
-def get_non_connected_set_by_operator(graph, operator_id) -> Set:
+def get_non_connected_list_by_operator(graph, operator_id) -> list:
     # Get the transitive closure of the graph
     transitive_closure = nx.transitive_closure(graph)
 
@@ -543,7 +543,7 @@ def get_non_connected_set_by_operator(graph, operator_id) -> Set:
     # Non-connected nodes are those not in the connected set
     non_connected_nodes = all_nodes - connected_nodes
 
-    return non_connected_nodes
+    return list(non_connected_nodes)
 
 
 # Function to check if two nodes are not connected
@@ -569,3 +569,22 @@ def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
             other_pairs.append((node_a, node_b))
 
     return high_cost_pairs, other_pairs
+
+
+def split_list_based_on_computing_cost(graph: CompGraph, device, node_list):
+    computing_cost = graph.getOpCompCostMapByDevice(device)
+    # List to store pairs where both nodes have a computing cost > 5
+    high_cost_nodes = []
+
+    # List to store other pairs
+    other_pairs_nodes = []
+
+    for node in node_list:
+        # Check if both nodes have a computing cost higher than 5
+        # must use or instead of and because for a selected node, we must get the entire order chain
+        if computing_cost[node] > 100:
+            high_cost_nodes.append(node)
+        else:
+            other_pairs_nodes.append(node)
+
+    return high_cost_nodes, other_pairs_nodes
