@@ -574,17 +574,13 @@ def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
 def split_list_based_on_computing_cost(graph: CompGraph, device, node_list):
     computing_cost = graph.getOpCompCostMapByDevice(device)
     # List to store pairs where both nodes have a computing cost > 5
-    high_cost_nodes = []
+    # First sort the node list based on the computing cost condition
+    node_list_sorted = sorted(node_list, key=lambda node: computing_cost[node] > 300, reverse=True)
 
-    # List to store other pairs
-    other_pairs_nodes = []
-
-    for node in node_list:
-        # Check if both nodes have a computing cost higher than 5
-        # must use or instead of and because for a selected node, we must get the entire order chain
-        if computing_cost[node] > 100:
-            high_cost_nodes.append(node)
-        else:
-            other_pairs_nodes.append(node)
+    # Split the sorted list into high_cost_nodes and other_pairs_nodes
+    split_index = next((i for i, node in enumerate(node_list_sorted) if computing_cost[node] <= 300),
+                       len(node_list_sorted))
+    high_cost_nodes = node_list_sorted[:split_index]
+    other_pairs_nodes = node_list_sorted[split_index:]
 
     return high_cost_nodes, other_pairs_nodes
