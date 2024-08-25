@@ -525,33 +525,25 @@ def compute_non_connected_nodes_with_closure(graph):
 
     return non_connected_nodes
 
-def compute_node_non_connected_set_dict(graph):
+
+def get_non_connected_set_by_operator(graph, operator_id) -> Set:
     # Get the transitive closure of the graph
-    TC = nx.transitive_closure(graph)
+    transitive_closure = nx.transitive_closure(graph)
 
     # Get all nodes in the graph
     all_nodes = set(graph.nodes())
 
-    # Create a dictionary to store non-connected nodes for each node
-    non_connected_nodes = {}
+    # Get all reachable nodes from the given node in both directions
+    reachable_from_node = set(transitive_closure.successors(operator_id)) | {operator_id}
+    reachable_to_node = set(transitive_closure.predecessors(operator_id)) | {operator_id}
 
-    # Compute non-connected nodes for each node
-    for node in graph.nodes():
-        # In the transitive closure, successors are all reachable nodes
-        reachable = set(TC.successors(node)) | {node}
-        # Non-connected nodes are those not in the connected set
-        non_connected_nodes[node] = all_nodes - reachable
+    # The union of these two sets will give us all connected nodes in either direction
+    connected_nodes = reachable_from_node | reachable_to_node
+
+    # Non-connected nodes are those not in the connected set
+    non_connected_nodes = all_nodes - connected_nodes
 
     return non_connected_nodes
-
-def get_non_connected_set_by_operator(graph: CompGraph, operator_id) -> Set:
-    # Get the transitive closure of the graph
-    TC = nx.transitive_closure(graph)
-    # Get all nodes in the graph
-    all_nodes = set(graph.nodes())
-    # In the transitive closure, successors are all reachable nodes
-    reachable = set(TC.successors(operator_id)) | {operator_id}
-    return all_nodes - reachable
 
 
 # Function to check if two nodes are not connected
