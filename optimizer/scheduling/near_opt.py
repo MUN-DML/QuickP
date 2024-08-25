@@ -16,9 +16,14 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
     fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                    operator_device_mapping)
     for device, subgraph in device_subgraph_mapping.items():
+        # there will be no pairs with the same element
         non_connected_pairs = find_non_connected_pairs(subgraph)
         # flatten the pairs to get all the non-repeated nodes, convert to list
-        all_nodes = list(set(node for pair in non_connected_pairs for node in pair))
+        all_nodes = []
+        for pair in non_connected_pairs:
+            for node in pair:
+                if node not in all_nodes:
+                    all_nodes.append(node)
         high_cost_nodes, other_nodes = split_list_based_on_computing_cost(comp_graph, device, all_nodes)
 
         # get the FIFO order
@@ -27,12 +32,13 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         # sort other_nodes based on the FIFO order
         other_nodes = sorted(other_nodes, key=lambda op: node_order_dict[op])
 
+        # apply optimization to these high-cost node pairs
         for high_cost_node in high_cost_nodes:
-            non_connected_chain_list = get_non_connected_list_by_operator(subgraph, high_cost_node)
-            for non_connected_op in non_connected_chain_list:
-                order[high_cost_node, non_connected_op] = model.addVar(vtype=GRB.BINARY, name=f"order_{high_cost_node}_{non_connected_op}")
-                model.addConstr(start[non_connected_op] >= finish[high_cost_node] - M * (1 - order[high_cost_node, non_connected_op]), name=f"NoOverlap1_{high_cost_node}_{non_connected_op}")
-                model.addConstr(start[high_cost_node] >= finish[non_connected_op] - M * order[high_cost_node, non_connected_op], name=f"NoOverlap2_{high_cost_node}_{non_connected_op}")
+            non_connected_pair = [pair for pair in non_connected_pairs if high_cost_node in pair]
+            for op_a, op_b in non_connected_pair:
+                order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+                model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+                model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
         for op_a, op_b in zip(other_nodes, other_nodes[1:]):
             model.addConstr(finish[op_a] <= start[op_b])
 
