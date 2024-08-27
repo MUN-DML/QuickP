@@ -520,7 +520,7 @@ def split_list_based_on_computing_cost(graph: CompGraph, device, node_list):
     computing_cost = graph.getOpCompCostMapByDevice(device)
     # List to store pairs where both nodes have a computing cost > 5
     # First sort the node list based on the computing cost condition
-    node_list_sorted = sorted(node_list, key=lambda node: computing_cost[node] > 300, reverse=True)
+    node_list_sorted = sorted(node_list, key=lambda node: computing_cost[node], reverse=True)
 
     # Split the sorted list into high_cost_nodes and other_pairs_nodes
     split_index = next((i for i, node in enumerate(node_list_sorted) if computing_cost[node] <= 300),
