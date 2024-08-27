@@ -4,7 +4,7 @@ import networkx as nx
 from gurobipy import Model, GRB
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, split_non_connected_pairs, is_not_connected, \
-    split_list_based_on_computing_cost, get_non_connected_list_by_operator
+    split_list_based_on_computing_cost
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
@@ -19,11 +19,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         # there will be no pairs with the same element
         non_connected_pairs = find_non_connected_pairs(subgraph)
         # flatten the pairs to get all the non-repeated nodes, convert to list
-        all_nodes = []
-        for pair in non_connected_pairs:
-            for node in pair:
-                if node not in all_nodes:
-                    all_nodes.append(node)
+        all_nodes = list({node for pair in non_connected_pairs for node in pair})
         high_cost_nodes, other_nodes = split_list_based_on_computing_cost(comp_graph, device, all_nodes)
 
         # get the FIFO order
