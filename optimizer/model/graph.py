@@ -516,14 +516,30 @@ def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
     return high_cost_pairs, other_pairs
 
 
-def split_list_based_on_computing_cost(graph: CompGraph, device, node_list):
-    computing_cost = graph.getOpCompCostMapByDevice(device)
+def split_list_based_on_score(graph: CompGraph, device, node_list, device_subgraph_mapping, edge_cut_list,
+                              operator_device_mapping):
+    computing_cost_dict = graph.getOpCompCostMapByDevice(device)
+    current_subgraph = device_subgraph_mapping.get(device)
+    outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
+    print("jjb", outgoing_edges)
+
+    def evaluate_node(node):
+        computing_cost = computing_cost_dict[node]
+        # Set to track unique subgraphs that depend on this operator
+        related_devices = set()
+        outgoing_edges_depended = [(u, v) for u, v in outgoing_edges
+                                   if nx.has_path(graph, node, u)]
+        for u, v in outgoing_edges_depended:
+            assert device_subgraph_mapping.get(operator_device_mapping.get(u)) == current_subgraph
+            related_devices.add(operator_device_mapping.get(v))
+        return computing_cost * len(related_devices)
+
     # List to store pairs where both nodes have a computing cost > 5
     # First sort the node list based on the computing cost condition
-    node_list_sorted = sorted(node_list, key=lambda node: computing_cost[node], reverse=True)
+    node_list_sorted = sorted(node_list, key=lambda node: evaluate_node(node), reverse=True)
 
     # Split the sorted list into high_cost_nodes and other_pairs_nodes
-    split_index = next((i for i, node in enumerate(node_list_sorted) if computing_cost[node] <= 300),
+    split_index = next((i for i, node in enumerate(node_list_sorted) if evaluate_node(node) <= 300),
                        len(node_list_sorted))
     high_cost_nodes = node_list_sorted[:split_index]
     other_pairs_nodes = node_list_sorted[split_index:]
