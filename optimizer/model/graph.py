@@ -480,7 +480,7 @@ def find_non_connected_pairs(G):
     TC = nx.transitive_closure(G)
 
     # Generate all unique pairs of nodes
-    all_nodes = list(G.nodes())
+    all_nodes = list(nx.topological_sort(G))
     pairs = combinations(all_nodes, 2)
 
     # Filter pairs to find non-connected pairs
@@ -522,7 +522,6 @@ def split_list_based_on_score(graph: CompGraph, device, node_list, device_subgra
     computing_cost_dict = graph.getOpCompCostMapByDevice(device)
     current_subgraph = device_subgraph_mapping.get(device)
     outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
-    print("jjb", outgoing_edges)
 
     def evaluate_node(node):
         computing_cost = computing_cost_dict[node]
