@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import random
 from collections import defaultdict
@@ -532,7 +533,7 @@ def split_list_based_on_score(graph: CompGraph, device, node_list, device_subgra
         for u, v in outgoing_edges_depended:
             assert device_subgraph_mapping.get(operator_device_mapping.get(u)) == current_subgraph
             related_devices.add(operator_device_mapping.get(v))
-        return computing_cost * len(related_devices)
+        return computing_cost
 
     node_score_mapping = {node: evaluate_node(node) for node in node_list}
 
@@ -544,7 +545,5 @@ def split_list_based_on_score(graph: CompGraph, device, node_list, device_subgra
     split_index = next((i for i, node in enumerate(node_list_sorted) if node_score_mapping[node] <= 300),
                        len(node_list_sorted))
     high_cost_nodes = node_list_sorted[:split_index]
-    print("fff", node_score_mapping[high_cost_nodes[0]], node_score_mapping[high_cost_nodes[-1]])
     other_pairs_nodes = node_list_sorted[split_index:]
-    print("qqq", other_pairs_nodes[high_cost_nodes[0]], other_pairs_nodes[high_cost_nodes[-1]])
     return high_cost_nodes, other_pairs_nodes
