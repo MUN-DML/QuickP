@@ -28,6 +28,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         result_dict = global_node_split_by_device.get(device)
         high_cost_nodes = result_dict["selected_list"]
         other_nodes = result_dict["unselected_list"]
+        print('fuck', high_cost_nodes, other_nodes)
 
         # get the FIFO order
         local_fifo_order = fifo_operator_order[device]
@@ -98,12 +99,12 @@ def get_global_node_set_with_nr(device_subgraph_mapping: dict):
     return global_all_nodes
 
 
-def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mapping, edge_cut_list,
-                              operator_device_mapping, r=0.05, sampling_function=SamplingFunction.HEAVY_HITTER) -> dict:
-    computing_cost_dict = graph.getOpCompCostMapByDevice(device)
+def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list,
+                              operator_device_mapping, r=0.02, sampling_function=SamplingFunction.HEAVY_HITTER) -> dict:
+    # computing_cost_dict = graph.getOpCompCostMapByDevice(device)
     #current_subgraph = device_subgraph_mapping.get(device)
     #outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
-    result_dict = {device_id: {"selected_list": list(), "unselected_list": list()} for device_id in device_subgraph_mapping.keys()}
+    result_dict = {device_id: {"selected_list": [], "unselected_list": []} for device_id in device_subgraph_mapping.keys()}
 
     # def get_related_subgraph_num(node):
     #     related_devices = set()
@@ -114,7 +115,8 @@ def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mappi
     #         related_devices.add(operator_device_mapping.get(v))
 
     def evaluate_node(node):
-        computing_cost = computing_cost_dict[node]
+        assigned_device = operator_device_mapping[node]
+        computing_cost = graph.getOperatorCompCostByDevice(node, assigned_device)
         # Set to track unique sub_graphs that depend on this operator
         return computing_cost
 
@@ -144,7 +146,7 @@ def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mappi
     # Map selected_nodes and unselected_nodes to the corresponding device in result_dict
     for device_id, subgraph in device_subgraph_mapping.items():
         # For each device, check if the node belongs to its subgraph and update the respective set
-        result_dict[device_id]["selected_list"].append(node for node in selected_nodes if node in subgraph)
-        result_dict[device_id]["unselected_list"].append(node for node in unselected_nodes if node in subgraph)
-
+        result_dict[device_id]["selected_list"].append(node for node in selected_nodes if operator_device_mapping[node] == device_id)
+        result_dict[device_id]["unselected_list"].append(node for node in unselected_nodes if operator_device_mapping[node] == device_id)
+    print('suck', result_dict.keys(), result_dict.values())
     return result_dict
