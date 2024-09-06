@@ -1,10 +1,11 @@
 import itertools
+import random
+from enum import Enum
 
 import networkx as nx
 from gurobipy import Model, GRB
 
-from optimizer.model.graph import CompGraph, find_non_connected_pairs, split_non_connected_pairs, is_not_connected, \
-    split_list_based_on_score
+from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
@@ -20,7 +21,8 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         non_connected_pairs = find_non_connected_pairs(subgraph)
         # flatten the pairs to get all the non-repeated nodes, convert to list
         all_nodes = list({node for pair in non_connected_pairs for node in pair})
-        high_cost_nodes, other_nodes = split_list_based_on_score(comp_graph, device, all_nodes, device_subgraph_mapping, edge_cut_list, operator_device_mapping)
+        high_cost_nodes, other_nodes = split_list_based_on_score(comp_graph, device, all_nodes, device_subgraph_mapping,
+                                                                 edge_cut_list, operator_device_mapping)
 
         # get the FIFO order
         local_fifo_order = fifo_operator_order[device]
@@ -33,7 +35,8 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
             non_connected_pair = [pair for pair in non_connected_pairs if high_cost_node in pair]
             for op_a, op_b in non_connected_pair:
                 order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
-                model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+                model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]),
+                                name=f"NoOverlap1_{op_a}_{op_b}")
                 model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
         for op_a, op_b in zip(other_nodes, other_nodes[1:]):
             model.addConstr(finish[op_a] <= start[op_b])
@@ -71,3 +74,42 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
             else:
                 assert nx.has_path(subgraph, source_node_1, source_node_2)
                 model.addConstr(comm_end[comm1] <= comm_start[comm2])
+
+
+class SamplingFunction(Enum):
+    PROBABILISTIC_SAMPLING = "probabilistic"
+    RANDOM = "random"
+    HEAVY_HITTER = "heavy_hitter"
+
+
+def split_list_based_on_score(graph: CompGraph, device, node_list, device_subgraph_mapping, edge_cut_list,
+                              operator_device_mapping, r=0.1, sampling_function=SamplingFunction.HEAVY_HITTER):
+    computing_cost_dict = graph.getOpCompCostMapByDevice(device)
+    current_subgraph = device_subgraph_mapping.get(device)
+    outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
+
+    def evaluate_node(node):
+        computing_cost = computing_cost_dict[node]
+        # Set to track unique subgraphs that depend on this operator
+        related_devices = set()
+        outgoing_edges_depended = [(u, v) for u, v in outgoing_edges
+                                   if nx.has_path(graph, node, u)]
+        for u, v in outgoing_edges_depended:
+            assert device_subgraph_mapping.get(operator_device_mapping.get(u)) == current_subgraph
+            related_devices.add(operator_device_mapping.get(v))
+        return computing_cost
+
+    node_score_mapping = {node: evaluate_node(node) for node in node_list}
+    if sampling_function == SamplingFunction.HEAVY_HITTER:
+        # List to store pairs where both nodes have a computing cost > 5
+        # First sort the node list based on the computing cost condition
+        node_list_sorted = sorted(node_list, key=lambda node: node_score_mapping[node], reverse=True)
+        threshold_index = int(len(node_list_sorted) * r)
+        selected_nodes, unselected_nodes = node_list_sorted[:threshold_index], node_list_sorted[threshold_index:]
+    elif sampling_function == SamplingFunction.RANDOM:
+        num_to_select = int(len(node_list) * r)
+        selected_nodes = random.sample(node_list, num_to_select)
+        unselected_nodes = [node for node in node_list if node not in selected_nodes]
+    else:
+        raise ValueError("")
+    return selected_nodes, unselected_nodes
