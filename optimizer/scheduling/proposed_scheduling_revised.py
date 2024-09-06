@@ -1,6 +1,7 @@
 import itertools
 import random
 from enum import Enum
+from itertools import combinations
 
 import networkx as nx
 from gurobipy import Model, GRB
@@ -34,12 +35,14 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
         # sort other_nodes based on the FIFO order
         other_nodes = sorted(other_nodes, key=lambda op: node_order_dict[op])
+        # Apply sequential constraint to non-selected nodes
+        for op_a, op_b in zip(other_nodes, other_nodes[1:]):
+            model.addConstr(finish[op_a] <= start[op_b])
 
         # use the topo order to sort selected nodes;
         topological_order = list(nx.topological_sort(subgraph))
         topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
         selected_nodes = sorted(selected_nodes, key=lambda node: topological_order_mapping[node])
-
         # apply optimization to these high-cost node pairs
         for high_cost_node in selected_nodes:
             non_connected_pair = [pair for pair in non_connected_pairs if high_cost_node in pair]
@@ -48,8 +51,6 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
                 model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]),
                                 name=f"NoOverlap1_{op_a}_{op_b}")
                 model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
-        for op_a, op_b in zip(other_nodes, other_nodes[1:]):
-            model.addConstr(finish[op_a] <= start[op_b])
 
     for device, subgraph in device_subgraph_mapping.items():
         outgoings = [edge for edge in edge_cut_list if edge[0] in subgraph]
@@ -58,7 +59,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         topo_order_map = {node: index for index, node in enumerate(topo_order)}
         # Sort the edges based on the topological order of the source nodes
         sorted_outgoings = sorted(outgoings, key=lambda edge: topo_order_map[edge[0]])
-        for comm1, comm2 in zip(sorted_outgoings, sorted_outgoings[1:]):
+        for comm1, comm2 in combinations(sorted_outgoings, 2):
             source_node_1 = comm1[0]
             source_node_2 = comm2[0]
             # in this case, these two nodes does not have dependency, implement FCFS policy

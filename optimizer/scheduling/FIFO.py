@@ -48,6 +48,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
 
     # Initialize the set to track completed tasks
     completed_tasks = set()
+    received_nodes_by_device = {subgraph_id: set() for subgraph_id in device_subgraph_mapping.keys()}
 
     # This list will store all the constraints that we batch before optimization
     last_job_dict = {subgraph_id: None for subgraph_id in device_subgraph_mapping.keys()}
