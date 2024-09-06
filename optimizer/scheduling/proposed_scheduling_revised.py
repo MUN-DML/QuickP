@@ -17,7 +17,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
     fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                    operator_device_mapping)
 
-    global_set_with_nr = get_global_node_set_with_nr(device_subgraph_mapping)
+    global_set_with_nr = list(get_global_node_set_with_nr(device_subgraph_mapping))
     global_node_split_by_device = split_list_based_on_score(comp_graph, global_set_with_nr, device_subgraph_mapping,
                                                                  edge_cut_list, operator_device_mapping)
 
@@ -25,19 +25,23 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         # there will be no pairs with the same element
         non_connected_pairs = find_non_connected_pairs(subgraph)
         # flatten the pairs to get all the non-repeated nodes, convert to list
-        result_dict = global_node_split_by_device.get(device)
-        high_cost_nodes = result_dict["selected_list"]
-        other_nodes = result_dict["unselected_list"]
-        print('fuck', high_cost_nodes, other_nodes)
+        selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], global_node_split_by_device.get(device)["unselected_list"]
+        # print('fuck', comp_graph.getOperatorCompCostByDevice(high_cost_nodes[-1], operator_device_mapping[high_cost_nodes[-1]]),
+        #       comp_graph.getOperatorCompCostByDevice(other_nodes[0], operator_device_mapping[other_nodes[0]]))
 
-        # get the FIFO order
+        # use the FIFO order to sort other_nodes;
         local_fifo_order = fifo_operator_order[device]
         node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
         # sort other_nodes based on the FIFO order
         other_nodes = sorted(other_nodes, key=lambda op: node_order_dict[op])
 
+        # use the topo order to sort selected nodes;
+        topological_order = list(nx.topological_sort(subgraph))
+        topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
+        selected_nodes = sorted(selected_nodes, key=lambda node: topological_order_mapping[node])
+
         # apply optimization to these high-cost node pairs
-        for high_cost_node in high_cost_nodes:
+        for high_cost_node in selected_nodes:
             non_connected_pair = [pair for pair in non_connected_pairs if high_cost_node in pair]
             for op_a, op_b in non_connected_pair:
                 order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
@@ -100,7 +104,7 @@ def get_global_node_set_with_nr(device_subgraph_mapping: dict):
 
 
 def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list,
-                              operator_device_mapping, r=0.02, sampling_function=SamplingFunction.HEAVY_HITTER) -> dict:
+                              operator_device_mapping, r=0.05, sampling_function=SamplingFunction.HEAVY_HITTER) -> dict:
     # computing_cost_dict = graph.getOpCompCostMapByDevice(device)
     #current_subgraph = device_subgraph_mapping.get(device)
     #outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
