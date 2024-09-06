@@ -144,9 +144,9 @@ def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mappi
         unselected_nodes = [node for node in node_list if node not in selected_nodes]
 
     # Map selected_nodes and unselected_nodes to the corresponding device in result_dict
-    for device_id, subgraph in device_subgraph_mapping.items():
-        # For each device, check if the node belongs to its subgraph and update the respective set
-        result_dict[device_id]["selected_list"].append(node for node in selected_nodes if operator_device_mapping[node] == device_id)
-        result_dict[device_id]["unselected_list"].append(node for node in unselected_nodes if operator_device_mapping[node] == device_id)
-    print('suck', result_dict.keys(), result_dict.values())
+    for selected_node in selected_nodes:
+        result_dict[operator_device_mapping[selected_node]]["selected_list"].append(selected_node)
+    for unselected_node in unselected_nodes:
+        result_dict[operator_device_mapping[unselected_node]]["unselected_list"].append(unselected_node)
+
     return result_dict
