@@ -83,7 +83,7 @@ class SamplingFunction(Enum):
 
 
 def split_list_based_on_score(graph: CompGraph, device, node_list, device_subgraph_mapping, edge_cut_list,
-                              operator_device_mapping, r=0.1, sampling_function=SamplingFunction.HEAVY_HITTER):
+                              operator_device_mapping, r=0.1, sampling_function=SamplingFunction.PROBABILISTIC_SAMPLING):
     computing_cost_dict = graph.getOpCompCostMapByDevice(device)
     current_subgraph = device_subgraph_mapping.get(device)
     outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
@@ -111,5 +111,15 @@ def split_list_based_on_score(graph: CompGraph, device, node_list, device_subgra
         selected_nodes = random.sample(node_list, num_to_select)
         unselected_nodes = [node for node in node_list if node not in selected_nodes]
     else:
-        raise ValueError("")
+        assert sampling_function == SamplingFunction.PROBABILISTIC_SAMPLING
+        # Calculate the total score for all nodes
+        total_score = sum(node_score_mapping.values())
+        # Calculate the probability for each node
+        node_probabilities = [node_score_mapping[node] / total_score for node in node_list]
+        # Sample nodes probabilistically based on the computed probabilities
+        selected_nodes = random.choices(node_list, weights=node_probabilities, k=int(len(node_list) * r))
+        # Get the unselected nodes (those not in selected_nodes)
+        unselected_nodes = [node for node in node_list if node not in selected_nodes]
+
+        return selected_nodes, unselected_nodes
     return selected_nodes, unselected_nodes
