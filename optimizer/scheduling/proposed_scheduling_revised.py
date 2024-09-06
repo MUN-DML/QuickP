@@ -65,13 +65,6 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
             if is_not_connected(subgraph, source_node_1, source_node_2):
                 order_1_first = model.addVar(vtype=GRB.BINARY, name=f"order_{source_node_1}_first_{source_node_2}")
                 # Enforce the order based on the finish times using Big M
-                # If finish[source_node_1] <= finish[source_node_2], set order_1_first = 1
-                model.addConstr(finish[source_node_1] - finish[source_node_2] <= M * (1 - order_1_first),
-                                name=f"order_decision_1_{source_node_1}_{source_node_2}")
-
-                # If finish[source_node_2] < finish[source_node_1], set order_1_first = 0
-                model.addConstr(finish[source_node_2] - finish[source_node_1] <= M * order_1_first,
-                                name=f"order_decision_2_{source_node_1}_{source_node_2}")
 
                 # If order_1_first == 1, communication 1 finishes before communication 2 starts
                 model.addConstr(comm_start[comm2] >= comm_end[comm1] - M * (1 - order_1_first),
