@@ -105,18 +105,20 @@ def get_global_node_set_with_nr(device_subgraph_mapping: dict):
 
 def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list,
                               operator_device_mapping, r=0.05, sampling_function=SamplingFunction.HEAVY_HITTER) -> dict:
-    # computing_cost_dict = graph.getOpCompCostMapByDevice(device)
-    #current_subgraph = device_subgraph_mapping.get(device)
-    #outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
+
     result_dict = {device_id: {"selected_list": [], "unselected_list": []} for device_id in device_subgraph_mapping.keys()}
 
-    # def get_related_subgraph_num(node):
-    #     related_devices = set()
-    #     outgoing_edges_depended = [(u, v) for u, v in outgoing_edges
-    #                                if nx.has_path(graph, node, u)]
-    #     for u, v in outgoing_edges_depended:
-    #         assert device_subgraph_mapping.get(operator_device_mapping.get(u)) == current_subgraph
-    #         related_devices.add(operator_device_mapping.get(v))
+    def get_related_subgraph_num(node):
+        device = operator_device_mapping[node]
+        current_subgraph = device_subgraph_mapping.get(device)
+
+        outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
+        related_devices = set()
+        outgoing_edges_depended = [(u, v) for u, v in outgoing_edges
+                                    if nx.has_path(graph, node, u)]
+        for u, v in outgoing_edges_depended:
+            assert device_subgraph_mapping.get(operator_device_mapping.get(u)) == current_subgraph
+            related_devices.add(operator_device_mapping.get(v))
 
     def evaluate_node(node):
         assigned_device = operator_device_mapping[node]
@@ -128,8 +130,7 @@ def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mappi
     if sampling_function == SamplingFunction.HEAVY_HITTER:
         # List to store pairs where both nodes have a computing cost > 5
         # First sort the node list based on the computing cost condition
-        # node_list_sorted = sorted(node_list, key=lambda node: (node_score_mapping[node], get_related_subgraph_num(node)), reverse=True)
-        node_list_sorted = sorted(node_list, key=lambda node: node_score_mapping[node], reverse=True)
+        node_list_sorted = sorted(node_list, key=lambda node: (node_score_mapping[node], get_related_subgraph_num(node)), reverse=True)
         threshold_index = int(len(node_list_sorted) * r)
         selected_nodes, unselected_nodes = node_list_sorted[:threshold_index], node_list_sorted[threshold_index:]
     elif sampling_function == SamplingFunction.RANDOM:
