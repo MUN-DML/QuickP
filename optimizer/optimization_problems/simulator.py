@@ -167,7 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('--number_of_device', type=int, default=16)
     parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
-    # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL NEAR_OPTIMAL_REVISED
+    # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL_REVISED
     parser.add_argument('--scheduling', default='NEAR_OPTIMAL_REVISED', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')

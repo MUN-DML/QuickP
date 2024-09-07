@@ -9,8 +9,6 @@ from optimizer.scheduling.FIFO import FIFO_scheduling
 from optimizer.scheduling.proposed_scheduling_revised import near_optimal_scheduling_revised
 from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_heteroG
 from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_cost
-from optimizer.scheduling.proposed_scheduling import near_optimal_scheduling
-
 
 def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish, start):
     M = 1000000
@@ -161,8 +159,6 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
                                               'device_subgraph_mapping', 'edge_cut_list'],
         SchedulingAlgorithm.PRIORITY_MIN_COMP.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                                    'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping'],
-        SchedulingAlgorithm.NEAR_OPTIMAL.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
-                                                   'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping'],
         SchedulingAlgorithm.FIFO_SOLVER.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                                  'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping'],
         SchedulingAlgorithm.PRIORITY_HETEROG.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
@@ -190,8 +186,6 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         return optimal_scheduling(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.PRIORITY_MIN_COMP.value:
         return priority_queue_min_comp_cost(model, **selected_kwargs)
-    elif sch_fun_type == SchedulingAlgorithm.NEAR_OPTIMAL.value:
-        return near_optimal_scheduling(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.FIFO_SOLVER.value:
         return FIFO_scheduling_solver(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.PRIORITY_HETEROG.value:
