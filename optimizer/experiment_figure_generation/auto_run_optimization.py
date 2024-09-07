@@ -1,56 +1,41 @@
 import os
 import sys
 
+from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction
+from optimizer.optimization_problems.simulator import simulate
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
-from optimizer.experiment_figure_generation.optimization_enum import OptimizationProblem
 from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
-from optimizer.operator_device_placement.metis.weight_functions import EdgeWeightFunction
+from optimizer.operator_device_placement.metis.weight_functions import EdgeWeightFunction, NodeWeightFunction
 
 
-def run_optimization_command(problem_type: OptimizationProblem,
-                             adjustment_type: dict,
-                             if_weight_norm: bool,
-                             model_type: TFModelEnum,
-                             edge_weight_function: EdgeWeightFunction,
-                             number_of_devices=2
-                             ):
-    if problem_type == OptimizationProblem.BASELINE:
-        # Call optimize_baseline
-        return problem_type(number_of_devices=number_of_devices, model_type=model_type, if_weight_norm=if_weight_norm)
-    elif problem_type == OptimizationProblem.GRAPH_PARTITION:
-        # Call optimize_after_graph_partition
-        return problem_type(number_of_devices=number_of_devices, model_type=model_type, if_weight_norm=if_weight_norm,
-                            edge_weight_function=edge_weight_function, adjust_matrix=adjustment_type)
-    else:
-        raise ValueError("Invalid optimization problem type")
+def populate_training_time_list():
 
-
-def populate_training_time_list(increment=0.05, min_value=0.0, max_value=1.0):
-    ratio_list = [round(x, 10) for x in [min_value + i * increment for i in range(int((max_value - min_value) / increment) + 1)]]
-
-    data_matrix = {
-        "no_adjustment": {"node_enable": False, "edge_enable": False},
-        "edge_adjustment": {"node_enable": False, "edge_enable": True},
-        "node_adjustment": {"node_enable": True, "edge_enable": False},
-        "both_adjustment": {"node_enable": True, "edge_enable": True}
-    }
     result_matrix = {}
 
+    flexible_setting = {
+        "rho": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+
+    }
+
     fix_setting = {
-        "problem_type": OptimizationProblem.GRAPH_PARTITION,
-        "edge_weight_function": EdgeWeightFunction.MOCK_COMMUNICATION_COST_WITH_COMP,
-        "model_type": TFModelEnum.VGG,
-        "if_weight_norm": False
+        "number_of_device": 4,
+        "model_type": TFModelEnum.SMALL,
+        "scheduling_function": "NEAR_OPTIMAL_REVISED",
+        "node_weight_function": NodeWeightFunction.AVE_COMP_COST,
+        "edge_weight_function": EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
+        "weight_norm_function": WeightNormalizationFunction.MIN_MAX,
+
     }
 
     for adjustment_type, setting_dict in data_matrix.items():
         result_matrix.setdefault(adjustment_type, [])
         for ratio in ratio_list:
             entire_setting = {**setting_dict, "adjustment_ratio": ratio}
-            expected_training = run_optimization_command(**fix_setting,
-                                                         adjustment_type=entire_setting)
+
+            expected_training = simulate(**fix_setting, )
             if not expected_training:
                 expected_training = 0
 

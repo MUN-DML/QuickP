@@ -3,6 +3,8 @@ import argparse
 
 from gurobipy import *
 
+from optimizer.scheduling.proposed_scheduling_revised import SamplingFunction
+
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +26,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
              node_weight_function=NodeWeightFunction.AVE_COMP_COST,
              edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
              weight_norm_function=WeightNormalizationFunction.MIN_MAX,
-             hetero_adjust_rate = None, rho=0.05):
+             hetero_adjust_rate = None, rho=0.05, sampling_function=SamplingFunction.HEAVY_HITTER):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph.json",
                                                              hetero_adjust_rate, model_type=model_type)
@@ -108,7 +110,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
     # It is an SCHEDULING problem within each device.
     execute_scheduling_function(scheduling_function, model, start=start, finish=finish, comm_start=comm_start,
                                 comm_end=comm_end, comp_graph=comp_graph, device_subgraph_mapping=device_subgraph_mapping,
-                                edge_cut_list=edge_cut_list, operator_device_mapping=operator_device_mapping, rho=rho)
+                                edge_cut_list=edge_cut_list, operator_device_mapping=operator_device_mapping, rho=rho, sampling_function=sampling_function)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -165,22 +167,26 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=12)
     parser.add_argument('--model', type=str, default='ALEXNET')
-    parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
+    parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL_REVISED
     parser.add_argument('--scheduling', default='NEAR_OPTIMAL_REVISED', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')
     # rho == 0 is FIFO, rho == 1 is optimal
     parser.add_argument('--rho', default=0.05, type=float, help='')
+    parser.add_argument('--sampling', default="HEAVY_HITTER", type=str, help='')
 
     args = parser.parse_args()
 
-    model_mapping_dict = {'VGG': TFModelEnum.VGG, 'SMALL': TFModelEnum.SMALL, "ALEXNET": TFModelEnum.ALEXNET}
-    weight_normalization_dict = {'MinMax': WeightNormalizationFunction.MIN_MAX}
+    # Dynamically access attributes using getattr
+    model_type = getattr(TFModelEnum, args.model, None)
+    weight_norm_function = getattr(WeightNormalizationFunction, args.normalization_function.upper(), None)
+    sample_function = getattr(SamplingFunction, args.sampling.upper(), None)
 
-    simulate(number_of_devices=args.number_of_device, model_type=model_mapping_dict[args.model],
+    simulate(number_of_devices=args.number_of_device, model_type=model_type,
              scheduling_function=args.scheduling,
              placement = args.placement,
-             weight_norm_function=weight_normalization_dict[args.normalization_function],
+             weight_norm_function=weight_norm_function,
              hetero_adjust_rate = args.hetero_rate,
-             rho=args.rho)
+             rho=args.rho,
+             sampling_function=sample_function)

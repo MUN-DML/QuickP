@@ -165,7 +165,7 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
                                                       'device_subgraph_mapping', 'edge_cut_list',
                                                       'operator_device_mapping'],
         SchedulingAlgorithm.NEAR_OPTIMAL_REVISED.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
-                                                 'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping', 'rho'],
+                                                 'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping', 'rho', 'sampling_function'],
     }
 
     if sch_fun_type not in required_args:

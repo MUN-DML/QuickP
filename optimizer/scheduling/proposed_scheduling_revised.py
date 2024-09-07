@@ -11,7 +11,7 @@ from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
 def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                                    device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict, rho):
+                                    device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict, rho, sampling_function):
     # The global data dependency is already applied
     M = 1000000
     order = {}
@@ -20,7 +20,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
 
     global_set_with_nr = list(get_global_node_set_with_nr(device_subgraph_mapping))
     global_node_split_by_device = split_list_based_on_score(comp_graph, global_set_with_nr, device_subgraph_mapping,
-                                                                 edge_cut_list, operator_device_mapping, r=rho)
+                                                                 edge_cut_list, operator_device_mapping, r=rho, sampling_function=sampling_function)
 
     for device, subgraph in device_subgraph_mapping.items():
         # there will be no pairs with the same element
@@ -84,9 +84,9 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         '''
 
 class SamplingFunction(Enum):
-    PROBABILISTIC_SAMPLING = "probabilistic"
-    RANDOM = "random"
-    HEAVY_HITTER = "heavy_hitter"
+    PROBABILISTIC_SAMPLING = "PROBABILISTIC_SAMPLING"
+    RANDOM = "RANDOM"
+    HEAVY_HITTER = "HEAVY_HITTER"
 
 
 def get_global_node_set_with_nr(device_subgraph_mapping: dict):
@@ -101,7 +101,7 @@ def get_global_node_set_with_nr(device_subgraph_mapping: dict):
 
 
 def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list,
-                              operator_device_mapping, r, sampling_function=SamplingFunction.HEAVY_HITTER) -> dict:
+                              operator_device_mapping, r, sampling_function) -> dict:
 
     result_dict = {device_id: {"selected_list": [], "unselected_list": []} for device_id in device_subgraph_mapping.keys()}
 
