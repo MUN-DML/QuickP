@@ -8,7 +8,6 @@ from optimizer.model.graph import CompGraph
 
 def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
                     device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
-
     def initialize_queues(subgraph_dict, dependency_graph):
         # Initialize a queue for each subgraph (device)
         device_queue_dict = {device: deque() for device, subgraph in subgraph_dict.items()}
@@ -40,7 +39,6 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                     # Enqueue the task to the task queue of the correct subgraph (device)
                     device_queues[subgraph_of_succ].append(succ)
 
-
     # It is an SCHEDULING problem within each device.
     device_queues = initialize_queues(device_subgraph_mapping, comp_graph)
     total_items = sum(len(queue) for queue in device_queues.values())
@@ -48,11 +46,12 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
 
     # Initialize the set to track completed tasks
     completed_tasks = set()
-    received_nodes_by_device = {subgraph_id: set() for subgraph_id in device_subgraph_mapping.keys()}
 
     # This list will store all the constraints that we batch before optimization
     last_job_dict = {subgraph_id: None for subgraph_id in device_subgraph_mapping.keys()}
     last_communication_dict = {subgraph_id: None for subgraph_id in device_subgraph_mapping.keys()}
+    device_communication_order = {device: [] for device in device_subgraph_mapping.keys()}
+
     # Process each subgraph independently
     while any(queue for queue in device_queues.values()):
         for current_device, queue in device_queues.items():
@@ -83,6 +82,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                         if last_communication_dict[source_device] is not None:
                             model.addConstr(comm_start[predecessor, current_op] >= comm_end[last_communication_dict[source_device]])
                         last_communication_dict[source_device] = (predecessor, current_op)
+                        device_communication_order[source_device].append((predecessor, current_op))
 
                 # Track the finish time of the current task
                 last_job_dict[current_device] = current_op
@@ -93,7 +93,14 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                 # Update the queue based on the completion of the task
                 update_queue(device_queues, current_op, comp_graph, completed_tasks, operator_device_mapping)
 
-    # Get the collection of nodes that are in the graph but not in completed_tasks
+    # Check all nodes are scheduled
     all_nodes = set(comp_graph.nodes())
     remaining_nodes = all_nodes - completed_tasks
     assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
+
+    # Check all communications are scheduled
+    for (predecessor, successor) in edge_cut_list:
+        source_device = operator_device_mapping[predecessor]
+        target_device = operator_device_mapping[successor]
+        assert source_device != target_device
+        assert (predecessor, successor) in device_communication_order[source_device]
