@@ -72,16 +72,19 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
             else:
                 model.addConstr(x[op_id, device_id] == 0)
 
-    # Data dependency
-    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
-        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
-
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
         assigned_device = operator_device_mapping[node_id]
         comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
 
+    # Data dependency for same-device communication
+    non_edge_cut_list = [edge for edge in comp_graph.getEdgeIDs() if edge not in edge_cut_list]
+    for edge_id_tuple in non_edge_cut_list:
+        source_op_ID, target_op_ID = edge_id_tuple
+        model.addConstr(finish[source_op_ID] <= start[target_op_ID])
+
+    # Data dependency for cross-device communication
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
@@ -89,19 +92,15 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
         # Aggregate communication cost
         communication_cost = comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * deviceTopo.calUnitCommCostInUS(
             operator_device_mapping[source_op_ID], operator_device_mapping[dest_op_ID])
-
         # Ensures the communication starts only after the source operation finishes.
-        model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
+        model.addConstr(finish[source_op_ID] <= comm_start[source_op_ID, dest_op_ID],
                         f"bind_finish_to_comm_start_{source_op_ID}_{dest_op_ID}")
-
+        # Ensures the communication duration covers the communication cost.
+        model.addConstr(comm_start[source_op_ID, dest_op_ID] + communication_cost == comm_end[source_op_ID, dest_op_ID],
+                        f"data_dependency_{source_op_ID}_{dest_op_ID}")
         # Ensures the communication ends before the destination operation starts.
         model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
                         f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
-
-        # Ensures the communication duration covers the communication cost.
-        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + communication_cost,
-                        f"data_dependency_{source_op_ID}_{dest_op_ID}")
-
         # just for verification
         model.addConstr(comm_cost[source_op_ID, dest_op_ID] == communication_cost,
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
