@@ -24,7 +24,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
              node_weight_function=NodeWeightFunction.AVE_COMP_COST,
              edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
              weight_norm_function=WeightNormalizationFunction.MIN_MAX,
-             hetero_adjust_rate = None):
+             hetero_adjust_rate = None, rho=0.05):
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph.json",
                                                              hetero_adjust_rate, model_type=model_type)
@@ -109,7 +109,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
     # It is an SCHEDULING problem within each device.
     execute_scheduling_function(scheduling_function, model, start=start, finish=finish, comm_start=comm_start,
                                 comm_end=comm_end, comp_graph=comp_graph, device_subgraph_mapping=device_subgraph_mapping,
-                                edge_cut_list=edge_cut_list, operator_device_mapping=operator_device_mapping)
+                                edge_cut_list=edge_cut_list, operator_device_mapping=operator_device_mapping, rho=rho)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -171,6 +171,7 @@ if __name__ == '__main__':
     parser.add_argument('--scheduling', default='NEAR_OPTIMAL_REVISED', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')
+    parser.add_argument('--rho', default=0.05, type=float, help='')
 
     args = parser.parse_args()
 
@@ -181,4 +182,5 @@ if __name__ == '__main__':
              scheduling_function=args.scheduling,
              placement = args.placement,
              weight_norm_function=weight_normalization_dict[args.normalization_function],
-             hetero_adjust_rate = args.hetero_rate)
+             hetero_adjust_rate = args.hetero_rate,
+             rho=args.rho)
