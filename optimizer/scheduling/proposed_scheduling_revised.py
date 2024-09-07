@@ -128,6 +128,7 @@ def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mappi
         # First sort the node list based on the computing cost condition
         node_list_sorted = sorted(node_list, key=lambda node: (node_score_mapping[node], get_related_subgraph_num(node)), reverse=True)
         threshold_index = int(len(node_list_sorted) * r)
+        print('number of selected in total', threshold_index)
         selected_nodes, unselected_nodes = node_list_sorted[:threshold_index], node_list_sorted[threshold_index:]
     elif sampling_function == SamplingFunction.RANDOM:
         num_to_select = int(len(node_list) * r)

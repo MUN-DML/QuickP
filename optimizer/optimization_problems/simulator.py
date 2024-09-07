@@ -171,7 +171,8 @@ if __name__ == '__main__':
     parser.add_argument('--scheduling', default='NEAR_OPTIMAL_REVISED', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')
-    parser.add_argument('--rho', default=1, type=float, help='')
+    # rho == 0 is FIFO, rho == 1 is optimal
+    parser.add_argument('--rho', default=0.0, type=float, help='')
 
     args = parser.parse_args()
 
