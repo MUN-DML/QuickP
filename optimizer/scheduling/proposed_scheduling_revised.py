@@ -61,6 +61,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         topo_order_map = {node: index for index, node in enumerate(topo_order)}
         # Sort the edges based on the topological order of the source nodes
         sorted_outgoings = sorted(outgoings, key=lambda edge: topo_order_map[edge[0]])
+        '''
         for comm1, comm2 in combinations(sorted_outgoings, 2):
             source_node_1 = comm1[0]
             source_node_2 = comm2[0]
@@ -80,7 +81,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
             else:
                 assert nx.has_path(subgraph, source_node_1, source_node_2)
                 model.addConstr(comm_end[comm1] <= comm_start[comm2])
-
+        '''
 
 class SamplingFunction(Enum):
     PROBABILISTIC_SAMPLING = "probabilistic"
