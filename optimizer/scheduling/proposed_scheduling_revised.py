@@ -98,7 +98,7 @@ def get_global_node_set_with_nr(device_subgraph_mapping: dict):
 
 
 def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list,
-                              operator_device_mapping, r=0.05, sampling_function=SamplingFunction.HEAVY_HITTER) -> dict:
+                              operator_device_mapping, r=0.1, sampling_function=SamplingFunction.HEAVY_HITTER) -> dict:
 
     result_dict = {device_id: {"selected_list": [], "unselected_list": []} for device_id in device_subgraph_mapping.keys()}
 
