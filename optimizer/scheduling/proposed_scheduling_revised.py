@@ -116,18 +116,19 @@ def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mappi
         for u, v in outgoing_edges_depended:
             assert device_subgraph_mapping.get(operator_device_mapping.get(u)) == current_subgraph
             related_devices.add(operator_device_mapping.get(v))
+        return len(related_devices)
 
     def evaluate_node(node):
         assigned_device = operator_device_mapping[node]
         computing_cost = graph.getOperatorCompCostByDevice(node, assigned_device)
         # Set to track unique sub_graphs that depend on this operator
-        return computing_cost
+        return computing_cost * (get_related_subgraph_num(node) + 1)
 
     node_score_mapping = {node: evaluate_node(node) for node in node_list}
     if sampling_function == SamplingFunction.HEAVY_HITTER:
         # List to store pairs where both nodes have a computing cost > 5
         # First sort the node list based on the computing cost condition
-        node_list_sorted = sorted(node_list, key=lambda node: (node_score_mapping[node], get_related_subgraph_num(node)), reverse=True)
+        node_list_sorted = sorted(node_list, key=lambda node: node_score_mapping[node], reverse=True)
         threshold_index = int(len(node_list_sorted) * r)
         print('number of selected in total', threshold_index)
         selected_nodes, unselected_nodes = node_list_sorted[:threshold_index], node_list_sorted[threshold_index:]

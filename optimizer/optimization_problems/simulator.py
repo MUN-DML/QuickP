@@ -171,7 +171,7 @@ if __name__ == '__main__':
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')
     # rho == 0 is FIFO, rho == 1 is optimal
-    parser.add_argument('--rho', default=0.0, type=float, help='')
+    parser.add_argument('--rho', default=0.05, type=float, help='')
 
     args = parser.parse_args()
 
