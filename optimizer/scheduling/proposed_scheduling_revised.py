@@ -35,6 +35,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
         # sort other_nodes based on the FIFO order
         other_nodes = sorted(other_nodes, key=lambda op: node_order_dict[op])
+        print('other', len(other_nodes), other_nodes)
         # Apply sequential constraint to non-selected nodes
         for op_a, op_b in zip(other_nodes, other_nodes[1:]):
             model.addConstr(finish[op_a] <= start[op_b])
@@ -51,6 +52,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
                 model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]),
                                 name=f"NoOverlap1_{op_a}_{op_b}")
                 model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+        print('selected', len(selected_nodes), selected_nodes)
 
     for device, subgraph in device_subgraph_mapping.items():
         outgoings = [edge for edge in edge_cut_list if edge[0] in subgraph]
