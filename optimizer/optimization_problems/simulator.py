@@ -167,11 +167,11 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MinMax', type=str, help='')
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL_REVISED
-    parser.add_argument('--scheduling', default='NEAR_OPTIMAL_REVISED', type=str, help='')
+    parser.add_argument('--scheduling', default='FIFO', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')
     # rho == 0 is FIFO, rho == 1 is optimal
-    parser.add_argument('--rho', default=0.0, type=float, help='')
+    parser.add_argument('--rho', default=1.0, type=float, help='')
 
     args = parser.parse_args()
 
