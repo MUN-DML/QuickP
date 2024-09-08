@@ -27,10 +27,12 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
     M = 1000000
     order = {}
     for subgraph in device_subgraph_mapping.values():
-        for (a, b) in itertools.combinations(subgraph.getOperatorIDs(), 2):
-            if nx.has_path(comp_graph, b, a):
+        for a, b in itertools.combinations(subgraph.getOperatorIDs(), 2):
+            # Initialize order variables
+            order[a, b] = model.addVar(vtype=GRB.BINARY, name=f"order_{a}_{b}")
+            if nx.has_path(subgraph, b, a):
                 model.addConstr(start[a] >= finish[b])
-            elif nx.has_path(comp_graph, a, b):
+            elif nx.has_path(subgraph, a, b):
                 model.addConstr(start[b] >= finish[a])
             else:
                 model.addConstr(start[b] >= finish[a] - M * (1 - order[a, b]),name=f"NoOverlap1_{a}_{b}")
