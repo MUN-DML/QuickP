@@ -1,8 +1,11 @@
+import itertools
 import os
 import sys
+from collections import defaultdict
 
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction
 from optimizer.optimization_problems.simulator import simulate
+from optimizer.scheduling.proposed_scheduling_revised import SamplingFunction
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
@@ -16,13 +19,14 @@ def populate_training_time_list():
     result_matrix = {}
 
     flexible_setting = {
-        "rho": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-
+        "rho": [0.25, 0.5, 0.75, 1.0],
+        "sampling_function": [SamplingFunction.PROBABILISTIC_SAMPLING, SamplingFunction.RANDOM, SamplingFunction.HEAVY_HITTER]
     }
 
     fix_setting = {
-        "number_of_device": 4,
+        "number_of_devices": 4,
         "model_type": TFModelEnum.SMALL,
+        "placement": 'METIS',
         "scheduling_function": "NEAR_OPTIMAL_REVISED",
         "node_weight_function": NodeWeightFunction.AVE_COMP_COST,
         "edge_weight_function": EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
@@ -30,18 +34,30 @@ def populate_training_time_list():
 
     }
 
-    for adjustment_type, setting_dict in data_matrix.items():
-        result_matrix.setdefault(adjustment_type, [])
-        for ratio in ratio_list:
-            entire_setting = {**setting_dict, "adjustment_ratio": ratio}
+    result_matrix = defaultdict(list)  # Use defaultdict to simplify appending
 
-            expected_training = simulate(**fix_setting, )
-            if not expected_training:
-                expected_training = 0
+    # Extract the keys and values from flexible_setting
+    flexible_keys, flexible_values = zip(*flexible_setting.items())  # Unpack keys and their corresponding values
 
-            result_matrix[adjustment_type].append(expected_training)
+    # Iterate over all combinations of flexible settings using itertools.product
+    for flexible_combination in itertools.product(*flexible_values):
+        # Create a dictionary from the flexible combination
+        current_flexible_setting = dict(zip(flexible_keys, flexible_combination))
 
-    result_matrix["ratios"] = ratio_list
+        # Combine fixed settings and flexible settings
+        current_setting = {**fix_setting, **current_flexible_setting}
+
+        # Execute the simulation
+        expected_training = simulate(**current_setting)
+
+        # If no result is returned, set default value of 0
+        if not expected_training:
+            expected_training = 0
+
+        # Create a key for the result based on the current flexible setting
+        adjustment_key = '_'.join([f"{k}_{str(v)}" for k, v in current_flexible_setting.items()])
+        result_matrix[adjustment_key].append(expected_training)
+
     return result_matrix
 
 
@@ -74,4 +90,4 @@ def generate_graph(result_dict):
 
 if __name__ == '__main__':
     data_dict = populate_training_time_list()
-    generate_graph(data_dict)
+    print(data_dict)
