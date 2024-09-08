@@ -9,19 +9,6 @@ from optimizer.model.graph import CompGraph, DeviceGraph
 # graph = json.load(sys.stdin)
 
 def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
-    nodes = {}
-    arbitraryNumber = -2000000000
-    for node in graph.getOperatorIDs():
-        if 'size' not in node:
-            node['size'] = 0.0
-        if 'colorClass' not in node:
-            node['colorClass'] = arbitraryNumber  # some "fresh" number
-            arbitraryNumber += 1
-        if 'containedNodes' in node:
-            raise "input should not have containedNodes"
-        if node['isBackwardNode']:
-            raise "for inference, the input shouldn't have backward nodes"
-        nodes[node['id']] = node
 
     outgoingConnectionCost = {}
     for edge in graph.getEdgeIDs():
@@ -62,30 +49,24 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
     # all cpus together are 0
     # FPGA subgraphs start from 1 and are in blocks of MAX_SUBGRAPHS_PER_FPGA many
     # (like in the paper)
-    for node_id, node in nodes.items():
-        for machine_id in device_topo.getDeviceIDs():
-            x[node_id, machine_id] = model.addVar(vtype = GRB.BINARY)
-            if (not node['supportedOnFpga']) and machine_id > 0:
-                model.addConstr(x[node_id, machine_id] == 0)
+    x = model.addVars(graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.BINARY,
+                      name="x")  # [operator_id, device_id] == 1 means this operator is assigned to this device
+    # contiguity constraints
+    z = model.addVars(graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                      name="x")
+    latency = model.addVars(graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                           name="finish")  # finish[node_id] represent the finish time of this node
 
-
-    # schedule every node on exactly one machine
-    for node_id, node in nodes.items():
-        times_scheduled = LinExpr()
-        for machine_id in device_topo.getDeviceIDs():
-            times_scheduled += x[node_id, machine_id]
-        model.addConstr(times_scheduled == 1)
-
+    # Add constraints that schedule every node on exactly one machine
+    for op in graph.getOperatorIDs():
+        model.addConstr(quicksum(x[op, device] for device in device_topo.getDeviceIDs()) == 1, name=f"one_device_{op}")
 
     # contiguity constraints
-    z = {}  # map from (node_id, machine_id) to variable
     for machine_id in device_topo.getDeviceIDs():
-        for node_id, node in nodes.items():
-            z[node_id, machine_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
+        for node_id in graph.getOperatorIDs():
             model.addConstr(z[node_id, machine_id] >= x[node_id, machine_id])
-        for edge in graph['edges']:
-            u = edge['sourceId']
-            v = edge['destId']
+        for edge in graph.getEdgeIDs():
+            u, v = edge
             model.addConstr(z[v, machine_id] <= z[u, machine_id])
             model.addConstr(z[v, machine_id] <= x[v, machine_id] - x[u, machine_id] + 1)
 
@@ -94,7 +75,7 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
     comm_in = {}
     comm_out = {}
     for machine_id in device_topo.getDeviceIDs():
-        for node_id, node in nodes.items():
+        for node_id in graph.getOperatorIDs():
             comm_in[node_id, machine_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
             comm_out[node_id, machine_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
         for edge in graph['edges']:
@@ -163,25 +144,6 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
     TotalLatency = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
     for node_id, node in nodes.items():
         model.addConstr(TotalLatency >= latency[node_id])
-
-
-    # colocation constraints (color classes)
-    color_class_to_ids = {}
-    for node_id, node in nodes.items():
-        cc = node["colorClass"]
-        if cc not in color_class_to_ids:
-            color_class_to_ids[cc] = []
-        color_class_to_ids[cc].append(node_id)
-    for cc, ids in color_class_to_ids.items():
-        for t in range(len(ids) - 1):
-            #print('merging ', ids[t], ' and ', ids[t+1])
-            # cpu
-            model.addConstr(x[ids[t], 0] == x[ids[t+1], 0])
-            # FPGAs
-            colocationConstraint = LinExpr()
-            for machine_id in device_topo.getDeviceIDs():
-                colocationConstraint += x[ids[t], machine_id] - x[ids[t+1], machine_id]
-            model.addConstr(colocationConstraint == 0)
 
 
     model.setObjective(TotalLatency, GRB.MINIMIZE)
