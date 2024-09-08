@@ -22,24 +22,25 @@ def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish,
                             name=f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
 
 
-def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, device_subgraph_mapping: dict, edge_cut_list):
+def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list):
     # The global data dependency is already applied
     M = 1000000
     order = {}
     for subgraph in device_subgraph_mapping.values():
+        for (a, b) in itertools.combinations(subgraph.getOperatorIDs(), 2):
+            if nx.has_path(comp_graph, b, a):
+                model.addConstr(start[a] >= finish[b])
+            elif nx.has_path(comp_graph, a, b):
+                model.addConstr(start[b] >= finish[a])
+            else:
+                model.addConstr(start[b] >= finish[a] - M * (1 - order[a, b]),name=f"NoOverlap1_{a}_{b}")
+                model.addConstr(start[a] >= finish[b] - M * order[a, b], name=f"NoOverlap2_{a}_{b}")
+    '''
         non_connected_pairs = find_non_connected_pairs(subgraph)
         for op_a, op_b in non_connected_pairs:
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
             model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
             model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
-    '''
-    order_link = {}
-    for communication_a, communication_b in combinations(edge_cut_list, 2):
-        order_link[communication_a, communication_b] = model.addVar(vtype=GRB.BINARY)
-        model.addConstr(comm_start[communication_b] >= comm_end[communication_a] - M * (
-                    1 - order_link[communication_a, communication_b]))
-        model.addConstr(
-            comm_start[communication_a] >= comm_end[communication_b] - M * order_link[communication_a, communication_b])
     '''
 
     # Add constraint to ensure each device can only send one link at a time, communication scheduling
