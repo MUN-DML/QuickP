@@ -3,6 +3,9 @@ import os
 import sys
 from collections import defaultdict
 
+import numpy as np
+from matplotlib import pyplot as plt
+
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction
 from optimizer.optimization_problems.simulator import simulate
 from optimizer.scheduling.proposed_scheduling_revised import SamplingFunction
@@ -19,7 +22,7 @@ def populate_training_time_list():
     result_matrix = {}
 
     flexible_setting = {
-        "rho": [0.25, 0.5, 0.75, 1.0],
+        "rho": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
         "sampling_function": [SamplingFunction.PROBABILISTIC_SAMPLING, SamplingFunction.RANDOM, SamplingFunction.HEAVY_HITTER]
     }
 
@@ -34,7 +37,7 @@ def populate_training_time_list():
 
     }
 
-    result_matrix = defaultdict(list)  # Use defaultdict to simplify appending
+    result_matrix = {}  # Use a regular dictionary since we want scalar values
 
     # Extract the keys and values from flexible_setting
     flexible_keys, flexible_values = zip(*flexible_setting.items())  # Unpack keys and their corresponding values
@@ -54,40 +57,58 @@ def populate_training_time_list():
         if not expected_training:
             expected_training = 0
 
-        # Create a key for the result based on the current flexible setting
-        adjustment_key = '_'.join([f"{k}_{str(v)}" for k, v in current_flexible_setting.items()])
-        result_matrix[adjustment_key].append(expected_training)
+        # Create a tuple key based on the flexible setting values
+        adjustment_key = tuple(current_flexible_setting.values())
+        result_matrix[adjustment_key] = expected_training
 
     return result_matrix
 
 
-def generate_graph(result_dict):
-    print(result_dict)
-    import matplotlib.pyplot as plt
-    import numpy as np
-    x_labels = result_dict.pop("ratios")
-    x = np.arange(len(x_labels))  # the label locations
-    width = 0.2  # the width of the bars
+def generate_curve(result_dict, xlabel="rho", ylabel="Latency (s)",
+                   title="Latency vs rho for Different Sampling Functions", fig_size=(10, 6)):
+    """
+    Generates curves to show latency for different sampling functions over different rho values.
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    offsets = np.linspace(-1.5, 1.5, len(result_dict)) * width
-    # Plotting the bars
-    for i, (adjustment_type, performance) in enumerate(result_dict.items()):
-        ax.bar(x + offsets[i], performance, width, label=adjustment_type)
+    :param result_dict: Dictionary with tuple keys representing (rho, sampling_function) and scalar values for performance.
+    :param xlabel: Label for the x-axis.
+    :param ylabel: Label for the y-axis.
+    :param title: Title of the graph.
+    :param fig_size: Tuple representing the figure size.
+    """
 
-    # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_xlabel('ratios')
-    ax.set_ylabel('Training Time (s)')
-    ax.set_title('Training Time Comparison with Different Adjustments')
-    ax.set_xticks(x)
-    ax.set_xticklabels(x_labels)
-    ax.legend()
+    # Prepare to group data by sampling_function
+    grouped_data = {}
 
-    fig.tight_layout()
+    for (rho, sample_function), latency in result_dict.items():
+        if sample_function not in grouped_data:
+            grouped_data[sample_function] = {'rho': [], 'latency': []}
+        grouped_data[sample_function]['rho'].append(rho)
+        grouped_data[sample_function]['latency'].append(latency)
 
+    # Sort data by rho for each sample_function to ensure curves are plotted correctly
+    for sample_function in grouped_data:
+        rho_latency_pairs = sorted(zip(grouped_data[sample_function]['rho'], grouped_data[sample_function]['latency']))
+        grouped_data[sample_function]['rho'], grouped_data[sample_function]['latency'] = zip(*rho_latency_pairs)
+
+    # Create the figure and axis
+    fig, ax = plt.subplots(figsize=fig_size)
+
+    # Plot a curve for each sampling function
+    for sample_function, data in grouped_data.items():
+        ax.plot(data['rho'], data['latency'], marker='o', label=sample_function.name)
+
+    # Add labels and title
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+
+    # Add legend to differentiate between sample functions
+    ax.legend(title="Sampling Function")
+
+    # Show the plot
     plt.show()
 
 
 if __name__ == '__main__':
     data_dict = populate_training_time_list()
-    print(data_dict)
+    generate_curve(data_dict)
