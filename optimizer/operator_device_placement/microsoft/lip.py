@@ -54,6 +54,10 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
     # contiguity constraints
     z = model.addVars(graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                       name="x")
+    comm_in = model.addVars(graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                      name="x")
+    comm_out = model.addVars(graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                            name="x")
     latency = model.addVars(graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="finish")  # finish[node_id] represent the finish time of this node
 
@@ -72,23 +76,11 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
 
 
     # CommIn, CommOut
-    comm_in = {}
-    comm_out = {}
     for machine_id in device_topo.getDeviceIDs():
-        for node_id in graph.getOperatorIDs():
-            comm_in[node_id, machine_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
-            comm_out[node_id, machine_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
-        for edge in graph['edges']:
-            u = edge['sourceId']
-            v = edge['destId']
+        for edge in graph.getEdgeIDs():
+            u, v = edge
             model.addConstr(comm_in[u, machine_id] >= x[v, machine_id] - x[u, machine_id])
             model.addConstr(comm_out[u, machine_id] >= x[u, machine_id] - x[v, machine_id])
-
-
-    # Latency (only create variables)
-    latency = {}
-    for node_id, node in nodes.items():
-        latency[node_id] = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
 
 
     # subgraph start, finish (only create variables)
