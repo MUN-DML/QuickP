@@ -44,6 +44,9 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
+    # Get computation and communication cost
+    op_computing_cost_mapping = get_comp_cost_dict(comp_graph, operator_device_mapping)
+    edge_cut_communication_cost_mapping = get_comm_cost_dict(comp_graph, deviceTopo, edge_cut_list, operator_device_mapping)
 
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in device_subgraph_mapping.values()]
@@ -76,9 +79,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
 
     for node_id in comp_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
-        assigned_device = operator_device_mapping[node_id]
-        comp_cost = comp_graph.getOperatorCompCostByDevice(node_id, assigned_device)
-        model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
+        model.addConstr(finish[node_id] == start[node_id] + op_computing_cost_mapping[node_id], name=f"finish_start_{node_id}")
 
     # Data dependency for same-device communication
     non_edge_cut_list = [edge for edge in comp_graph.getEdgeIDs() if edge not in edge_cut_list]
@@ -91,20 +92,17 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
         source_op_ID, dest_op_ID = edge_id_tuple
-        # Aggregate communication cost
-        communication_cost = comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * deviceTopo.calUnitCommCostInUS(
-            operator_device_mapping[source_op_ID], operator_device_mapping[dest_op_ID])
         # Ensures the communication starts only after the source operation finishes.
         model.addConstr(finish[source_op_ID] <= comm_start[source_op_ID, dest_op_ID],
                         f"bind_finish_to_comm_start_{source_op_ID}_{dest_op_ID}")
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(comm_start[source_op_ID, dest_op_ID] + communication_cost == comm_end[source_op_ID, dest_op_ID],
+        model.addConstr(comm_start[source_op_ID, dest_op_ID] + edge_cut_communication_cost_mapping[edge_id_tuple] == comm_end[source_op_ID, dest_op_ID],
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
         # Ensures the communication ends before the destination operation starts.
         model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
                         f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
         # just for verification
-        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == communication_cost,
+        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == edge_cut_communication_cost_mapping[edge_id_tuple],
                         f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
@@ -163,6 +161,27 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
         disposeDefaultEnv()
 
 
+def get_comp_cost_dict(computation_graph, operator_device_mapping):
+    comp_cost_dict = {}
+    for node_id in computation_graph.getOperatorIDs():
+        # Add constraints that each op's ending time = starting time + its computing time
+        assigned_device = operator_device_mapping[node_id]
+        comp_cost_dict[node_id] = computation_graph.getOperatorCompCostByDevice(node_id, assigned_device)
+    return comp_cost_dict
+
+
+def get_comm_cost_dict(computation_graph, deviceTopo, edge_cut_list, operator_device_mapping):
+    comm_cost_dict = {}
+    for edge_id_tuple in edge_cut_list:
+        # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
+        # placed on different devices
+        source_op_ID, dest_op_ID = edge_id_tuple
+        # Aggregate communication cost
+        comm_cost_dict[edge_id_tuple] = computation_graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * deviceTopo.calUnitCommCostInUS(
+            operator_device_mapping[source_op_ID], operator_device_mapping[dest_op_ID])
+    return comm_cost_dict
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=4)
@@ -172,7 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--scheduling', default='OPTIMIZED', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')
-    # rho == 0 is FIFO, rho == 1 is optimal
+    # rho == 0 is FIFO, rho == 1 is optimal; model.setParam("MIPGap", 0.01) will make it optimized
     parser.add_argument('--rho', default=1.00, type=float, help='')
     # PROBABILISTIC_SAMPLING RANDOM HEAVY_HITTER
     parser.add_argument('--sampling', default="HEAVY_HITTER", type=str, help='')
