@@ -137,13 +137,45 @@ def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mappi
         selected_nodes = random.sample(node_list, num_to_select)
         unselected_nodes = [node for node in node_list if node not in selected_nodes]
     else:
-        assert sampling_function == SamplingFunction.PROBABILISTIC_SAMPLING
         # Calculate the total score for all nodes
         total_score = sum(node_score_mapping.values())
+
         # Calculate the probability for each node
         node_probabilities = [node_score_mapping[node] / total_score for node in node_list]
-        # Sample nodes probabilistically based on the computed probabilities
-        selected_nodes = random.choices(node_list, weights=node_probabilities, k=int(len(node_list) * r))
+
+        # Weighted sampling without replacement based on computed probabilities
+        def weighted_sample_without_replacement(node_list, node_probabilities, k):
+            selected_nodes = []
+            nodes = node_list[:]
+            probs = node_probabilities[:]
+
+            for _ in range(k):
+                # Calculate the sum of the remaining probabilities
+                total_prob = sum(probs)
+
+                # Check if the total probability is zero, which would cause division by zero
+                if total_prob == 0:
+                    # If the total probability is zero, select randomly from the remaining nodes
+                    selected_nodes += random.sample(nodes, k - len(selected_nodes))
+                    break
+
+                # Normalize probabilities to sum to 1
+                norm_probs = [p / total_prob for p in probs]
+
+                # Select a node based on the normalized probabilities
+                selected_node = random.choices(nodes, weights=norm_probs, k=1)[0]
+                selected_nodes.append(selected_node)
+
+                # Remove the selected node and its probability
+                index = nodes.index(selected_node)
+                nodes.pop(index)
+                probs.pop(index)
+
+            return selected_nodes
+
+        # Sample nodes probabilistically based on the computed probabilities without replacement
+        selected_nodes = weighted_sample_without_replacement(node_list, node_probabilities, k=int(len(node_list) * r))
+
         # Get the unselected nodes (those not in selected_nodes)
         unselected_nodes = [node for node in node_list if node not in selected_nodes]
 
