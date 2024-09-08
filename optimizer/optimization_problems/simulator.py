@@ -61,7 +61,6 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
     comm_start = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0,
                                name="comm_start")  # comm_start[source_op, dest_op] represent the communication
     comm_end = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
-    comm_cost = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="comm_cost")
 
     '''
     Define Constraints
@@ -101,9 +100,6 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
         # Ensures the communication ends before the destination operation starts.
         model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
                         f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
-        # just for verification
-        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == edge_cut_communication_cost_mapping[edge_id_tuple],
-                        f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
     execute_scheduling_function(scheduling_function, model, start=start, finish=finish, comm_start=comm_start,
@@ -141,7 +137,7 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
         print("Model is unbounded.")
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
-        show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, True, two_dime_node_list)
+        show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, edge_cut_communication_cost_mapping, True, two_dime_node_list)
         print(f"This is the optimal solution of such configuration: \n"
               f"number of operators: {comp_graph.number_of_nodes()} \n"
               f"number of devices: {deviceTopo.number_of_nodes()} \n"

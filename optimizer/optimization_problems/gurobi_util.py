@@ -50,7 +50,7 @@ def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rat
 
 
 def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo: DeviceGraph, start: dict,
-                               finish: dict, graph_partition=False, two_dime_node_list=None):
+                               finish: dict, comm_cost:dict, graph_partition=False, two_dime_node_list=None):
     if graph_partition and not two_dime_node_list:
         raise ValueError("should has a 2d list to represent the original graph partition")
     # init result dict
@@ -74,14 +74,14 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
         source_op_ID, dest_op_ID = edge_id_tuple
         s_placement = None
         d_placement = None
-        comm_cost_var = model.getVarByName(f"comm_cost[{source_op_ID},{dest_op_ID}]")
         comm_start_var = model.getVarByName(f"comm_start[{source_op_ID},{dest_op_ID}]")
         comm_end_var = model.getVarByName(f"comm_end[{source_op_ID},{dest_op_ID}]")
-        if comm_cost_var and comm_start_var and comm_end_var:
-            comm_cost = comm_cost_var.X
+        if comm_start_var and comm_end_var:
             comm_start_time = comm_start_var.X
             comm_end_time = comm_end_var.X
-            if comm_cost == 0:
+            if not comm_cost[edge_id_tuple]:
+                continue
+            if comm_cost[edge_id_tuple] == 0:
                 continue
             tensor_size = comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID)
             for device, ops in result['Assignment'].items():
@@ -97,7 +97,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
             else:
                 bandwidth = deviceTopo.get_link_bandwidth(s_placement, d_placement)
             result['CommunicationCosts'].append(
-                (source_op_ID, s_placement, dest_op_ID, d_placement, comm_cost, tensor_size, bandwidth))
+                (source_op_ID, s_placement, dest_op_ID, d_placement, comm_cost[edge_id_tuple], tensor_size, bandwidth))
             # Populate the communication timeline divided by device
             if s_placement not in result['CommunicationTimeLine']:
                 result['CommunicationTimeLine'][s_placement] = []
@@ -105,7 +105,7 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
                 result['CommunicationTimeLine'][d_placement] = []
 
             result['CommunicationTimeLine'][s_placement].append(
-                (source_op_ID, dest_op_ID, comm_start_time, comm_end_time, comm_cost))
+                (source_op_ID, dest_op_ID, comm_start_time, comm_end_time, comm_cost[edge_id_tuple]))
 
             # only show the sending timeline by device
             # result['CommunicationTimeLine'][d_placement].append(
