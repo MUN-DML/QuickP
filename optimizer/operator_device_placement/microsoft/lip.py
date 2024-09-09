@@ -79,7 +79,12 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
     for machine_id in device_topo.getDeviceIDs():
         for edge in graph.getEdgeIDs():
             u, v = edge
+            # note that the lower bound of comm_in and comm_out are 0, so can be either 1 or 0
+            # If both u and v are on the same machine (x[u, machine_id] = x[v, machine_id]), then the communication is zero.
+            # If only v is assigned to machine_id but not u, then there will be incoming communication to u from v.
             model.addConstr(comm_in[u, machine_id] >= x[v, machine_id] - x[u, machine_id])
+            # If both u and v are on the same machine (x[u, machine_id] = x[v, machine_id]), then the communication is zero.
+            # If only u is assigned to machine_id but not v, then there will be outgoing communication from u to v.
             model.addConstr(comm_out[u, machine_id] >= x[u, machine_id] - x[v, machine_id])
 
 
