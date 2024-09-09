@@ -188,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')
     # rho == 0 is FIFO, rho == 1 is optimal; model.setParam("MIPGap", 0.01) will make it optimized
-    parser.add_argument('--rho', default=1.00, type=float, help='')
+    parser.add_argument('--rho', default=0.08, type=float, help='')
     # PROBABILISTIC_SAMPLING RANDOM HEAVY_HITTER
     parser.add_argument('--sampling', default="HEAVY_HITTER", type=str, help='')
 

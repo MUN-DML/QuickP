@@ -497,25 +497,6 @@ def is_not_connected(G, node_a, node_b):
     return not nx.has_path(G, node_a, node_b) and not nx.has_path(G, node_b, node_a)
 
 
-def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
-    computing_cost = graph.getOpCompCostMapByDevice(device)
-    # List to store pairs where both nodes have a computing cost > 5
-    high_cost_pairs = []
-
-    # List to store other pairs
-    other_pairs = []
-
-    for node_a, node_b in non_connected_pairs:
-        # Check if both nodes have a computing cost higher than 5
-        # must use or instead of and because for a selected node, we must get the entire order chain
-        if computing_cost[node_a] > 100 or computing_cost[node_b] > 100:
-            high_cost_pairs.append((node_a, node_b))
-        else:
-            other_pairs.append((node_a, node_b))
-
-    return high_cost_pairs, other_pairs
-
-
 # Modify the function to store unique tensor sizes in a set
 def operator_unique_tensor_sizes(graph: CompGraph):
     tensor_size_dict = {}

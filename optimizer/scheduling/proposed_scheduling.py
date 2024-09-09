@@ -1,7 +1,7 @@
 import networkx as nx
 from gurobipy import Model, GRB
 
-from optimizer.model.graph import CompGraph, find_non_connected_pairs, split_non_connected_pairs, is_not_connected
+from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
@@ -30,3 +30,20 @@ def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, c
             model.addConstr(finish[op_a] <= start[op_b])
 
 
+def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
+    computing_cost = graph.getOpCompCostMapByDevice(device)
+    # List to store pairs where both nodes have a computing cost > 5
+    high_cost_pairs = []
+
+    # List to store other pairs
+    other_pairs = []
+
+    for node_a, node_b in non_connected_pairs:
+        # Check if both nodes have a computing cost higher than 5
+        # must use or instead of and because for a selected node, we must get the entire order chain
+        if computing_cost[node_a] > 200 or computing_cost[node_b] > 200:
+            high_cost_pairs.append((node_a, node_b))
+        else:
+            other_pairs.append((node_a, node_b))
+
+    return high_cost_pairs, other_pairs
