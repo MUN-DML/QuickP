@@ -82,9 +82,11 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
             # note that the lower bound of comm_in and comm_out are 0, so can be either 1 or 0
             # If both u and v are on the same machine (x[u, machine_id] = x[v, machine_id]), then the communication is zero.
             # If only v is assigned to machine_id but not u, then there will be incoming communication to u from v.
+            # comm_in[u, machine_id] == 1 when u is not on this device but v is on this device
             model.addConstr(comm_in[u, machine_id] >= x[v, machine_id] - x[u, machine_id])
             # If both u and v are on the same machine (x[u, machine_id] = x[v, machine_id]), then the communication is zero.
             # If only u is assigned to machine_id but not v, then there will be outgoing communication from u to v.
+            # comm_out[u, machine_id] == 1 when u is on this device but v is not on this device
             model.addConstr(comm_out[u, machine_id] >= x[u, machine_id] - x[v, machine_id])
 
 
@@ -106,7 +108,7 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
             device = device_topo.getDeviceIDs()[0]
             fpga_load += graph.getOperatorCompCostByDevice(node_id, device) * x[node_id, machine_id]
             # model with "calls": communication NOT overlapped with compute
-            # so we add communication here
+            # so we add communication here, every incoming and outgoing cost to or from this subgraph will be added
             fpga_load += outgoingConnectionCost[node_id] * comm_in[node_id, machine_id]
             fpga_load += outgoingConnectionCost[node_id] * comm_out[node_id, machine_id]
         model.addConstr(finish[machine_id] == start[machine_id] + fpga_load)
@@ -145,20 +147,13 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
 
     result = {}
     result['totalLatency'] = TotalLatency.X
-    result['fpgas'] = []
-    result['cpus'] = []
+    result['placement'] = {}
     for machine_id in device_topo.getDeviceIDs():
-        resultMachine = {}
-
-        resultMachine['nodes'] = []
+        result['placement'][machine_id] = []
         debugTotalSize = 0.0
         for node_id in graph.getOperatorIDs():
             if x[node_id, machine_id].X > 0.99:
-                resultMachine['nodes'].append(node_id)
-        if machine_id == 0:
-            result['cpus'].append(resultMachine)
-        else:
-            result['fpgas'].append(resultMachine)
+                result['placement'][machine_id].append(node_id)
 
     del model
     disposeDefaultEnv()

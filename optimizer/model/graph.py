@@ -516,3 +516,17 @@ def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
     return high_cost_pairs, other_pairs
 
 
+# Modify the function to store unique tensor sizes in a set
+def operator_unique_tensor_sizes(graph: CompGraph):
+    tensor_size_dict = {}
+
+    for node in graph.getOperatorIDs():
+        # Get all outgoing edges for the node
+        outgoing_edges = graph.out_edges(node, data=True)
+        tensor_sizes = {data['tensor_size_in_bit'] for _, _, data in outgoing_edges}  # Use a set to ensure uniqueness
+
+        # If the node has outgoing edges, store the unique tensor sizes
+        if tensor_sizes:
+            tensor_size_dict[node] = tensor_sizes
+
+    return tensor_size_dict
