@@ -53,7 +53,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
                                 name=f"NoOverlap1_{op_a}_{op_b}")
                 model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
         print('selected', len(selected_nodes), selected_nodes)
-
+    '''
     for device, subgraph in device_subgraph_mapping.items():
         outgoings = [edge for edge in edge_cut_list if edge[0] in subgraph]
         topo_order = list(nx.topological_sort(subgraph))
@@ -61,7 +61,6 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         topo_order_map = {node: index for index, node in enumerate(topo_order)}
         # Sort the edges based on the topological order of the source nodes
         sorted_outgoings = sorted(outgoings, key=lambda edge: topo_order_map[edge[0]])
-        '''
         for comm1, comm2 in combinations(sorted_outgoings, 2):
             source_node_1 = comm1[0]
             source_node_2 = comm2[0]

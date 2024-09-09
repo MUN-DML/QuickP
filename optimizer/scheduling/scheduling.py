@@ -39,13 +39,6 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
                 model.addConstr(start[b] >= finish[a] - M * (1 - order[a, b]),name=f"NoOverlap1_{a}_{b}")
                 model.addConstr(start[a] >= finish[b] - M * order[a, b], name=f"NoOverlap2_{a}_{b}")
     '''
-        non_connected_pairs = find_non_connected_pairs(subgraph)
-        for op_a, op_b in non_connected_pairs:
-            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
-            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
-            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
-    '''
-
     # Add constraint to ensure each device can only send one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
     for device, subgraph in device_subgraph_mapping.items():
@@ -81,7 +74,7 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
             else:
                 assert nx.has_path(subgraph, source_node_1, source_node_2)
                 model.addConstr(comm_end[comm1] <= comm_start[comm2])
-
+    '''
 
 def FIFO_scheduling_solver(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
                     device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
