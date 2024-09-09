@@ -42,7 +42,6 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
 
 
     # create variables
-    x = {} # map from (node_id, machine_id) to variable
     # all cpus together are 0
     # FPGA subgraphs start from 1 and are in blocks of MAX_SUBGRAPHS_PER_FPGA many
     # (like in the paper)
@@ -98,7 +97,9 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
     for machine_id in device_topo.getDeviceIDs():
         fpga_load = LinExpr()
         for node_id in graph.getOperatorIDs():
-            fpga_load += node['fpgaLatency'] * x[node_id, machine_id]
+            # since homogenous, comp cost is uniform
+            device = device_topo.getDeviceIDs()[0]
+            fpga_load += graph.getOperatorCompCostByDevice(node_id, device) * x[node_id, machine_id]
             # model with "calls": communication NOT overlapped with compute
             # so we add communication here
             fpga_load += outgoingConnectionCost[node_id] * comm_in[node_id, machine_id]
