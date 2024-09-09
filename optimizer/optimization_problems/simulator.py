@@ -180,11 +180,11 @@ def get_comm_cost_dict(computation_graph, deviceTopo, edge_cut_list, operator_de
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=4)
+    parser.add_argument('--number_of_device', type=int, default=7)
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
-    # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL_REVISED
-    parser.add_argument('--scheduling', default='OPTIMIZED', type=str, help='')
+    # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL NEAR_OPTIMAL_REVISED
+    parser.add_argument('--scheduling', default='NEAR_OPTIMAL_REVISED', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
     parser.add_argument('--hetero_rate', default=None, type=int, help='')
     # rho == 0 is FIFO, rho == 1 is optimal; model.setParam("MIPGap", 0.01) will make it optimized
