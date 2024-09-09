@@ -41,7 +41,7 @@ def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
     for node_a, node_b in non_connected_pairs:
         # Check if both nodes have a computing cost higher than 5
         # must use or instead of and because for a selected node, we must get the entire order chain
-        if computing_cost[node_a] > 200 or computing_cost[node_b] > 200:
+        if computing_cost[node_a] > 1 or computing_cost[node_b] > 1:
             high_cost_pairs.append((node_a, node_b))
         else:
             other_pairs.append((node_a, node_b))
