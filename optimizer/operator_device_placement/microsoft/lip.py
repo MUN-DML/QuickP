@@ -19,16 +19,13 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
         else:
             outgoingConnectionCost[u] = edge['cost']
     # set 0 where a node had no outgoing edges
-    for node_id, node in nodes.items():
+    for node_id in graph.getOperatorIDs():
         if node_id not in outgoingConnectionCost:
             outgoingConnectionCost[node_id] = 0.0
 
     # figure out a (loose) upper bound for optimum latency
     # we will just sum up all cpuLatencies
-    latencyUpperBound = 0.0
-    for node_id, node in nodes.items():
-        latencyUpperBound += node['cpuLatency']
-    print('latencyUpperBound = ', latencyUpperBound)
+    M = 1000000
 
     # IP to minimize latency
 
@@ -53,13 +50,17 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
                       name="x")  # [operator_id, device_id] == 1 means this operator is assigned to this device
     # contiguity constraints
     z = model.addVars(graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                      name="x")
+                      name="z")
     comm_in = model.addVars(graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                      name="x")
+                      name="comm_in")
     comm_out = model.addVars(graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                            name="x")
+                            name="comm_out")
     latency = model.addVars(graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
-                           name="finish")  # finish[node_id] represent the finish time of this node
+                           name="latency")  # latency[node_id] represent the finish time of this node
+    start = model.addVars(device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                           name="start")  # start[node_id] represent the start time of this device
+    finish = model.addVars(device_topo.getDeviceIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                          name="finish")  # start[node_id] represent the start time of this device
 
     # Add constraints that schedule every node on exactly one machine
     for op in graph.getOperatorIDs():
@@ -83,28 +84,20 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
             model.addConstr(comm_out[u, machine_id] >= x[u, machine_id] - x[v, machine_id])
 
 
-    # subgraph start, finish (only create variables)
-    start = [None]
-    finish = [None]
-    for machine_id in device_topo.getDeviceIDs():
-        start.append(model.addVar(vtype = GRB.CONTINUOUS, lb=0.0))
-        finish.append(model.addVar(vtype = GRB.CONTINUOUS, lb=0.0))
-
-
     # subgraph can't start before the incoming results are ready
     for machine_id in device_topo.getDeviceIDs():
-        for node_id, node in nodes.items():
+        for node_id in graph.getOperatorIDs():
             # quadratic constraint!
             # model.addConstr(start[machine_id] >= latency[node_id] * comm_in[node_id, machine_id])
             # rewrite it like so:
             model.addConstr(start[machine_id] >= latency[node_id]
-                            - (1 - comm_in[node_id, machine_id]) * latencyUpperBound)
+                            - (1 - comm_in[node_id, machine_id]) * M)
 
 
     # finishing time of a subgraph
     for machine_id in device_topo.getDeviceIDs():
         fpga_load = LinExpr()
-        for node_id, node in nodes.items():
+        for node_id in graph.getOperatorIDs():
             fpga_load += node['fpgaLatency'] * x[node_id, machine_id]
             # model with "calls": communication NOT overlapped with compute
             # so we add communication here
@@ -113,28 +106,19 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
         model.addConstr(finish[machine_id] == start[machine_id] + fpga_load)
 
 
-    # latency constraints for nodes on CPU
-    for node_id, node in nodes.items():
-        model.addConstr(latency[node_id] >= node['cpuLatency'] * x[node_id, 0])
-    for edge in graph['edges']:
-        u = edge['sourceId']
-        v = edge['destId']
-        model.addConstr(latency[v] >= latency[u] + nodes[v]['cpuLatency'] * x[v, 0])
-
-
     # latency for nodes on a subgraph
     for machine_id in device_topo.getDeviceIDs():
-        for node_id, node in nodes.items():
+        for node_id in graph.getOperatorIDs():
             # quadratic constraint!
             # model.addConstr(latency[node_id] >= x[node_id, machine_id] * finish[machine_id])
             # rewrite it like so:
             model.addConstr(latency[node_id] >= finish[machine_id]
-                            - (1 - x[node_id, machine_id]) * latencyUpperBound)
+                            - (1 - x[node_id, machine_id]) * M)
 
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype = GRB.CONTINUOUS, lb=0.0)
-    for node_id, node in nodes.items():
+    for node_id in graph.getOperatorIDs():
         model.addConstr(TotalLatency >= latency[node_id])
 
 
@@ -162,7 +146,7 @@ def get_microsoft_placement(graph: CompGraph, device_topo: DeviceGraph):
 
         resultMachine['nodes'] = []
         debugTotalSize = 0.0
-        for node_id, node in nodes.items():
+        for node_id in graph.getOperatorIDs():
             if x[node_id, machine_id].X > 0.99:
                 resultMachine['nodes'].append(node_id)
         if machine_id == 0:
