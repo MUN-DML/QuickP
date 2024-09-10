@@ -6,7 +6,7 @@ from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
 def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                            device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
+                            device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict, threshold):
     # The global data dependency is already applied
     M = 1000000
     order = {}
@@ -14,7 +14,7 @@ def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, c
                                                    operator_device_mapping)
     for device, subgraph in device_subgraph_mapping.items():
         non_connected_pairs = find_non_connected_pairs(subgraph)
-        high_cost_pairs, other_pairs = split_non_connected_pairs(comp_graph, device, non_connected_pairs)
+        high_cost_pairs, other_pairs = split_non_connected_pairs(comp_graph, device, non_connected_pairs, threshold)
         other_nodes = set(node for pair in other_pairs for node in pair)
         # get the FIFO order
         local_fifo_order = fifo_operator_order[device]
@@ -30,7 +30,7 @@ def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, c
             model.addConstr(finish[op_a] <= start[op_b])
 
 
-def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
+def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs, threshold):
     computing_cost = graph.getOpCompCostMapByDevice(device)
     # List to store pairs where both nodes have a computing cost > 5
     high_cost_pairs = []
@@ -41,7 +41,7 @@ def split_non_connected_pairs(graph: CompGraph, device, non_connected_pairs):
     for node_a, node_b in non_connected_pairs:
         # Check if both nodes have a computing cost higher than 5
         # must use or instead of and because for a selected node, we must get the entire order chain
-        if computing_cost[node_a] > 1 or computing_cost[node_b] > 1:
+        if computing_cost[node_a] > threshold or computing_cost[node_b] > threshold:
             high_cost_pairs.append((node_a, node_b))
         else:
             other_pairs.append((node_a, node_b))

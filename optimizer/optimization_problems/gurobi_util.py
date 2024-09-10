@@ -23,8 +23,6 @@ def gurobi_setup(name: str):
 
     # This is strictly related to the value of big M
     model.setParam("IntFeasTol", 1e-9)
-    model.setParam("MemLimit", 4096)  # Example: Limit memory usage to 4 GB
-    model.setParam("Threads", 4)  # Example: Use 4 threads
 
     return model
 

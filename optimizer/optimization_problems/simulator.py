@@ -2,7 +2,10 @@
 import argparse
 
 from gurobipy import *
+from sklearn.cluster import KMeans
+import numpy as np
 
+from optimizer.model.graph import CompGraph, DeviceGraph
 from optimizer.scheduling.proposed_scheduling_revised import SamplingFunction
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
@@ -20,43 +23,48 @@ from optimizer.operator_device_placement.placement import get_placement_info
 from optimizer.scheduling.scheduling import execute_scheduling_function
 
 
-def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
+def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
              scheduling_function: str = "FIFO",
              placement: str = 'METIS',
-             node_weight_function=NodeWeightFunction.AVE_COMP_COST,
-             edge_weight_function=EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
-             weight_norm_function=WeightNormalizationFunction.MIN_MAX,
-             hetero_adjust_rate = None, rho=0.05, sampling_function=SamplingFunction.HEAVY_HITTER):
-    # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(number_of_devices, "comp_graph.json",
-                                                             hetero_adjust_rate, model_type=model_type)
-    # Init solver
-    model = gurobi_setup("minimize_maxload")
-
-    # init graph node/edge weight
-    init_graph_weight(comp_graph, node_weight_function, edge_weight_function, weight_norm_function)
-
+             rho=0.05,
+             threshold = None,
+             sampling_function=SamplingFunction.HEAVY_HITTER):
 
     # Partition the computation graph
     operator_device_mapping, edge_cut_list, edge_cut_weight_sum = (
-        get_placement_info(placement, comp_graph, deviceTopo))
+        get_placement_info(placement, computing_graph, device_topo))
 
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
-    device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
+    device_subgraph_mapping = construct_sub_graph(computing_graph, operator_device_mapping)
 
     # Get computation and communication cost
-    op_computing_cost_mapping = get_comp_cost_dict(comp_graph, operator_device_mapping)
-    edge_cut_communication_cost_mapping = get_comm_cost_dict(comp_graph, deviceTopo, edge_cut_list, operator_device_mapping)
-
+    op_computing_cost_mapping = get_comp_cost_dict(computing_graph, operator_device_mapping)
+    edge_cut_communication_cost_mapping = get_comm_cost_dict(computing_graph, device_topo, edge_cut_list, operator_device_mapping)
+    '''
+    # Get all operator costs
+    costs = np.array(list(op_computing_cost_mapping.values())).reshape(-1, 1)
+    # Step 1: Apply log transformation to the costs (adding a small constant to avoid log(0))
+    log_costs = np.log(costs + 1e-9)
+    # Step 2: Calculate mean and standard deviation of the log-transformed costs
+    mean_log_cost = np.mean(log_costs)
+    std_log_cost = np.std(log_costs)
+    # Step 3: Set threshold to mean - 2*std to filter out near-zero values
+    log_threshold = mean_log_cost - 2 * std_log_cost
+    # Step 4: Convert the threshold back to the original scale by applying the exponential
+    threshold = np.exp(log_threshold)
+    '''
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in device_subgraph_mapping.values()]
 
+    # Init solver
+    model = gurobi_setup("minimize_maxload")
+
     # Define variables
-    x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
+    x = model.addVars(computing_graph.getOperatorIDs(), device_topo.getDeviceIDs(), vtype=GRB.BINARY,
                       name="x")  # [operator_id, device_id] == 1 means this operator is assigned to this device
-    start = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+    start = model.addVars(computing_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                           name="start")  # start[node_id] represent the starting time of this node
-    finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+    finish = model.addVars(computing_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="finish")  # finish[node_id] represent the finish time of this node
     comm_start = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0,
                                name="comm_start")  # comm_start[source_op, dest_op] represent the communication
@@ -69,19 +77,19 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
     # If we assume a homogeneous environment where each operator has the same time consumption on each device and the
     # bandwidth is also the same. Once we get the graph partition, the device-operation placement is already solved
     # because it does not matter where each sub-graph is placed.
-    for op_id in comp_graph.getOperatorIDs():
-        for device_id in deviceTopo.getDeviceIDs():
+    for op_id in computing_graph.getOperatorIDs():
+        for device_id in device_topo.getDeviceIDs():
             if device_id == operator_device_mapping[op_id]:
                 model.addConstr(x[op_id, device_id] == 1)
             else:
                 model.addConstr(x[op_id, device_id] == 0)
 
-    for node_id in comp_graph.getOperatorIDs():
+    for node_id in computing_graph.getOperatorIDs():
         # Add constraints that each op's ending time = starting time + its computing time
         model.addConstr(finish[node_id] == start[node_id] + op_computing_cost_mapping[node_id], name=f"finish_start_{node_id}")
 
     # Data dependency for same-device communication
-    non_edge_cut_list = [edge for edge in comp_graph.getEdgeIDs() if edge not in edge_cut_list]
+    non_edge_cut_list = [edge for edge in computing_graph.getEdgeIDs() if edge not in edge_cut_list]
     for edge_id_tuple in non_edge_cut_list:
         source_op_ID, target_op_ID = edge_id_tuple
         model.addConstr(finish[source_op_ID] <= start[target_op_ID])
@@ -103,8 +111,9 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
 
     # It is an SCHEDULING problem within each device.
     execute_scheduling_function(scheduling_function, model, start=start, finish=finish, comm_start=comm_start,
-                                comm_end=comm_end, comp_graph=comp_graph, device_subgraph_mapping=device_subgraph_mapping,
-                                edge_cut_list=edge_cut_list, operator_device_mapping=operator_device_mapping, rho=rho, sampling_function=sampling_function)
+                                comm_end=comm_end, comp_graph=computing_graph, device_subgraph_mapping=device_subgraph_mapping,
+                                edge_cut_list=edge_cut_list, operator_device_mapping=operator_device_mapping, rho=rho,
+                                sampling_function=sampling_function, threshold=threshold)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -137,14 +146,14 @@ def simulate(number_of_devices=2, model_type: TFModelEnum = TFModelEnum.SMALL,
         print("Model is unbounded.")
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
-        show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, edge_cut_communication_cost_mapping, True, two_dime_node_list)
+        show_optimization_solution(model, x, computing_graph, device_topo, start, finish, edge_cut_communication_cost_mapping, True, two_dime_node_list)
         print(f"This is the optimal solution of such configuration: \n"
-              f"number of operators: {comp_graph.number_of_nodes()} \n"
-              f"number of devices: {deviceTopo.number_of_nodes()} \n"
+              f"number of operators: {computing_graph.number_of_nodes()} \n"
+              f"number of devices: {device_topo.number_of_nodes()} \n"
               f"placement way of this DNN graph: {placement} \n"
               f"scheduling method in each device: {scheduling_function} \n"
               f"The environment is homogenous")
-        show_graph_partition_info(comp_graph, operator_device_mapping, edge_cut_list, edge_cut_weight_sum)
+        show_graph_partition_info(computing_graph, operator_device_mapping, edge_cut_list, edge_cut_weight_sum)
         optimal_value = model.ObjVal
         if model is not None:
             model.dispose()
@@ -166,14 +175,14 @@ def get_comp_cost_dict(computation_graph, operator_device_mapping):
     return comp_cost_dict
 
 
-def get_comm_cost_dict(computation_graph, deviceTopo, edge_cut_list, operator_device_mapping):
+def get_comm_cost_dict(computation_graph, device_topo, edge_cut_list, operator_device_mapping):
     comm_cost_dict = {}
     for edge_id_tuple in edge_cut_list:
         # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
         # placed on different devices
         source_op_ID, dest_op_ID = edge_id_tuple
         # Aggregate communication cost
-        comm_cost_dict[edge_id_tuple] = computation_graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * deviceTopo.calUnitCommCostInUS(
+        comm_cost_dict[edge_id_tuple] = computation_graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * device_topo.calUnitCommCostInUS(
             operator_device_mapping[source_op_ID], operator_device_mapping[dest_op_ID])
     return comm_cost_dict
 
@@ -191,6 +200,7 @@ if __name__ == '__main__':
     parser.add_argument('--rho', default=0.08, type=float, help='')
     # PROBABILISTIC_SAMPLING RANDOM HEAVY_HITTER
     parser.add_argument('--sampling', default="HEAVY_HITTER", type=str, help='')
+    parser.add_argument('--threshold', default=1, type=float, help='')
 
     args = parser.parse_args()
 
@@ -199,10 +209,15 @@ if __name__ == '__main__':
     weight_norm_function = getattr(WeightNormalizationFunction, args.normalization_function.upper(), None)
     sample_function = getattr(SamplingFunction, args.sampling.upper(), None)
 
-    simulate(number_of_devices=args.number_of_device, model_type=model_type,
+    # init fake data
+    deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, "comp_graph.json",
+                                                             args.hetero_rate, model_type=model_type)
+    # init graph node/edge weight
+    init_graph_weight(comp_graph, NodeWeightFunction.AVE_COMP_COST, EdgeWeightFunction.SOURCE_OUTPUT_TENSOR, weight_norm_function)
+
+    simulate(comp_graph, deviceTopo,
              scheduling_function=args.scheduling,
              placement = args.placement,
-             weight_norm_function=weight_norm_function,
-             hetero_adjust_rate = args.hetero_rate,
              rho=args.rho,
-             sampling_function=sample_function)
+             sampling_function=sample_function,
+             threshold = args.threshold)
