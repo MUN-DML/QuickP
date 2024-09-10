@@ -125,6 +125,8 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
         name="total_splits_constraint"
     )
 
+    model.setObjective(total_communication_cost, GRB.MINIMIZE)
+
 
     # Run the solver
     sys.stdout.flush()
