@@ -29,15 +29,18 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
     # get metis partition
     total_number_of_sub_graph = num_sub_graph_per_device * len(deviceTopo.getDeviceIDs())
     partition_dict, cut_edge_list, _ = metis_partition(comp_graph, total_number_of_sub_graph)
+    subgraph_dict = None # subgraph id - subgraph mapping
 
     # Get homo computing cost
     any_d = deviceTopo.getDeviceIDs()[0]
     homo_op_cost_dict = comp_graph.getOpCompCostMapByDevice(any_d)
 
     # Define variables
+    # [operator_id, device_id] == 1 means this operator is assigned to this device
     x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
-                      name="x")  # [operator_id, device_id] == 1 means this operator is assigned to this device
-
+                      name="x")
+    # subgraph device mapping
+    y = model.addVars(subgraph_dict.keys(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY, name="y")
     split_indicator = model.addVars(non_connected_pairs, vtype=GRB.BINARY, name="split_indicator")
 
     # device-subgraph one-to-one mapping
@@ -46,9 +49,8 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
     model.addConstrs((quicksum(y[subgraph_id, device] for device in deviceTopo.getDeviceIDs()) == 1 for subgraph_id in
                       subgraph_dict.keys()), "SubgraphAssignment")
     # Constraint: Each device is assigned to exactly one subgraph
-    model.addConstrs((quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == 1 for device in
+    model.addConstrs((quicksum(y[subgraph_id, device] for subgraph_id in subgraph_dict.keys()) == num_sub_graph_per_device for device in
                       deviceTopo.getDeviceIDs()), "DeviceAssignment")
-
     # Link the assignment of operators to devices with the assignment of subgraphs to devices
     for subgraph_id, subgraph in subgraph_dict.items():
         for device in deviceTopo.getDeviceIDs():
