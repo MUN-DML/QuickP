@@ -191,7 +191,7 @@ if __name__ == '__main__':
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL NEAR_OPTIMAL_REVISED
     parser.add_argument('--scheduling', default='NEAR_OPTIMAL', type=str, help='')
     parser.add_argument('--placement', default='METIS', type=str, help='')
-    parser.add_argument('--hetero_rate', default=None, type=int, help='')
+    # parser.add_argument('--hetero_rate', default=None, type=int, help='')
     # rho == 0 is FIFO, rho == 1 is optimal; model.setParam("MIPGap", 0.01) will make it optimized
     parser.add_argument('--rho', default=0.08, type=float, help='')
     # PROBABILISTIC_SAMPLING RANDOM HEAVY_HITTER
@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, "comp_graph.json",
-                                                             args.hetero_rate, model_type=model_type)
+                                                             None, model_type=model_type)
     # init graph node/edge weight
     init_graph_weight(comp_graph, NodeWeightFunction.AVE_COMP_COST, EdgeWeightFunction.SOURCE_OUTPUT_TENSOR, weight_norm_function)
 

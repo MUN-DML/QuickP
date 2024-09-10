@@ -12,7 +12,7 @@ sys.path.append(project_root)
 from optimizer.optimization_problems.gurobi_util import gurobi_setup
 
 
-def get_homo_balanced_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph) -> dict:
+def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, num_sub_graph_per_device=2) -> dict:
 
     def get_operator_device_mapping_through_x(x):
         mapping = {}
@@ -25,6 +25,9 @@ def get_homo_balanced_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph) 
     # Init solver
     model = gurobi_setup("minimize_maxload")
     non_connected_pairs = find_non_connected_pairs(comp_graph)
+
+    # Get homo computing cost
+    homo_op_cost_dict = {}
 
     # Define variables
     x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
@@ -45,16 +48,18 @@ def get_homo_balanced_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph) 
     # Constraint to enforce the split_indicator based on placement
     for a, b in non_connected_pairs:
         # Use one quicksum to check if a and b are placed on different devices
+        # 1 means different devices
         model.addConstr(
             split_indicator[a, b] == 1 - quicksum(x[a, device] * x[b, device] for device in deviceTopo.getDeviceIDs()),
             name=f"split_indicator_{a}_{b}"
         )
 
-    # Define a variable to represent the total number of splits (sum of split indicators)
+    # Define a variable to represent the total score of splits (sum of split indicators)
     total_splits = model.addVar(vtype=GRB.CONTINUOUS, name="total_splits")
-    # Set the total_splits variable equal to the sum of split_indicator values
+    # Set the total_splits variable equal to the sum of split_indicator values. Splitting high-cost
     model.addConstr(
-        total_splits == quicksum(split_indicator[a, b] for a, b in non_connected_pairs),
+        total_splits == quicksum(split_indicator[a, b] * (homo_op_cost_dict[a] + homo_op_cost_dict[b])
+                                 for a, b in non_connected_pairs),
         name="total_splits_constraint"
     )
 
