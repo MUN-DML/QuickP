@@ -76,7 +76,7 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
     total_split_score = model.addVar(vtype=GRB.CONTINUOUS, name="total_splits")
     # Set the total_splits variable equal to the sum of split_indicator values. Splitting high-cost
     model.addConstr(
-        total_split_score == quicksum(split_indicator[a, b] * (homo_op_cost_dict[a] + homo_op_cost_dict[b])
+        total_split_score == quicksum(split_indicator[a, b] * max(homo_op_cost_dict[a], homo_op_cost_dict[b])
                                       for a, b in non_connected_pairs),
         name="total_splits_constraint"
     )
