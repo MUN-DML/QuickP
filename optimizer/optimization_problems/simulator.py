@@ -185,11 +185,11 @@ def get_comm_cost_dict(computation_graph, device_topo, edge_cut_list, operator_d
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=4)
-    parser.add_argument('--model', type=str, default='SMALL')
+    parser.add_argument('--number_of_device', type=int, default=8)
+    parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
     # NEAR_OPTIMAL OPTIMIZED METIS
-    parser.add_argument('--placement', default='NEAR_OPTIMAL', type=str, help='')
+    parser.add_argument('--placement', default='METIS', type=str, help='')
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL NEAR_OPTIMAL_REVISED
     parser.add_argument('--scheduling', default='FIFO', type=str, help='')
     # parser.add_argument('--hetero_rate', default=None, type=int, help='')

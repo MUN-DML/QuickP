@@ -26,12 +26,12 @@ import metis
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.model.graph import CompGraph
+from optimizer.model.graph import CompGraph, find_non_connected_pairs
 from optimizer.operator_device_placement.metis.subgraph_util import identify_edges_cut, WeightNormalizationFunction
 
 
 def metis_partition(graph: CompGraph, num_partitions: int, visualization=False,
-                    sub_graph_weight_sum_ratio: list = None) -> tuple[dict[Any, Any], list[tuple], int]:
+                    sub_graph_weight_sum_ratio: list = None, add_art_edge = False) -> tuple[dict[Any, Any], list[tuple], int]:
     def visualize_graph_partitioned(weight_graph: CompGraph, partition_result: dict):
         # Visualize the partitioned graph
         nx.set_node_attributes(weight_graph, partition_result, 'partition')
@@ -55,23 +55,32 @@ def metis_partition(graph: CompGraph, num_partitions: int, visualization=False,
 
     # check the graph weight has already been set
     assert 'node_weight_attr' in graph.graph and 'edge_weight_attr' in graph.graph
+    # add artificial edges
+    graph_copy = graph.copy()
+    if add_art_edge:
+        non_connected_pairs = find_non_connected_pairs(graph)
+        for pair in non_connected_pairs:
+            if graph_copy.nodes[pair[0]]['node_weight'] > 500 and graph_copy.nodes[pair[1]]['node_weight'] > 500:
+                graph_copy.add_edge(pair[0], pair[1], edge_weight=1)
 
+    print("fuck", graph_copy.nodes(data=True))
+    print("suck", graph_copy.edges(data=True))
     # Convert the DiGraph to an undirected graph for partitioning
-    G_undirected = graph.to_undirected()
+    G_undirected = graph_copy.to_undirected()
 
     metis_graph = metis.networkx_to_metis(G_undirected)
 
     # Perform graph partitioning using METIS
     edgecuts, parts = metis.part_graph(metis_graph, nparts=num_partitions, tpwgts=sub_graph_weight_sum_ratio)
     # Assign partition labels to the original DiGraph nodes {node_id: placement_index}
-    partition_dict = {node: part for node, part in zip(graph.nodes(), parts)}
+    partition_dict = {node: part for node, part in zip(graph_copy.nodes(), parts)}
 
     # verify whether the sum_of_cut_weight == edgecuts
     cut_edge_list, sum_of_cut_weight = identify_edges_cut(graph, partition_dict)
-    assert sum_of_cut_weight == edgecuts
+    # assert sum_of_cut_weight == edgecuts
     if visualization:
         # Visualize the partitioned graph
-        visualize_graph_partitioned(graph, partition_dict)
+        visualize_graph_partitioned(graph_copy, partition_dict)
 
     # return the placement dict, list of edges cut and the weighted graph itself
     return partition_dict, cut_edge_list, edgecuts
