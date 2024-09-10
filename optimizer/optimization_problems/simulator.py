@@ -189,7 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
     # NEAR_OPTIMAL OPTIMIZED METIS
-    parser.add_argument('--placement', default='METIS', type=str, help='')
+    parser.add_argument('--placement', default='NEAR_OPTIMAL', type=str, help='')
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL NEAR_OPTIMAL_REVISED
     parser.add_argument('--scheduling', default='FIFO', type=str, help='')
     # parser.add_argument('--hetero_rate', default=None, type=int, help='')

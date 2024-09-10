@@ -43,11 +43,20 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
         local_pairs_set = {frozenset(pair) for pair in local_non_connected_pairs}
         non_connected_pairs_set -= local_pairs_set  # Remove local pairs
     # Convert back to list of tuples if needed
-    filtered_non_connected_pairs = [tuple(pair) for pair in non_connected_pairs_set]
+    # filtered_non_connected_pairs = [tuple(pair) for pair in non_connected_pairs_set]
 
     # Get homo computing cost
     any_d = deviceTopo.getDeviceIDs()[0]
+    any_d_2 = deviceTopo.getDeviceIDs()[1]
     homo_op_cost_dict = comp_graph.getOpCompCostMapByDevice(any_d)
+    # Get homo comm sot
+    comm_cost_dict = {}
+    for edge_id_tuple in cut_edge_list:
+        # only the edge in the edge_cut_list will bring communication cost since the source_op and destination-op are
+        # placed on different devices
+        source_op_ID, dest_op_ID = edge_id_tuple
+        # Aggregate communication cost
+        comm_cost_dict[edge_id_tuple] = comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * deviceTopo.calUnitCommCostInUS(any_d, any_d_2)
 
     # Define variables
     # [operator_id, device_id] == 1 means this operator is assigned to this device
@@ -55,7 +64,8 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
                       name="x")
     # subgraph device mapping
     y = model.addVars(subgraph_dict.keys(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY, name="y")
-    split_indicator = model.addVars(filtered_non_connected_pairs, vtype=GRB.BINARY, name="split_indicator")
+    # split_indicator = model.addVars(filtered_non_connected_pairs, vtype=GRB.BINARY, name="split_indicator")
+    cross_device_indicator = model.addVars(cut_edge_list, vtype=GRB.BINARY, name="cross_device_indicator")
 
     # device-subgraph one-to-one mapping
     # Step 1: Ensure each subgraph is assigned to exactly one device
@@ -76,6 +86,7 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
     for op in comp_graph.getOperatorIDs():
         model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{op}")
 
+    '''
     # Constraint to enforce the split_indicator based on placement
     for a, b in filtered_non_connected_pairs:
         # Use one quicksum to check if a and b are placed on different devices
@@ -96,6 +107,24 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
 
     # Set the target of solver
     model.setObjective(total_split_score, GRB.MAXIMIZE)
+    '''
+
+    for (a, b) in cut_edge_list:
+        # Use one quicksum to check if a and b are placed on different devices
+        # 1 means different devices
+        model.addConstr(
+            cross_device_indicator[a, b] == 1 - quicksum(x[a, device] * x[b, device] for device in deviceTopo.getDeviceIDs()),
+            name=f"split_indicator_{a}_{b}"
+        )
+
+    total_communication_cost = model.addVar(vtype=GRB.CONTINUOUS, name="total_splits")
+    # Set the total_splits variable equal to the sum of split_indicator values. Splitting high-cost
+    model.addConstr(
+        total_communication_cost == quicksum(cross_device_indicator[a, b] * comm_cost_dict[a,b]
+                                      for a, b in cut_edge_list),
+        name="total_splits_constraint"
+    )
+
 
     # Run the solver
     sys.stdout.flush()
