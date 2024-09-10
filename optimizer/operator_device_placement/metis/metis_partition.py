@@ -63,8 +63,6 @@ def metis_partition(graph: CompGraph, num_partitions: int, visualization=False,
             if graph_copy.nodes[pair[0]]['node_weight'] > 500 and graph_copy.nodes[pair[1]]['node_weight'] > 500:
                 graph_copy.add_edge(pair[0], pair[1], edge_weight=1)
 
-    print("fuck", graph_copy.nodes(data=True))
-    print("suck", graph_copy.edges(data=True))
     # Convert the DiGraph to an undirected graph for partitioning
     G_undirected = graph_copy.to_undirected()
 
