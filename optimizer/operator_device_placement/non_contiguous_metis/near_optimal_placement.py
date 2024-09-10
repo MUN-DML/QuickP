@@ -3,6 +3,7 @@ from networkx import topological_sort
 
 from optimizer.model.graph import find_non_connected_pairs, DeviceGraph, CompGraph
 from optimizer.operator_device_placement.metis.metis_partition import metis_partition
+from optimizer.operator_device_placement.metis.subgraph_util import construct_sub_graph
 from optimizer.scheduling.scheduling import add_topo_order_constraints
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
@@ -29,7 +30,7 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
     # get metis partition
     total_number_of_sub_graph = num_sub_graph_per_device * len(deviceTopo.getDeviceIDs())
     partition_dict, cut_edge_list, _ = metis_partition(comp_graph, total_number_of_sub_graph)
-    subgraph_dict = None # subgraph id - subgraph mapping
+    subgraph_dict = construct_sub_graph(comp_graph, partition_dict) # subgraph id - subgraph mapping
 
     # Get homo computing cost
     any_d = deviceTopo.getDeviceIDs()[0]
