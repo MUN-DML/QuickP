@@ -14,7 +14,7 @@ sys.path.append(project_root)
 from optimizer.optimization_problems.gurobi_util import gurobi_setup
 
 
-def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, num_sub_graph_per_device=2) -> dict:
+def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, num_sub_graph_per_device=3) -> dict:
     def get_operator_device_mapping_through_x(x):
         mapping = {}
         for (operator_id, device_id), var in x.items():

@@ -31,6 +31,7 @@ def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: 
 
     elif placement_type == "NEAR_OPTIMAL":
         operator_device_mapping = get_near_optimal_placement(comp_graph, device_topo)
+        print("fuck", operator_device_mapping)
         edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
 
     else:
