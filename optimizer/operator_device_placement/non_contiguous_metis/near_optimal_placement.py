@@ -14,7 +14,7 @@ sys.path.append(project_root)
 from optimizer.optimization_problems.gurobi_util import gurobi_setup
 
 
-def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, num_sub_graph_per_device=3) -> dict:
+def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, num_sub_graph_per_device=2) -> dict:
     def get_operator_device_mapping_through_x(x):
         mapping = {}
         for (operator_id, device_id), var in x.items():
@@ -29,8 +29,21 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
 
     # get metis partition
     total_number_of_sub_graph = num_sub_graph_per_device * len(deviceTopo.getDeviceIDs())
-    partition_dict, cut_edge_list, _ = metis_partition(comp_graph, total_number_of_sub_graph)
+    partition_dict, cut_edge_list, edge_cut_weight_sum = metis_partition(comp_graph, total_number_of_sub_graph)
     subgraph_dict = construct_sub_graph(comp_graph, partition_dict) # subgraph id - subgraph mapping
+
+    # limit the communication cost
+
+    # filter the non_connected_pairs to remove node within a subgraph to reduce complexity
+    # Use a set to store the global non-connected pairs as frozensets (to treat (a, b) and (b, a) equally)
+    non_connected_pairs_set = {frozenset(pair) for pair in non_connected_pairs}
+    for subgraph_id, subgraph in subgraph_dict.items():
+        local_non_connected_pairs = find_non_connected_pairs(subgraph)
+        # Convert local pairs to frozenset and remove from global set
+        local_pairs_set = {frozenset(pair) for pair in local_non_connected_pairs}
+        non_connected_pairs_set -= local_pairs_set  # Remove local pairs
+    # Convert back to list of tuples if needed
+    filtered_non_connected_pairs = [tuple(pair) for pair in non_connected_pairs_set]
 
     # Get homo computing cost
     any_d = deviceTopo.getDeviceIDs()[0]
@@ -42,7 +55,7 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
                       name="x")
     # subgraph device mapping
     y = model.addVars(subgraph_dict.keys(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY, name="y")
-    split_indicator = model.addVars(non_connected_pairs, vtype=GRB.BINARY, name="split_indicator")
+    split_indicator = model.addVars(filtered_non_connected_pairs, vtype=GRB.BINARY, name="split_indicator")
 
     # device-subgraph one-to-one mapping
     # Step 1: Ensure each subgraph is assigned to exactly one device
@@ -64,7 +77,7 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
         model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{op}")
 
     # Constraint to enforce the split_indicator based on placement
-    for a, b in non_connected_pairs:
+    for a, b in filtered_non_connected_pairs:
         # Use one quicksum to check if a and b are placed on different devices
         # 1 means different devices
         model.addConstr(
@@ -77,7 +90,7 @@ def get_near_optimal_placement(comp_graph: CompGraph, deviceTopo: DeviceGraph, n
     # Set the total_splits variable equal to the sum of split_indicator values. Splitting high-cost
     model.addConstr(
         total_split_score == quicksum(split_indicator[a, b] * max(homo_op_cost_dict[a], homo_op_cost_dict[b])
-                                      for a, b in non_connected_pairs),
+                                      for a, b in filtered_non_connected_pairs),
         name="total_splits_constraint"
     )
 
