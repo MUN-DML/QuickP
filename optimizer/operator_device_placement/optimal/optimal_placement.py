@@ -40,11 +40,6 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
     for op in comp_graph.getOperatorIDs():
         model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{op}")
 
-    # Add constraints that each device should have at least one operator assigned
-    for machine_id in deviceTopo.getDeviceIDs():
-        model.addConstr(quicksum(x[node_id, machine_id] for node_id in comp_graph.getOperatorIDs()) >= 1,
-                        name=f"at_least_one_op_{machine_id}")
-
     # Add constraints that each op's ending time = starting time + its computing time
     for node_id in comp_graph.getOperatorIDs():
         comp_cost = quicksum(x[node_id, device_id] * comp_graph.getOperatorCompCostByDevice(node_id, device_id)
