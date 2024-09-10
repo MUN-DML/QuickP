@@ -27,7 +27,6 @@ def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
              scheduling_function: str = "FIFO",
              placement: str = 'METIS',
              rho=0.05,
-             threshold = None,
              sampling_function=SamplingFunction.HEAVY_HITTER):
 
     # Partition the computation graph
@@ -40,19 +39,16 @@ def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
     # Get computation and communication cost
     op_computing_cost_mapping = get_comp_cost_dict(computing_graph, operator_device_mapping)
     edge_cut_communication_cost_mapping = get_comm_cost_dict(computing_graph, device_topo, edge_cut_list, operator_device_mapping)
-    '''
+
     # Get all operator costs
     costs = np.array(list(op_computing_cost_mapping.values())).reshape(-1, 1)
-    # Step 1: Apply log transformation to the costs (adding a small constant to avoid log(0))
-    log_costs = np.log(costs + 1e-9)
-    # Step 2: Calculate mean and standard deviation of the log-transformed costs
-    mean_log_cost = np.mean(log_costs)
-    std_log_cost = np.std(log_costs)
-    # Step 3: Set threshold to mean - 2*std to filter out near-zero values
-    log_threshold = mean_log_cost - 2 * std_log_cost
-    # Step 4: Convert the threshold back to the original scale by applying the exponential
-    threshold = np.exp(log_threshold)
-    '''
+    # Set the minimum cutoff to avoid near-zero values
+    min_cutoff = 0.1
+    # Calculate the 80th percentile of the costs
+    percentile_threshold = np.percentile(costs, 80)
+    # Set the final threshold as the maximum of the percentile threshold and the minimum cutoff
+    threshold = max(percentile_threshold, min_cutoff)
+
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in device_subgraph_mapping.values()]
 
@@ -219,5 +215,5 @@ if __name__ == '__main__':
              scheduling_function=args.scheduling,
              placement = args.placement,
              rho=args.rho,
-             sampling_function=sample_function,
-             threshold = args.threshold)
+             sampling_function=sample_function)
+             # threshold = args.threshold
