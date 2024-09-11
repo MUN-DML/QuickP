@@ -3,6 +3,7 @@ from enum import Enum
 
 import networkx as nx
 from gurobipy import Model, GRB
+from networkx import DiGraph
 
 from optimizer.model.graph import find_non_connected_pairs, CompGraph, is_not_connected
 from optimizer.scheduling.FIFO import FIFO_scheduling
@@ -13,7 +14,7 @@ from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_hetero
 from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_cost
 
 
-def get_op_related_subgraph_mapping(graph: CompGraph, operator_device_mapping,  device_subgraph_mapping, edge_cut_list):
+def get_op_related_subgraph_mapping(graph: DiGraph, operator_device_mapping, device_subgraph_mapping, edge_cut_list):
     def get_related_subgraph_num(node):
         device = operator_device_mapping[node]
         current_subgraph = device_subgraph_mapping.get(device)
@@ -28,7 +29,7 @@ def get_op_related_subgraph_mapping(graph: CompGraph, operator_device_mapping,  
             related_devices.add(operator_device_mapping.get(v))
         return len(related_devices)
 
-    return {op: get_related_subgraph_num(op) for op in graph.getOperatorIDs()}
+    return {op: get_related_subgraph_num(op) for op in graph.nodes}
 
 
 def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish, start):
