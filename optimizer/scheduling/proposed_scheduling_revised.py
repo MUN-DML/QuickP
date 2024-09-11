@@ -37,7 +37,8 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         for op_a, op_b in zip(other_nodes, other_nodes[1:]):
             model.addConstr(finish[op_a] <= start[op_b])
 
-        # apply optimization to all pairs involving these high-cost nodes
+        # apply optimization to all pairs involving these high-cost nodes, these pair also include the unselected nodes,
+        # To optimize one node, all of its non-reachable node should be included
         important_pairs = [pair for pair in non_connected_pairs if pair[0] in selected_nodes or pair[1] in selected_nodes]
         for op_a, op_b in important_pairs:
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
