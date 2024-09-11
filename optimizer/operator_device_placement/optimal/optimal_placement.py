@@ -8,7 +8,7 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.optimization_problems.gurobi_util import gurobi_setup
+from optimizer.optimization_problems.gurobi_util import gurobi_setup, show_optimization_solution
 
 
 def get_optimize_placement(comp_graph, deviceTopo) -> dict:
@@ -114,7 +114,7 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        # show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish)
+        show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, comm_cost)
         print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
 
         operator_device_mapping = get_operator_device_mapping_through_x(x)

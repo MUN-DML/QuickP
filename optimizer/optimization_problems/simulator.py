@@ -142,6 +142,7 @@ def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
         print("Model is unbounded.")
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
+        '''
         show_optimization_solution(model, x, computing_graph, device_topo, start, finish, edge_cut_communication_cost_mapping, True, two_dime_node_list)
         print(f"This is the optimal solution of such configuration: \n"
               f"number of operators: {computing_graph.number_of_nodes()} \n"
@@ -155,6 +156,7 @@ def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
             model.dispose()
         disposeDefaultEnv()
         return optimal_value
+        '''
     else:
         print(f"Optimization ended with status {model.status}")
         if model is not None:

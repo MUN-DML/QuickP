@@ -49,6 +49,9 @@ def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rat
 
 def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo: DeviceGraph, start: dict,
                                finish: dict, comm_cost:dict, graph_partition=False, two_dime_node_list=None):
+    if isinstance(list(comm_cost.values())[0], Var):
+        comm_cost = {key: int(value.X) for key, value in comm_cost.items()}
+
     if graph_partition and not two_dime_node_list:
         raise ValueError("should has a 2d list to represent the original graph partition")
     # init result dict
