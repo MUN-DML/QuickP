@@ -27,32 +27,23 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         non_connected_pairs = find_non_connected_pairs(subgraph)
         # flatten the pairs to get all the non-repeated nodes, convert to list
         selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], global_node_split_by_device.get(device)["unselected_list"]
-        # print('fuck', comp_graph.getOperatorCompCostByDevice(high_cost_nodes[-1], operator_device_mapping[high_cost_nodes[-1]]),
-        #       comp_graph.getOperatorCompCostByDevice(other_nodes[0], operator_device_mapping[other_nodes[0]]))
 
         # use the FIFO order to sort other_nodes;
         local_fifo_order = fifo_operator_order[device]
         node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
         # sort other_nodes based on the FIFO order
         other_nodes = sorted(other_nodes, key=lambda op: node_order_dict[op])
-        print('other', len(other_nodes), other_nodes)
         # Apply sequential constraint to non-selected nodes
         for op_a, op_b in zip(other_nodes, other_nodes[1:]):
             model.addConstr(finish[op_a] <= start[op_b])
 
-        # use the topo order to sort selected nodes;
-        topological_order = list(nx.topological_sort(subgraph))
-        topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
-        selected_nodes = sorted(selected_nodes, key=lambda node: topological_order_mapping[node])
-        # apply optimization to these high-cost node pairs
-        for high_cost_node in selected_nodes:
-            non_connected_pair = [pair for pair in non_connected_pairs if high_cost_node in pair]
-            for op_a, op_b in non_connected_pair:
-                order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
-                model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]),
-                                name=f"NoOverlap1_{op_a}_{op_b}")
-                model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
-        print('selected', len(selected_nodes), selected_nodes)
+        # apply optimization to all pairs involving these high-cost nodes
+        important_pairs = [pair for pair in non_connected_pairs if pair[0] in selected_nodes or pair[1] in selected_nodes]
+        for op_a, op_b in important_pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+
     '''
     for device, subgraph in device_subgraph_mapping.items():
         outgoings = [edge for edge in edge_cut_list if edge[0] in subgraph]
