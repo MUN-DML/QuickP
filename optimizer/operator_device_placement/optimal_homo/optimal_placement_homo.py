@@ -48,6 +48,7 @@ def get_optimize_placement_homo(comp_graph: CompGraph, deviceTopo) -> dict:
                                name="comm_start")  # comm_start[source_op, dest_op] represent the communication
     comm_end = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
     comm_cost = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_cost")
+    cross_device_indicator = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.BINARY, name="cross_device_indicator")
 
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
@@ -57,26 +58,19 @@ def get_optimize_placement_homo(comp_graph: CompGraph, deviceTopo) -> dict:
     for node_id in comp_graph.getOperatorIDs():
         model.addConstr(finish[node_id] == start[node_id] + homo_op_cost_dict[node_id], name=f"finish_start_{node_id}")
 
+    for a, b in comp_graph.getEdgeIDs():
+        # Use one quicksum to check if a and b are placed on different devices
+        # 1 means different devices
+        model.addConstr(
+            cross_device_indicator[a, b] == 1 - quicksum(x[a, device] * x[b, device] for device in deviceTopo.getDeviceIDs()),
+            name=f"split_indicator_{a}_{b}"
+        )
+
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
-    device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
-                    src != dest}
-    # unit_comm_costs[device_id_src, device_id_dest] means the com cost per bit from device with source device to dest device
-    unit_comm_costs = {
-        (src_device, dest_device): deviceTopo.calUnitCommCostInUS(src_device, dest_device)
-        for src_device, dest_device in device_pairs
-    }
-    tensor_sizes = {
-        (source_op_ID, dest_op_ID): comp_graph.getEdgeTensorSize(source_op_ID, dest_op_ID)
-        for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs()
-    }
     for edge_id_tuple in list(comp_graph.getEdgeIDs()):
         source_op_ID, dest_op_ID = edge_id_tuple
         # Aggregate communication cost
-        comm_cost_expr = quicksum(
-            unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
-            x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
-            for device_id_src, device_id_dest in device_pairs
-        )
+        comm_cost_expr = comm_cost_dict[edge_id_tuple] * cross_device_indicator[edge_id_tuple]
 
         model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr, f"comm_cost_{source_op_ID}_{dest_op_ID}")
 
@@ -89,8 +83,7 @@ def get_optimize_placement_homo(comp_graph: CompGraph, deviceTopo) -> dict:
                         f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
 
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost[
-            source_op_ID, dest_op_ID],
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost_expr,
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
     # Global Data dependency
