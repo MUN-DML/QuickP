@@ -142,7 +142,6 @@ def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
         print("Model is unbounded.")
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
-        '''
         show_optimization_solution(model, x, computing_graph, device_topo, start, finish, edge_cut_communication_cost_mapping, True, two_dime_node_list)
         print(f"This is the optimal solution of such configuration: \n"
               f"number of operators: {computing_graph.number_of_nodes()} \n"
@@ -156,7 +155,6 @@ def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
             model.dispose()
         disposeDefaultEnv()
         return optimal_value
-        '''
     else:
         print(f"Optimization ended with status {model.status}")
         if model is not None:
@@ -191,7 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='SMALL')
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
     # NEAR_OPTIMAL OPTIMIZED METIS OPTIMIZED_HOMO
-    parser.add_argument('--placement', default='OPTIMIZED', type=str, help='')
+    parser.add_argument('--placement', default='OPTIMIZED_HOMO', type=str, help='')
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL NEAR_OPTIMAL_REVISED
     parser.add_argument('--scheduling', default='FIFO', type=str, help='')
     # parser.add_argument('--hetero_rate', default=None, type=int, help='')

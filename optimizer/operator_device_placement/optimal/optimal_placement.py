@@ -114,7 +114,7 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, comm_cost)
+        # show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, comm_cost)
         print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
 
         operator_device_mapping = get_operator_device_mapping_through_x(x)
