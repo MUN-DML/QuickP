@@ -3,17 +3,37 @@ from gurobipy import Model, GRB
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
+from optimizer.scheduling.scheduling_util import remove_zero_related_nodes
 
 
 def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                            device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict, threshold):
+                            device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
+                            threshold):
     # The global data dependency is already applied
     M = 1000000
     order = {}
     fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                    operator_device_mapping)
+    device_non_isolated_part_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+                                                    name="non_isolated_part_finish")
+
     for device, subgraph in device_subgraph_mapping.items():
-        non_connected_pairs = find_non_connected_pairs(subgraph)
+        # Simply the search space by removing isolated nodes
+        simplified_subgraph, isolated_node_list = remove_zero_related_nodes(subgraph, operator_device_mapping,
+                                                                            device_subgraph_mapping, edge_cut_list)
+        # Only get the non-connected pairs from the graph with no nodes with no related subgraph
+        non_connected_pairs = find_non_connected_pairs(simplified_subgraph)
+        # Sort the isolated node list according to topo order and apply a sequential constraint
+        topological_order = list(nx.topological_sort(comp_graph))
+        topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
+        isolated_node_list = sorted(isolated_node_list, key=lambda node: topological_order_mapping[node])
+        for a, b in zip(isolated_node_list, isolated_node_list[1:]):
+            model.addConstr(finish[a] <= start[b])
+        # the isolated part will start after the non-isolated part finished
+        for non_isolated_node in simplified_subgraph.getOperatorIDs():
+            model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
+        model.addConstr(device_non_isolated_part_finish[device] <= start[isolated_node_list[0]])
+
         high_cost_pairs, other_pairs = split_non_connected_pairs(comp_graph, device, non_connected_pairs, threshold)
         other_nodes = set(node for pair in other_pairs for node in pair)
         # get the FIFO order

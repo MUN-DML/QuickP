@@ -191,7 +191,7 @@ if __name__ == '__main__':
     # NEAR_OPTIMAL OPTIMIZED METIS OPTIMIZED_HOMO
     parser.add_argument('--placement', default='METIS', type=str, help='')
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL NEAR_OPTIMAL_REVISED
-    parser.add_argument('--scheduling', default='NEAR_OPTIMAL_REVISED', type=str, help='')
+    parser.add_argument('--scheduling', default='NEAR_OPTIMAL', type=str, help='')
     # parser.add_argument('--hetero_rate', default=None, type=int, help='')
     # rho == 0 is FIFO, rho == 1 is optimal; model.setParam("MIPGap", 0.01) will make it optimized
     parser.add_argument('--rho', default=0.05, type=float, help='')
