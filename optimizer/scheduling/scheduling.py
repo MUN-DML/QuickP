@@ -32,6 +32,63 @@ def get_op_related_subgraph_mapping(graph: DiGraph, operator_device_mapping, dev
     return {op: get_related_subgraph_num(op) for op in graph.nodes}
 
 
+def extract_all_isolated_subgraphs(graph, op_related_subgraph_mapping):
+    def find_start_node(topological_sorted_nodes, global_visited):
+        """Find the next unvisited node with no related subgraphs."""
+        for node in topological_sorted_nodes:
+            if op_related_subgraph_mapping[node] == 0 and node not in global_visited:
+                return node
+        return None  # No unvisited node with zero related subgraphs
+
+    def get_isolated_subgraph(start_node, global_visited):
+        """Extract an isolated subgraph starting from start_node."""
+        queue = [start_node]
+        visited = set([start_node])
+        global_visited.add(start_node)
+        isolated_subgraph = nx.DiGraph()
+
+        while queue:
+            current_node = queue.pop(0)
+            isolated_subgraph.add_node(current_node)
+
+            # Get all neighbors (successors) of the current node
+            for neighbor in graph.successors(current_node):
+                no_related_subgraph = op_related_subgraph_mapping[neighbor] == 0
+                not_globally_visited = neighbor not in global_visited
+
+                if no_related_subgraph and not_globally_visited:
+                    queue.append(neighbor)
+                    visited.add(neighbor)
+                    global_visited.add(neighbor)
+                    isolated_subgraph.add_edge(current_node, neighbor)
+
+        return isolated_subgraph
+
+    # Step 1: Get the topological order of the nodes
+    topological_sorted_nodes = list(nx.topological_sort(graph))
+
+    # Step 2: Track visited nodes
+    global_visited = set()
+
+    # Step 3: Collect all isolated subgraphs
+    isolated_subgraphs = []
+
+    while True:
+        # Find the next unvisited node with no related subgraphs
+        start_node = find_start_node(topological_sorted_nodes, global_visited)
+
+        if start_node is None:
+            break  # No more isolated subgraphs to extract
+
+        # Extract isolated subgraph starting from the found node
+        isolated_subgraph = get_isolated_subgraph(start_node, global_visited)
+
+        if isolated_subgraph.number_of_nodes() > 0:
+            isolated_subgraphs.append(isolated_subgraph)
+
+    return isolated_subgraphs
+
+
 def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish, start):
     M = 1000000
     # Iterate over topologically sorted nodes
