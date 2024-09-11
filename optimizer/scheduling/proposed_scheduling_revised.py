@@ -7,6 +7,7 @@ import networkx as nx
 from gurobipy import Model, GRB
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
+from optimizer.scheduling.scheduling_util import remove_zero_related_nodes
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
@@ -23,10 +24,26 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
                                                                  edge_cut_list, operator_device_mapping, r=rho, sampling_function=sampling_function)
 
     for device, subgraph in device_subgraph_mapping.items():
-        # there will be no pairs with the same element
-        non_connected_pairs = find_non_connected_pairs(subgraph)
+
+        # Simply the search space by
+        simplified_subgraph, isolated_node_list = remove_zero_related_nodes(subgraph, operator_device_mapping, device_subgraph_mapping, edge_cut_list)
+        print("kkk", len(isolated_node_list))
+        # Only get the non-connected pairs from the graph with no nodes with no related subgraph
+        non_connected_pairs = find_non_connected_pairs(simplified_subgraph)
         # flatten the pairs to get all the non-repeated nodes, convert to list
         selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], global_node_split_by_device.get(device)["unselected_list"]
+        # remove the nodes with no related subgraph from the selected node and non-selected nodes
+        selected_nodes = [node for node in selected_nodes if node not in isolated_node_list]
+        other_nodes = [node for node in other_nodes if node not in isolated_node_list]
+        # Sort the isolated node list according to topo order and apply a sequential constraint
+        # use the topo order to sort selected nodes;
+        topological_order = list(nx.topological_sort(subgraph))
+        topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
+        isolated_node_list = sorted(isolated_node_list, key=lambda node: topological_order_mapping[node])
+        for a, b in zip(isolated_node_list, isolated_node_list[1:]):
+            model.addConstr(finish[a] <= start[b])
+        # the isolated part will start after the non-isolated part finished
+        model.addVar()
 
         # use the FIFO order to sort other_nodes;
         local_fifo_order = fifo_operator_order[device]
