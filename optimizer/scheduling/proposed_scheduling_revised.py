@@ -22,6 +22,7 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
     global_set_with_nr = list(get_global_node_set_with_nr(device_subgraph_mapping))
     global_node_split_by_device = split_list_based_on_score(comp_graph, global_set_with_nr, device_subgraph_mapping,
                                                                  edge_cut_list, operator_device_mapping, r=rho, sampling_function=sampling_function)
+    device_non_isolated_part_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0, name="non_isolated_part_finish")
 
     for device, subgraph in device_subgraph_mapping.items():
 
@@ -32,19 +33,20 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         non_connected_pairs = find_non_connected_pairs(simplified_subgraph)
         # flatten the pairs to get all the non-repeated nodes, convert to list
         selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], global_node_split_by_device.get(device)["unselected_list"]
-        # remove the nodes with no related subgraph from the selected node and non-selected nodes
-        selected_nodes = [node for node in selected_nodes if node not in isolated_node_list]
-        other_nodes = [node for node in other_nodes if node not in isolated_node_list]
         # Sort the isolated node list according to topo order and apply a sequential constraint
-        # use the topo order to sort selected nodes;
         topological_order = list(nx.topological_sort(subgraph))
         topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
         isolated_node_list = sorted(isolated_node_list, key=lambda node: topological_order_mapping[node])
         for a, b in zip(isolated_node_list, isolated_node_list[1:]):
             model.addConstr(finish[a] <= start[b])
         # the isolated part will start after the non-isolated part finished
-        model.addVar()
+        for non_isolated_node in simplified_subgraph.getOperatorIDs():
+            model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
+        model.addConstr(start[isolated_node_list[0]] >= device_non_isolated_part_finish[device])
 
+        # remove the nodes with no related subgraph from the selected node and non-selected nodes
+        selected_nodes = [node for node in selected_nodes if node not in isolated_node_list]
+        other_nodes = [node for node in other_nodes if node not in isolated_node_list]
         # use the FIFO order to sort other_nodes;
         local_fifo_order = fifo_operator_order[device]
         node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
