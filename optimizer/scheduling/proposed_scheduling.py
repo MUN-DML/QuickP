@@ -3,7 +3,7 @@ from gurobipy import Model, GRB
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
-from optimizer.scheduling.scheduling_util import remove_zero_related_nodes
+from optimizer.scheduling.scheduling_util import split_subgraph
 
 
 def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
@@ -19,8 +19,8 @@ def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, c
 
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by removing isolated nodes
-        simplified_subgraph, isolated_node_list = remove_zero_related_nodes(subgraph, operator_device_mapping,
-                                                                            device_subgraph_mapping, edge_cut_list)
+        simplified_subgraph, isolated_node_list = split_subgraph(subgraph, operator_device_mapping,
+                                                                 device_subgraph_mapping, edge_cut_list)
         # Only get the non-connected pairs from the graph with no nodes with no related subgraph
         non_connected_pairs = find_non_connected_pairs(simplified_subgraph)
         # Sort the isolated node list according to topo order and apply a sequential constraint

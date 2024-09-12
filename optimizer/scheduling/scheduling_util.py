@@ -21,7 +21,7 @@ def get_op_related_subgraph_mapping(graph: CompGraph, operator_device_mapping, d
     return {op: get_related_subgraph_num(op) for op in graph.nodes}
 
 
-def remove_zero_related_nodes(graph: CompGraph, operator_device_mapping, device_subgraph_mapping, edge_cut_list):
+def split_subgraph(graph: CompGraph, operator_device_mapping, device_subgraph_mapping, edge_cut_list):
     """
     Return a new subgraph with nodes that have 0 related subgraphs removed.
 

@@ -7,7 +7,7 @@ import networkx as nx
 from gurobipy import Model, GRB
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
-from optimizer.scheduling.scheduling_util import remove_zero_related_nodes
+from optimizer.scheduling.scheduling_util import split_subgraph
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
@@ -16,37 +16,47 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
     # The global data dependency is already applied
     M = 1000000
     order = {}
+    device_non_iso_part_mapping = {}
     fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                    operator_device_mapping)
 
     global_set_with_nr = list(get_global_node_set_with_nr(device_subgraph_mapping))
-    global_node_split_by_device = split_list_based_on_score(comp_graph, global_set_with_nr, device_subgraph_mapping,
-                                                                 edge_cut_list, operator_device_mapping, r=rho, sampling_function=sampling_function)
+    global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, device_subgraph_mapping,
+                                              edge_cut_list, operator_device_mapping, r=rho, sampling_function=sampling_function)
     device_non_isolated_part_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0, name="non_isolated_part_finish")
 
+    # form new device_subgraph mapping
+    # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
-
         # Simply the search space by
-        simplified_subgraph, isolated_node_list = remove_zero_related_nodes(subgraph, operator_device_mapping, device_subgraph_mapping, edge_cut_list)
-        print("kkk", len(isolated_node_list))
-        # Only get the non-connected pairs from the graph with no nodes with no related subgraph
-        non_connected_pairs = find_non_connected_pairs(simplified_subgraph)
-        # flatten the pairs to get all the non-repeated nodes, convert to list
-        selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], global_node_split_by_device.get(device)["unselected_list"]
+        subgraph_non_iso_part, isolated_node_list = split_subgraph(subgraph, operator_device_mapping,
+                                                                 device_subgraph_mapping, edge_cut_list)
+        # Map non_iso_part to device
+        device_non_iso_part_mapping[device] = subgraph_non_iso_part
+
         # Sort the isolated node list according to topo order and apply a sequential constraint
-        topological_order = list(nx.topological_sort(subgraph))
+        topological_order = list(nx.topological_sort(comp_graph))
         topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
         isolated_node_list = sorted(isolated_node_list, key=lambda node: topological_order_mapping[node])
         for a, b in zip(isolated_node_list, isolated_node_list[1:]):
             model.addConstr(finish[a] <= start[b])
+
         # the isolated part will start after the non-isolated part finished
-        for non_isolated_node in simplified_subgraph.getOperatorIDs():
+        for non_isolated_node in subgraph_non_iso_part.getOperatorIDs():
             model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
         model.addConstr(start[isolated_node_list[0]] >= device_non_isolated_part_finish[device])
 
-        # remove the nodes with no related subgraph from the selected node and non-selected nodes
-        selected_nodes = [node for node in selected_nodes if node not in isolated_node_list]
-        other_nodes = [node for node in other_nodes if node not in isolated_node_list]
+
+
+    for device, subgraph in device_non_iso_part_mapping.items():
+
+        # Simply the search space by
+        simplified_subgraph, isolated_node_list = split_subgraph(subgraph, operator_device_mapping, device_subgraph_mapping, edge_cut_list)
+        # Only get the non-connected pairs from the graph with no nodes with no related subgraph
+        non_connected_pairs = find_non_connected_pairs(simplified_subgraph)
+        # flatten the pairs to get all the non-repeated nodes, convert to list
+        selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], global_node_split_by_device.get(device)["unselected_list"]
+
         # use the FIFO order to sort other_nodes;
         local_fifo_order = fifo_operator_order[device]
         node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
@@ -110,31 +120,20 @@ def get_global_node_set_with_nr(device_subgraph_mapping: dict):
     return global_all_nodes
 
 
-def split_list_based_on_score(graph: CompGraph, node_list, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list,
-                              operator_device_mapping, r, sampling_function) -> dict:
+def split_nodes(graph: CompGraph, node_list, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list,
+                operator_device_mapping, r, sampling_function) -> dict:
 
-    result_dict = {device_id: {"selected_list": [], "unselected_list": []} for device_id in device_subgraph_mapping.keys()}
-
-    def get_related_subgraph_num(node):
-        device = operator_device_mapping[node]
-        current_subgraph = device_subgraph_mapping.get(device)
-
-        outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
-        related_devices = set()
-        outgoing_edges_depended = [(u, v) for u, v in outgoing_edges
-                                    if nx.has_path(graph, node, u)]
-        for u, v in outgoing_edges_depended:
-            assert device_subgraph_mapping.get(operator_device_mapping.get(u)) == current_subgraph
-            related_devices.add(operator_device_mapping.get(v))
-        return len(related_devices)
+    result_dict = {device_id: {"selected_list": [], "unselected_list": [], "isolated_part": []} for device_id in device_subgraph_mapping.keys()}
 
     def evaluate_node(node):
         assigned_device = operator_device_mapping[node]
         computing_cost = graph.getOperatorCompCostByDevice(node, assigned_device)
         # Set to track unique sub_graphs that depend on this operator
-        return computing_cost * (get_related_subgraph_num(node) + 1)
+        return computing_cost
+
 
     node_score_mapping = {node: evaluate_node(node) for node in node_list}
+
     if sampling_function == SamplingFunction.HEAVY_HITTER:
         # List to store pairs where both nodes have a computing cost > 5
         # First sort the node list based on the computing cost condition
