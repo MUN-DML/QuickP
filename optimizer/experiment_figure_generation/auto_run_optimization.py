@@ -1,5 +1,6 @@
 import itertools
 import os
+import random
 import sys
 
 import numpy as np
@@ -46,17 +47,21 @@ def populate_training_time_list(comp_graph, deviceTopo, fix, flex):
     return result_matrix
 
 
-def generate_curve(result_dict, xlabel="rho", ylabel="Latency (s)",
-                   title="Latency vs rho for Different Sampling Functions", fig_size=(10, 6)):
+def generate_curve(result_dict, setting, xlabel="rho", ylabel="Latency (s)", fig_size=(10, 6)):
     """
     Generates curves to show latency for different sampling functions over different rho values.
 
+    :param setting:
     :param result_dict: Dictionary with tuple keys representing (rho, sampling_function) and scalar values for performance.
     :param xlabel: Label for the x-axis.
     :param ylabel: Label for the y-axis.
     :param title: Title of the graph.
     :param fig_size: Tuple representing the figure size.
     """
+    model_mapping = {TFModelEnum.ALEXNET: "AlexNet", TFModelEnum.VGG: 'VGG', TFModelEnum.SMALL: "Small"}
+    model = model_mapping[setting["model_type"]]
+    number = setting["number_of_devices"]
+    title = f"Per-iteration Latency of {model} using {number} devices vs rho for Different Sampling Functions"
 
     # Prepare to group data by sampling_function
     grouped_data = {}
@@ -88,7 +93,7 @@ def generate_curve(result_dict, xlabel="rho", ylabel="Latency (s)",
     ax.legend(title="Sampling Function")
 
     # Show the plot
-    plt.savefig('figure2.svg')
+    plt.savefig(f'figure{random.randint(1, 10)}.svg')
     plt.show()
 
 
@@ -119,4 +124,4 @@ if __name__ == '__main__':
     init_graph_weight(comp_graph, graph_init["node_weight_function"], graph_init["edge_weight_function"],
                       graph_init["weight_norm_function"])
     data_dict = populate_training_time_list(comp_graph, deviceTopo, fix_setting, flexible_setting)
-    generate_curve(data_dict)
+    generate_curve(data_dict, graph_init)
