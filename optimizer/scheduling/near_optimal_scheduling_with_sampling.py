@@ -134,16 +134,14 @@ def split_nodes(graph: CompGraph, node_list, device_list: list,
         return computing_cost
 
     node_score_mapping = {node: evaluate_node(node) for node in node_list}
+    # First sort the node list based on the computing cost condition
+    node_list = sorted(node_list, key=lambda node: node_score_mapping[node], reverse=True)
+    num_to_select = int(len(node_list) * r)
 
     if sampling_function == SamplingFunction.HEAVY_HITTER:
-        # List to store pairs where both nodes have a computing cost > 5
-        # First sort the node list based on the computing cost condition
-        node_list_sorted = sorted(node_list, key=lambda node: node_score_mapping[node], reverse=True)
-        threshold_index = int(len(node_list_sorted) * r)
-        print('number of selected in total', threshold_index)
-        selected_nodes, unselected_nodes = node_list_sorted[:threshold_index], node_list_sorted[threshold_index:]
+        selected_nodes, unselected_nodes = node_list[:num_to_select], node_list[num_to_select:]
+
     elif sampling_function == SamplingFunction.RANDOM:
-        num_to_select = int(len(node_list) * r)
         selected_nodes = random.sample(node_list, num_to_select)
         unselected_nodes = [node for node in node_list if node not in selected_nodes]
     else:
