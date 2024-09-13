@@ -43,7 +43,8 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
         # the isolated part will start after the non-isolated part finished
         for non_isolated_node in subgraph_non_iso_part.getOperatorIDs():
             model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
-        model.addConstr(start[isolated_node_list[0]] >= device_non_isolated_part_finish[device])
+        if len(isolated_node_list) > 0:
+            model.addConstr(start[isolated_node_list[0]] >= device_non_isolated_part_finish[device])
 
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_non_iso_part_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,

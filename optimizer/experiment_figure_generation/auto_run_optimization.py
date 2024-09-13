@@ -1,12 +1,12 @@
 import itertools
 import os
 import sys
-from collections import defaultdict
 
 import numpy as np
 from matplotlib import pyplot as plt
 
-from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction
+from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight
+from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph
 from optimizer.optimization_problems.simulator import simulate
 from optimizer.scheduling.proposed_scheduling_revised import SamplingFunction
 
@@ -17,30 +17,12 @@ from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
 from optimizer.operator_device_placement.metis.weight_functions import EdgeWeightFunction, NodeWeightFunction
 
 
-def populate_training_time_list():
-
-    result_matrix = {}
-
-    flexible_setting = {
-        "rho": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-        "sampling_function": [SamplingFunction.PROBABILISTIC_SAMPLING, SamplingFunction.RANDOM, SamplingFunction.HEAVY_HITTER]
-    }
-
-    fix_setting = {
-        "number_of_devices": 4,
-        "model_type": TFModelEnum.SMALL,
-        "placement": 'METIS',
-        "scheduling_function": "NEAR_OPTIMAL_REVISED",
-        "node_weight_function": NodeWeightFunction.AVE_COMP_COST,
-        "edge_weight_function": EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
-        "weight_norm_function": WeightNormalizationFunction.MIN_MAX,
-
-    }
+def populate_training_time_list(comp_graph, deviceTopo, fix, flex):
 
     result_matrix = {}  # Use a regular dictionary since we want scalar values
 
     # Extract the keys and values from flexible_setting
-    flexible_keys, flexible_values = zip(*flexible_setting.items())  # Unpack keys and their corresponding values
+    flexible_keys, flexible_values = zip(*flex.items())  # Unpack keys and their corresponding values
 
     # Iterate over all combinations of flexible settings using itertools.product
     for flexible_combination in itertools.product(*flexible_values):
@@ -48,10 +30,10 @@ def populate_training_time_list():
         current_flexible_setting = dict(zip(flexible_keys, flexible_combination))
 
         # Combine fixed settings and flexible settings
-        current_setting = {**fix_setting, **current_flexible_setting}
+        current_setting = {**fix, **current_flexible_setting}
 
         # Execute the simulation
-        expected_training = simulate(**current_setting)
+        expected_training = simulate(comp_graph, deviceTopo, **current_setting)
 
         # If no result is returned, set default value of 0
         if not expected_training:
@@ -110,5 +92,30 @@ def generate_curve(result_dict, xlabel="rho", ylabel="Latency (s)",
 
 
 if __name__ == '__main__':
-    data_dict = populate_training_time_list()
+    flexible_setting = {
+        "rho": [0.0, 0.01, 0.02, 0.03, 0.04, 0.05],
+        "sampling_function": [SamplingFunction.PROBABILISTIC_SAMPLING, SamplingFunction.RANDOM,
+                              SamplingFunction.HEAVY_HITTER]
+    }
+
+    fix_setting = {
+        "placement": 'METIS',
+        "scheduling_function": "NEAR_OPTIMAL_REVISED",
+    }
+
+    graph_init = {
+        "number_of_devices": 8,
+        "model_type": TFModelEnum.ALEXNET,
+        "node_weight_function": NodeWeightFunction.AVE_COMP_COST,
+        "edge_weight_function": EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
+        "weight_norm_function": WeightNormalizationFunction.MIN_MAX,
+    }
+
+    # init fake data
+    deviceTopo, comp_graph = init_computing_and_device_graph(graph_init["number_of_devices"], "comp_graph.json",
+                                                             None, model_type=graph_init["model_type"])
+    # init graph node/edge weight
+    init_graph_weight(comp_graph, graph_init["node_weight_function"], graph_init["edge_weight_function"],
+                      graph_init["weight_norm_function"])
+    data_dict = populate_training_time_list(comp_graph, deviceTopo, fix_setting, flexible_setting)
     generate_curve(data_dict)
