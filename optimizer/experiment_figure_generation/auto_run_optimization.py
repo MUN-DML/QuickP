@@ -88,6 +88,7 @@ def generate_curve(result_dict, xlabel="rho", ylabel="Latency (s)",
     ax.legend(title="Sampling Function")
 
     # Show the plot
+    plt.savefig('figure2.svg')
     plt.show()
 
 
@@ -104,7 +105,7 @@ if __name__ == '__main__':
     }
 
     graph_init = {
-        "number_of_devices": 8,
+        "number_of_devices": 6,
         "model_type": TFModelEnum.ALEXNET,
         "node_weight_function": NodeWeightFunction.AVE_COMP_COST,
         "edge_weight_function": EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
