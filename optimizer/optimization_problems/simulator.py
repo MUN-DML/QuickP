@@ -40,15 +40,6 @@ def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
     op_computing_cost_mapping = get_comp_cost_dict(computing_graph, operator_device_mapping)
     edge_cut_communication_cost_mapping = get_comm_cost_dict(computing_graph, device_topo, edge_cut_list, operator_device_mapping)
 
-    # Get all operator costs
-    costs = np.array(list(op_computing_cost_mapping.values())).reshape(-1, 1)
-    # Set the minimum cutoff to avoid near-zero values
-    min_cutoff = 0.1
-    # Calculate the 80th percentile of the costs
-    percentile_threshold = np.percentile(costs, 80)
-    # Set the final threshold as the maximum of the percentile threshold and the minimum cutoff
-    threshold = max(percentile_threshold, min_cutoff)
-
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in device_subgraph_mapping.values()]
 
@@ -109,7 +100,7 @@ def simulate(computing_graph: CompGraph, device_topo: DeviceGraph,
     execute_scheduling_function(scheduling_function, model, start=start, finish=finish, comm_start=comm_start,
                                 comm_end=comm_end, comp_graph=computing_graph, device_subgraph_mapping=device_subgraph_mapping,
                                 edge_cut_list=edge_cut_list, operator_device_mapping=operator_device_mapping, rho=rho,
-                                sampling_function=sampling_function, threshold=threshold)
+                                sampling_function=sampling_function, threshold=20)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -197,7 +188,6 @@ if __name__ == '__main__':
     parser.add_argument('--rho', default=0.05, type=float, help='')
     # PROBABILISTIC_SAMPLING RANDOM HEAVY_HITTER
     parser.add_argument('--sampling', default="HEAVY_HITTER", type=str, help='')
-    parser.add_argument('--threshold', default=1, type=float, help='')
 
     args = parser.parse_args()
 
@@ -217,4 +207,3 @@ if __name__ == '__main__':
              placement = args.placement,
              rho=args.rho,
              sampling_function=sample_function)
-             # threshold = args.threshold
