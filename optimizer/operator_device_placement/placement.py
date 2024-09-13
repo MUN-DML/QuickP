@@ -7,7 +7,7 @@ from optimizer.operator_device_placement.metis.subgraph_util import map_subgraph
     identify_edges_cut
 from optimizer.operator_device_placement.optimal.optimal_placement import get_optimize_placement
 from optimizer.operator_device_placement.optimal_homo.optimal_placement_homo import get_optimize_placement_homo
-from optimizer.optimization_problems.gurobi_util import get_subgraph_op_num_weight_sum_dict
+from optimizer.main_simulator.gurobi_util import get_subgraph_op_num_weight_sum_dict
 
 
 class PlacementGenerator(Enum):

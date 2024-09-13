@@ -7,8 +7,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight
-from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph
-from optimizer.optimization_problems.simulator import simulate
+from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
+from optimizer.main_simulator.simulator import simulate
 from optimizer.scheduling.near_optimal_scheduling_with_sampling import SamplingFunction
 
 script_dir = os.path.dirname(os.path.abspath(__file__))

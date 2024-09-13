@@ -8,7 +8,7 @@ os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.optimization_problems.gurobi_util import gurobi_setup, show_optimization_solution
+from optimizer.main_simulator.gurobi_util import gurobi_setup, show_optimization_solution
 
 
 def get_optimize_placement(comp_graph, deviceTopo) -> dict:
