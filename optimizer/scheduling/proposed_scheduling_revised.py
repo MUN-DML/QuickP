@@ -12,7 +12,8 @@ from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
 def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                                    device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict, rho, sampling_function):
+                                    device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
+                                    rho, sampling_function):
     # The global data dependency is already applied
     M = 1000000
     order = {}
@@ -20,17 +21,15 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
     fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                    operator_device_mapping)
 
-    global_set_with_nr = list(get_global_node_set_with_nr(device_subgraph_mapping))
-    global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, device_subgraph_mapping,
-                                              edge_cut_list, operator_device_mapping, r=rho, sampling_function=sampling_function)
-    device_non_isolated_part_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0, name="non_isolated_part_finish")
+    device_non_isolated_part_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+                                                    name="non_isolated_part_finish")
 
-    # form new device_subgraph mapping
+    # form new device non-isolated part mapping
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
         subgraph_non_iso_part, isolated_node_list = split_subgraph(subgraph, operator_device_mapping,
-                                                                 device_subgraph_mapping, edge_cut_list)
+                                                                   device_subgraph_mapping, edge_cut_list)
         # Map non_iso_part to device
         device_non_iso_part_mapping[device] = subgraph_non_iso_part
 
@@ -46,16 +45,15 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
             model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
         model.addConstr(start[isolated_node_list[0]] >= device_non_isolated_part_finish[device])
 
+    device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_non_iso_part_mapping)
+    global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
+                                              sampling_function=sampling_function)
 
+    for device, non_iso_part in device_non_iso_part_mapping.items():
 
-    for device, subgraph in device_non_iso_part_mapping.items():
-
-        # Simply the search space by
-        simplified_subgraph, isolated_node_list = split_subgraph(subgraph, operator_device_mapping, device_subgraph_mapping, edge_cut_list)
-        # Only get the non-connected pairs from the graph with no nodes with no related subgraph
-        non_connected_pairs = find_non_connected_pairs(simplified_subgraph)
         # flatten the pairs to get all the non-repeated nodes, convert to list
-        selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], global_node_split_by_device.get(device)["unselected_list"]
+        selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], \
+        global_node_split_by_device.get(device)["unselected_list"]
 
         # use the FIFO order to sort other_nodes;
         local_fifo_order = fifo_operator_order[device]
@@ -68,7 +66,8 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
 
         # apply optimization to all pairs involving these high-cost nodes, these pair also include the unselected nodes,
         # To optimize one node, all of its non-reachable node should be included
-        important_pairs = [pair for pair in non_connected_pairs if pair[0] in selected_nodes or pair[1] in selected_nodes]
+        important_pairs = [pair for pair in device_unreachable_pairs_mapping[device] if
+                           pair[0] in selected_nodes or pair[1] in selected_nodes]
         for op_a, op_b in important_pairs:
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
             model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
@@ -103,34 +102,35 @@ def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, com
                 model.addConstr(comm_end[comm1] <= comm_start[comm2])
         '''
 
+
 class SamplingFunction(Enum):
     PROBABILISTIC_SAMPLING = "PROBABILISTIC_SAMPLING"
     RANDOM = "RANDOM"
     HEAVY_HITTER = "HEAVY_HITTER"
 
 
-def get_global_node_set_with_nr(device_subgraph_mapping: dict):
+def get_device_unreachable_pairs_mapping(device_non_iso_mapping: dict):
+    mapping = {}
     global_all_nodes = set()
-    for device, subgraph in device_subgraph_mapping.items():
+    for device, non_iso_part in device_non_iso_mapping.items():
         # there will be no pairs with the same element
-        non_connected_pairs = find_non_connected_pairs(subgraph)
+        non_connected_pairs = find_non_connected_pairs(non_iso_part)
+        mapping[device] = non_connected_pairs
         # flatten the pairs to get all the non-repeated nodes, convert to list
-        all_nodes = list({node for pair in non_connected_pairs for node in pair})
-        global_all_nodes.update(all_nodes)
-    return global_all_nodes
+        global_all_nodes.update({node for pair in non_connected_pairs for node in pair})
+    return mapping, list(global_all_nodes)
 
 
-def split_nodes(graph: CompGraph, node_list, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list,
+def split_nodes(graph: CompGraph, node_list, device_list: list,
                 operator_device_mapping, r, sampling_function) -> dict:
-
-    result_dict = {device_id: {"selected_list": [], "unselected_list": [], "isolated_part": []} for device_id in device_subgraph_mapping.keys()}
+    result_dict = {device_id: {"selected_list": [], "unselected_list": [], "isolated_part": []} for device_id in
+                   device_list}
 
     def evaluate_node(node):
         assigned_device = operator_device_mapping[node]
         computing_cost = graph.getOperatorCompCostByDevice(node, assigned_device)
         # Set to track unique sub_graphs that depend on this operator
         return computing_cost
-
 
     node_score_mapping = {node: evaluate_node(node) for node in node_list}
 
