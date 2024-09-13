@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 import numpy as np
 
 from optimizer.model.graph import CompGraph, DeviceGraph
-from optimizer.scheduling.proposed_scheduling_revised import SamplingFunction
+from optimizer.scheduling.near_optimal_scheduling_with_sampling import SamplingFunction
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
@@ -190,8 +190,8 @@ if __name__ == '__main__':
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
     # NEAR_OPTIMAL OPTIMIZED METIS OPTIMIZED_HOMO
     parser.add_argument('--placement', default='METIS', type=str, help='')
-    # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL NEAR_OPTIMAL_REVISED
-    parser.add_argument('--scheduling', default='NEAR_OPTIMAL_REVISED', type=str, help='')
+    # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL SAMPLING_NEAR_OPTIMAL
+    parser.add_argument('--scheduling', default='SAMPLING_NEAR_OPTIMAL', type=str, help='')
     # parser.add_argument('--hetero_rate', default=None, type=int, help='')
     # rho == 0 is FIFO, rho == 1 is optimal; model.setParam("MIPGap", 0.01) will make it optimized
     parser.add_argument('--rho', default=0.05, type=float, help='')

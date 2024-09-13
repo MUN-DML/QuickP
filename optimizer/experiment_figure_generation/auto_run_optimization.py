@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight
 from optimizer.optimization_problems.gurobi_util import init_computing_and_device_graph
 from optimizer.optimization_problems.simulator import simulate
-from optimizer.scheduling.proposed_scheduling_revised import SamplingFunction
+from optimizer.scheduling.near_optimal_scheduling_with_sampling import SamplingFunction
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     fix_setting = {
         "placement": 'METIS',
-        "scheduling_function": "NEAR_OPTIMAL_REVISED",
+        "scheduling_function": "SAMPLING_NEAR_OPTIMAL",
     }
 
     graph_init = {

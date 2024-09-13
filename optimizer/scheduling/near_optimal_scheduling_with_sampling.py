@@ -11,9 +11,9 @@ from optimizer.scheduling.scheduling_util import split_subgraph
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
-def near_optimal_scheduling_revised(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                                    device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
-                                    rho, sampling_function):
+def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
+                                          device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
+                                          rho, sampling_function):
     # The global data dependency is already applied
     M = 1000000
     order = {}
