@@ -33,10 +33,10 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
         # Map non_iso_part to device
         device_non_iso_part_mapping[device] = subgraph_non_iso_part
 
-        # Sort the isolated node list according to topo order and apply a sequential constraint
-        topological_order = list(nx.topological_sort(comp_graph))
-        topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
-        isolated_node_list = sorted(isolated_node_list, key=lambda node: topological_order_mapping[node])
+        # use the FIFO order to sort other_nodes;
+        local_fifo_order = fifo_operator_order[device]
+        node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
+        isolated_node_list = sorted(isolated_node_list, key=lambda node: node_order_dict[node])
         for a, b in zip(isolated_node_list, isolated_node_list[1:]):
             model.addConstr(finish[a] <= start[b])
 
