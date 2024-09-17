@@ -9,7 +9,7 @@ sys.path.append(project_root)
 from optimizer.computing_graph.computing_graph import get_computation_graph
 from optimizer.computing_graph.op_graph_util import get_proper_optimizer
 from optimizer.model.graph import DeviceGraph, CompGraph, keep_largest_component
-from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
+from DNN_model_tf.tf_model_enum import TFModelEnum
 
 
 def gurobi_setup(name: str):

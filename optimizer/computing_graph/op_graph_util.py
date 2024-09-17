@@ -36,7 +36,7 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def get_gpt_data_loader(batch_size=1, if_train=True) -> tf.data.Dataset:
+def get_gpt_data_loader(batch_size, if_train=True) -> tf.data.Dataset:
     import tensorflow_datasets as tfds
     split_mode = 'train' if if_train else 'test'
 
@@ -57,7 +57,7 @@ def get_gpt_data_loader(batch_size=1, if_train=True) -> tf.data.Dataset:
     return train_dataset
 
 
-def get_cifar_data_loader(batch_size=128, train=True) -> tf.data.Dataset:
+def get_cifar_data_loader(batch_size, train=True) -> tf.data.Dataset:
     def augment_images(image, label):
         # Data augmentation transformations
         image = tf.image.random_flip_left_right(image)

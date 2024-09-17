@@ -3,7 +3,6 @@ import os
 import random
 import sys
 
-import numpy as np
 from matplotlib import pyplot as plt
 
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight
@@ -14,7 +13,7 @@ from optimizer.scheduling.near_optimal_scheduling_with_sampling import SamplingF
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
-from optimizer.experiment_figure_generation.tf_model_enum import TFModelEnum
+from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.operator_device_placement.metis.weight_functions import EdgeWeightFunction, NodeWeightFunction
 
 

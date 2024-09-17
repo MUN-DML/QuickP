@@ -1,6 +1,7 @@
 from enum import Enum
 
 from DNN_model_tf.alexnet import alexnet
+from DNN_model_tf.gpt2 import get_keras_gpt2_model
 from DNN_model_tf.openai_gpt2 import get_openai_gpt2_model
 from DNN_model_tf.small import small_tf
 from DNN_model_tf.vgg_tf import VGG16_tf
@@ -11,3 +12,4 @@ class TFModelEnum(Enum):
     SMALL = small_tf
     GPT2 = get_openai_gpt2_model
     ALEXNET = alexnet
+    GPT2_KERAS = get_keras_gpt2_model
