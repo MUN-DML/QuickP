@@ -36,11 +36,11 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def get_gpt_data_loader(batch_size=128, if_train=True) -> tf.data.Dataset:
+def get_gpt_data_loader(batch_size=1, if_train=True) -> tf.data.Dataset:
     import tensorflow_datasets as tfds
     split_mode = 'train' if if_train else 'test'
 
-    # Load the IMDB dataset from TFDS
+    # Load the IMDB dataset from TFDS; IMDB is in word level. text will be an entire review if batch size is 1; label is 0 or 1
     dataset = tfds.load('imdb_reviews', split=split_mode)
 
     # Function to preprocess the text data and labels
