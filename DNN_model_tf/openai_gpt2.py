@@ -15,6 +15,7 @@ def get_openai_gpt2_tokenizer():
 
 def test_openai_gpt2_model():
     model, tokenizer = get_openai_gpt2_model(), get_openai_gpt2_tokenizer()
+    print(model.summary())
     '''
     # {'input_ids': <tf.Tensor: shape=(1, 6), dtype=int32, numpy=array([[15496,    11,   616,  3290,   318, 13779]], dtype=int32)>,
     # 'attention_mask': <tf.Tensor: shape=(1, 6), dtype=int32, numpy=array([[1, 1, 1, 1, 1, 1]], dtype=int32)>}

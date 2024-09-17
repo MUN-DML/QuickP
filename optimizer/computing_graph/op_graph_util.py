@@ -36,11 +36,11 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def get_gpt_data_loader(batch_size=200, if_train=True) -> tf.data.Dataset:
+def get_gpt_data_loader(batch_size=128, if_train=True) -> tf.data.Dataset:
     import tensorflow_datasets as tfds
     split_mode = 'train' if if_train else 'test'
-    num_batches = 10
-    # Load the Wikipedia dataset from TFDS
+
+    # Load the IMDB dataset from TFDS
     dataset = tfds.load('imdb_reviews', split=split_mode)
 
     # Function to preprocess the text data and labels
@@ -50,14 +50,14 @@ def get_gpt_data_loader(batch_size=200, if_train=True) -> tf.data.Dataset:
     # Apply preprocessing
     preprocessed_dataset = dataset.map(lambda x: preprocess_example(x),
                                        num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
+    print("The current batch size", batch_size)
     # Batch and prefetch the dataset for efficient training
     train_dataset = preprocessed_dataset.shuffle(10000).batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
     return train_dataset
 
 
-def get_cifar_data_loader(batch_size=200, train=True) -> tf.data.Dataset:
+def get_cifar_data_loader(batch_size=128, train=True) -> tf.data.Dataset:
     def augment_images(image, label):
         # Data augmentation transformations
         image = tf.image.random_flip_left_right(image)
@@ -69,6 +69,7 @@ def get_cifar_data_loader(batch_size=200, train=True) -> tf.data.Dataset:
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
     num_batches = 10
+    print("The current batch size", batch_size)
     if train:
         return (train_dataset.shuffle(50000).map(augment_images).batch(batch_size).take(num_batches).cache().repeat()
                 .prefetch(tf.data.experimental.AUTOTUNE))
