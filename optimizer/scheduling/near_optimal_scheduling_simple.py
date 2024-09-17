@@ -32,7 +32,8 @@ def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, c
         # the isolated part will start after the non-isolated part finished
         for non_isolated_node in simplified_subgraph.getOperatorIDs():
             model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
-        model.addConstr(device_non_isolated_part_finish[device] <= start[isolated_node_list[0]])
+        if len(isolated_node_list) > 0:
+            model.addConstr(device_non_isolated_part_finish[device] <= start[isolated_node_list[0]])
 
         high_cost_pairs, other_pairs = split_non_connected_pairs(comp_graph, device, non_connected_pairs, threshold)
         other_nodes = set(node for pair in other_pairs for node in pair)
