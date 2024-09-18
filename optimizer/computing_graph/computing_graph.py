@@ -1,6 +1,7 @@
 import socket
 
 import keras
+import numpy as np
 # it is weird that on my server, have to import torch to activate tensorflow
 import tensorflow as tf
 from keras import Sequential
@@ -36,10 +37,13 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
                 loss = loss_fn(train_y, predictions)
                 loss += sum(model.losses)
             else:
-                x = ["placeholder"]
-                outputs = model.predict(x=x, batch_size=batch_size)
-                loss = loss_fn(train_y, outputs.logits)  # Calculate loss between true labels and predicted logits
-                predictions = outputs.logits
+                outputs = model({
+                    "token_ids": np.ones(shape=(1, 12), dtype="int32"),
+                    "segment_ids": np.array([[0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0]]),
+                    "padding_mask": np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]]),
+                })
+                loss = loss_fn(train_y, outputs)  # Calculate loss between true labels and predicted logits
+                predictions = outputs
         gradients = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
 
@@ -48,7 +52,7 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
         return loss
 
     inputs_spec = get_input_spec(model, batch_size, max_len)
-
+    #for index, (text, label) in enumerate(get_gpt_data_loader(1).take(1)):
     concrete_function = training_step.get_concrete_function(*inputs_spec)
 
     graph = parse_to_comp_graph(concrete_function)

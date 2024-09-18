@@ -11,7 +11,7 @@ class InputSpec(Enum):
         tf.TensorSpec(shape=[batch_size, 1], dtype=tf.uint8, name="target")
     ]
     IMDB = lambda batch_size: [
-        keras.Input(shape=(batch_size,), dtype=tf.string, name="input_ids"),
+        tf.constant(["This is a sample string"], shape=[batch_size,], dtype=tf.string, name="input_ids"),
         tf.TensorSpec(shape=[batch_size,], dtype=tf.int64, name="labels"),
     ]
 

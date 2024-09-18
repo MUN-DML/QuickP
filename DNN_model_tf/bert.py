@@ -8,3 +8,6 @@ def bert():
         num_classes=2,
     )
     return classifier
+
+# model = bert()
+# model(['1111'])
