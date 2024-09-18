@@ -272,6 +272,9 @@ def tensor_shape_to_bits(tensor_shape, dtype: DType):
     :return: Total size in bits.
     """
     # Get the total number of elements
+    print(tensor_shape, dtype)
+    if None in tensor_shape:
+        return 0
     total_elements = tf.reduce_prod(tensor_shape).numpy()
 
     # Determine the number of bits per element based on dtype

@@ -18,8 +18,9 @@ from optimizer.computing_graph.op_graph_util import compile_model, train_loss, t
 
 
 def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e-4),
-                          loss_fn=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                          loss_fn=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
                           max_len=128) -> CompGraph:
+    # from_logits=False since all of our model has softmax activation that outputs probabilities
     compile_model(model, optimizer, loss_fn)
 
     batch_size = 128 if isinstance(model, keras.Sequential) else 1
@@ -42,7 +43,7 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
                     "segment_ids": np.array([[0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0]]),
                     "padding_mask": np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]]),
                 })
-                loss = loss_fn(train_y, outputs)  # Calculate loss between true labels and predicted logits
+                loss = loss_fn(train_y, outputs)
                 predictions = outputs
         gradients = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
