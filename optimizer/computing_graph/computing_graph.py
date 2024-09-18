@@ -4,6 +4,7 @@ import keras
 # it is weird that on my server, have to import torch to activate tensorflow
 import tensorflow as tf
 from keras import Sequential
+from keras_nlp.src.models import GPT2CausalLM
 from networkx import is_directed_acyclic_graph
 from transformers import TFGPT2LMHeadModel
 
@@ -28,20 +29,21 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
         # https://www.tensorflow.org/guide/autodiff
         with tf.GradientTape() as tape:
             # Forward pass
-            if isinstance(model, TFGPT2LMHeadModel):
-                outputs = model(train_x, attention_mask=attention_mask, labels=train_y)
-                loss = outputs.loss
-                predictions = outputs.logits
-            else:
+            if isinstance(model, keras.Sequential):
                 predictions = model(train_x, training=True)
                 loss = loss_fn(train_y, predictions)
                 loss += sum(model.losses)
+            elif isinstance(model, GPT2CausalLM):
+                outputs = model(train_x, attention_mask=attention_mask, labels=train_y)
+                loss = outputs.loss
+                predictions = outputs.logits
         gradients = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
 
         train_loss.update_state(loss)
         train_accuracy.update_state(train_y, predictions)
         return loss
+    batch_size = 128 if isinstance(model, keras.Sequential) else 1
 
     inputs_spec = get_input_spec(model, batch_size, max_len)
 
@@ -49,9 +51,7 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
 
     graph = parse_to_comp_graph(concrete_function)
     data_loader_func = get_cifar_data_loader if isinstance(model, keras.Sequential) else get_gpt_data_loader
-    if_llm = True if isinstance(model, TFGPT2LMHeadModel) else False
-    parent_directory = profile_train(concrete_function, data_loader_func(batch_size, True), num_prof_step=20,
-                                     if_LLM=if_llm, max_len=max_len)
+    parent_directory = profile_train(concrete_function, data_loader_func(batch_size, True), num_prof_step=20)
     plane_pb_file = find_specific_pb_file(parent_directory, "xplane.pb")
     dataframe = parse_tensorboard(plane_pb_file, Conf_TB(CONF.OP))
     mem_data = parse_tensorboard(plane_pb_file, Conf_TB(CONF.MEM))

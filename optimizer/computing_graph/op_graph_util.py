@@ -112,13 +112,7 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
 def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
-                  num_prof_step=200, if_LLM: bool = False, max_len: int = 128):
-    tokenizer = get_openai_gpt2_tokenizer()
-
-    def tokenize_GPT_dataset(texts: EagerTensor):
-        tokenized = tokenizer([s.decode('utf-8') for s in texts.numpy()], padding="max_length", truncation=True,
-                              max_length=max_len, return_tensors='tf')
-        return tokenized['input_ids'], tokenized['attention_mask']
+                  num_prof_step=200):
 
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
@@ -132,16 +126,7 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
         # warmup steps
         if index < num_warmup_step:
             # LLM model need attention_mask
-            if if_LLM:
-                x_train, attention_mask = tokenize_GPT_dataset(x_train)
-
-                # Ensure labels have the shape (batch_size, max_len)
-                # Assuming labels is a tensor of shape (batch_size,)
-                y_train = tf.expand_dims(y_train, axis=-1)  # Make it (batch_size, 1)
-                y_train = tf.tile(y_train, [1, max_len])  # Repeat it to make (batch_size, max_len)
-                concrete_function(x_train, y_train, attention_mask)
-            else:
-                concrete_function(x_train, y_train)
+            concrete_function(x_train, y_train)
             # Call only one trace_export when tracing, so export after 1 iteration
             if index == 0:
                 with train_summary_writer.as_default():
