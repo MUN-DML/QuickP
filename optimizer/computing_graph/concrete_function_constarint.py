@@ -11,7 +11,9 @@ class InputSpec(Enum):
         tf.TensorSpec(shape=[batch_size, 1], dtype=tf.uint8, name="target")
     ]
     IMDB = lambda batch_size, max_len: [
-        tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.string, name="input_ids"),
+        tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="token_ids"),
+        tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="segment_ids"),
+        tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.bool, name="padding_mask"),
         tf.TensorSpec(shape=[batch_size, 1], dtype=tf.int64, name="labels"),
     ]
 
