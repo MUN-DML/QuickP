@@ -77,10 +77,6 @@ def get_cifar_data_loader(batch_size, train=True) -> tf.data.Dataset:
         return test_dataset.batch(batch_size).take(num_batches).cache().repeat().prefetch(tf.data.experimental.AUTOTUNE)
 
 
-def get_proper_optimizer(model):
-    return tf.keras.optimizers.Adam(3e-4) if isinstance(model, TFGPT2LMHeadModel) else keras.optimizers.Adam(3e-4)
-
-
 # GPU training: https://www.tensorflow.org/guide/gpu
 def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_list, batch_size=200):
     model.fit(x=x_train, y=y_train, validation_data=(x_test, y_test), epochs=1, batch_size=batch_size, shuffle=True,

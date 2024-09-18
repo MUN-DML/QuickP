@@ -7,7 +7,6 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.computing_graph.computing_graph import get_computation_graph
-from optimizer.computing_graph.op_graph_util import get_proper_optimizer
 from optimizer.model.graph import DeviceGraph, CompGraph, keep_largest_component
 from DNN_model_tf.tf_model_enum import TFModelEnum
 
@@ -35,14 +34,12 @@ def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rat
 
     if not os.path.exists(filename):
         model = model_type()
-        optimizer = get_proper_optimizer(model)
-        comp_graph = get_computation_graph(model=model, optimizer=optimizer)
+        comp_graph = get_computation_graph(model=model)
         comp_graph.generata_random_cost(num_device, hetero_adjust_rate)
         comp_graph.save_to_file(filename)
 
     comp_graph = CompGraph.load_from_file(filename)
     comp_graph = keep_largest_component(comp_graph)
-    # comp_graph.clean_marginal_operators()
     # visualize_graph(comp_graph, show_node_labels=False, show_edge_labels=False)
     return deviceTopo, comp_graph
 

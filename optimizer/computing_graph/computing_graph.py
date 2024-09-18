@@ -21,6 +21,8 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
                           max_len=128) -> CompGraph:
     compile_model(model, optimizer, loss_fn)
 
+    batch_size = 128 if isinstance(model, keras.Sequential) else 1
+
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function
     # https://www.tensorflow.org/tensorboard/get_started
@@ -34,7 +36,8 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
                 loss = loss_fn(train_y, predictions)
                 loss += sum(model.losses)
             else:
-                outputs = model(train_x, training=True)
+                x = ["placeholder"]
+                outputs = model.predict(x=x, batch_size=batch_size)
                 loss = loss_fn(train_y, outputs.logits)  # Calculate loss between true labels and predicted logits
                 predictions = outputs.logits
         gradients = tape.gradient(loss, model.trainable_weights)
@@ -43,7 +46,6 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
         train_loss.update_state(loss)
         train_accuracy.update_state(train_y, predictions)
         return loss
-    batch_size = 128 if isinstance(model, keras.Sequential) else 1
 
     inputs_spec = get_input_spec(model, batch_size, max_len)
 
