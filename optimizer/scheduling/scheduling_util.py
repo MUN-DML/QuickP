@@ -31,11 +31,13 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list):
     new_graph = graph.copy()
 
     # Iterate over the nodes and remove those with 0 related subgraphs
-    nodes_to_remove = [node for node in graph.nodes if len(get_depended_node_set(node)) == 0]
+    non_source_node = set(node for node in graph.nodes if len(get_depended_node_set(node)) == 0)
 
-    totally_isolated_nodes = [node for node in nodes_to_remove if len(get_depending_node_set(node)) == 0]
+    isolate_nodes = set(node for node in non_source_node if len(get_depending_node_set(node)) == 0)
+
+    sink_nodes = non_source_node - isolate_nodes
 
     # Remove the nodes from the copied graph
-    new_graph.remove_nodes_from(nodes_to_remove)
+    new_graph.remove_nodes_from(non_source_node)
 
-    return new_graph, nodes_to_remove
+    return new_graph, non_source_node
