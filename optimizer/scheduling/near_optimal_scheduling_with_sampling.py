@@ -28,7 +28,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
-        subgraph_non_iso_part, isolated_node_list = split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
+        subgraph_non_iso_part, sink_components, isolated_node_list = split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
         # Map non_iso_part to device
         device_non_iso_part_mapping[device] = subgraph_non_iso_part
 
