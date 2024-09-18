@@ -47,6 +47,13 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list):
     return new_graph, sink_components, isolate_nodes
 
 
-def handle_sink_components(sink_components: nx.DiGraph):
+def handle_sink_components(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off):
     weakly_connected_components = list(nx.weakly_connected_components(sink_components))
-    print("gg", len(weakly_connected_components))
+    incoming_nodes = [v for u, v in cut_off if operator_device_mapping.get(v) == device]
+    for weakly_connected_component in weakly_connected_components:
+        weak_connected_subgraph = sink_components.subgraph(weakly_connected_component)
+        topological_order = list(nx.topological_sort(weak_connected_subgraph))
+        # start_node = list(weakly_connected_component)[0]  # Take the first node
+        # assert topological_order[0] in incoming_nodes
+
+
