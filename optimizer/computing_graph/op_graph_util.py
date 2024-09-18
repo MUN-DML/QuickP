@@ -87,11 +87,9 @@ def train_model(model: Sequential, x_train, y_train, x_test, y_test, call_back_l
               callbacks=call_back_list)
 
 
-def compile_model(model: keras.Model, optimizer=keras.optimizers.Adam(),
-                  loss=keras.losses.SparseCategoricalCrossentropy()):
-    loss_fun = model.compute_loss if isinstance(model, TFGPT2LMHeadModel) else loss
-    matrix = [keras.metrics.SparseCategoricalAccuracy(name="acc")] if isinstance(model, Sequential) else None
-    model.compile(optimizer=optimizer, loss=loss_fun,
+def compile_model(model: keras.Model, optimizer, loss):
+    matrix = [keras.metrics.SparseCategoricalAccuracy(name="acc")]
+    model.compile(optimizer=optimizer, loss=loss,
                   metrics=matrix)
 
 

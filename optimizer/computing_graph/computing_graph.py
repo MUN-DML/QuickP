@@ -17,7 +17,7 @@ from optimizer.computing_graph.op_graph_util import compile_model, train_loss, t
 
 
 def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e-4),
-                          loss_fn=keras.losses.SparseCategoricalCrossentropy(), batch_size=200,
+                          loss_fn=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                           max_len=128) -> CompGraph:
     compile_model(model, optimizer, loss_fn)
 
@@ -25,7 +25,7 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
     # https://www.tensorflow.org/guide/function
     # https://www.tensorflow.org/tensorboard/get_started
     @tf.function
-    def training_step(train_x: tf.Tensor, train_y: tf.Tensor, attention_mask: tf.Tensor = None):
+    def training_step(train_x: tf.Tensor, train_y: tf.Tensor):
         # https://www.tensorflow.org/guide/autodiff
         with tf.GradientTape() as tape:
             # Forward pass
@@ -33,9 +33,9 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
                 predictions = model(train_x, training=True)
                 loss = loss_fn(train_y, predictions)
                 loss += sum(model.losses)
-            elif isinstance(model, GPT2CausalLM):
-                outputs = model(train_x, attention_mask=attention_mask, labels=train_y)
-                loss = outputs.loss
+            else:
+                outputs = model(train_x, training=True)
+                loss = loss_fn(train_y, outputs.logits)  # Calculate loss between true labels and predicted logits
                 predictions = outputs.logits
         gradients = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
