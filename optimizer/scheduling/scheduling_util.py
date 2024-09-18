@@ -45,3 +45,8 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list):
     sink_components = graph.subgraph(sink_nodes)
 
     return new_graph, sink_components, isolate_nodes
+
+
+def handle_sink_components(sink_components: nx.DiGraph):
+    weakly_connected_components = list(nx.weakly_connected_components(sink_components))
+    print("gg", len(weakly_connected_components))

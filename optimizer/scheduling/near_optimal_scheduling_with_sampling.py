@@ -7,7 +7,7 @@ import networkx as nx
 from gurobipy import Model, GRB
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
-from optimizer.scheduling.scheduling_util import split_subgraph
+from optimizer.scheduling.scheduling_util import split_subgraph, handle_sink_components
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
@@ -38,12 +38,14 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
         isolated_node_list = sorted(isolated_node_list, key=lambda node: topological_order_mapping[node])
         for a, b in zip(isolated_node_list, isolated_node_list[1:]):
             model.addConstr(finish[a] <= start[b])
-
         # the isolated part will start after the non-isolated part finished
         for non_isolated_node in subgraph_non_iso_part.getOperatorIDs():
             model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
         if len(isolated_node_list) > 0:
             model.addConstr(start[isolated_node_list[0]] >= device_non_isolated_part_finish[device])
+
+        # Sort the sink_components
+        handle_sink_components(sink_components)
 
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_non_iso_part_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
