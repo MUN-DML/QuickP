@@ -40,4 +40,4 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list):
     # Remove the nodes from the copied graph
     new_graph.remove_nodes_from(non_source_node)
 
-    return new_graph, non_source_node
+    return new_graph, isolate_nodes
