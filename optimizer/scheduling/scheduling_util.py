@@ -2,6 +2,13 @@ import networkx as nx
 
 from optimizer.model.graph import CompGraph
 
+'''
+Split a graph into three parts
+Source Nodes: Nodes that serve as dependencies for other subgraphs.
+Sink Nodes: Nodes that do not serve as dependencies for other subgraphs but have dependencies from other graphs. These can be seen as "end points."
+Isolated Nodes: Nodes that neither serve as dependencies for other subgraphs nor have dependencies from other graphs. These are independent nodes within the graph structure.
+'''
+
 
 def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list):
     def get_depended_node_set(node):
