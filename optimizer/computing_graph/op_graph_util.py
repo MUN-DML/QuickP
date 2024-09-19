@@ -117,6 +117,18 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
             sequence_length=max_length,
         )
 
+    def train_step(x, y):
+        if not is_llm:
+            concrete_function(x, y)
+        else:
+            # shape of IMDB-reciew x and y are 1D array in the same shape (bathch_size,)
+            tensor_dict = preprocessor(x)
+            # Extract the tensors from the dictionary
+            token_ids = tensor_dict['token_ids']
+            segment_ids = tensor_dict['segment_ids']
+            padding_mask = tensor_dict['padding_mask']
+            concrete_function(token_ids, segment_ids, padding_mask, y)
+
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
                                                        device_tracer_level=1)
@@ -128,17 +140,8 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
     for index, (x_train, y_train) in enumerate(dataloader):
         # warmup steps
         if index < num_warmup_step:
-            # LLM model need attention_mask
-            if not is_llm:
-                concrete_function(x_train, y_train)
-            else:
-                # shape of IMDB-reciew x and y are 1D array in the same shape (bathch_size,)
-                tensor_dict = preprocessor(x_train)
-                # Extract the tensors from the dictionary
-                token_ids = tensor_dict['token_ids']
-                segment_ids = tensor_dict['segment_ids']
-                padding_mask = tensor_dict['padding_mask']
-                concrete_function(token_ids, segment_ids, padding_mask, y_train)
+
+            train_step(x_train, y_train)
 
             # Call only one trace_export when tracing, so export after 1 iteration
             if index == 0:
@@ -155,16 +158,7 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
             if index == num_warmup_step:
                 tf.profiler.experimental.start(log_dir, options=options)
 
-            if not is_llm:
-                concrete_function(x_train, y_train)
-            else:
-                # input must be in list
-                tensor_dict = preprocessor(x_train)
-                # Extract the tensors from the dictionary
-                token_ids = tensor_dict['token_ids']
-                segment_ids = tensor_dict['segment_ids']
-                padding_mask = tensor_dict['padding_mask']
-                concrete_function(token_ids, segment_ids, padding_mask, y_train)
+            train_step(x_train, y_train)
 
             with train_summary_writer.as_default():
                 tf.summary.scalar('loss', train_loss.result(), step=index)
