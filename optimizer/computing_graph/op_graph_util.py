@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from io import StringIO
 
+import keras_nlp
 import pandas as pd
 import keras
 import torch
@@ -106,7 +107,15 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
 def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
-                  num_prof_step=200):
+                  num_prof_step=50, is_llm=False, max_length=None):
+
+    if is_llm and max_length is None:
+        raise ValueError('max length should be specified if training llm')
+    else:
+        preprocessor = keras_nlp.models.BertPreprocessor.from_preset(
+            "bert_base_en_uncased",
+            sequence_length=max_length,
+        )
 
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,
                                                        python_tracer_level=1,
@@ -120,7 +129,17 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
         # warmup steps
         if index < num_warmup_step:
             # LLM model need attention_mask
-            concrete_function(x_train, y_train)
+            if not is_llm:
+                concrete_function(x_train, y_train)
+            else:
+                # input must be in list
+                tensor_dict = preprocessor(x_train)
+                # Extract the tensors from the dictionary
+                token_ids = tensor_dict['token_ids']
+                segment_ids = tensor_dict['segment_ids']
+                padding_mask = tensor_dict['padding_mask']
+                concrete_function(token_ids, segment_ids, padding_mask, y_train)
+
             # Call only one trace_export when tracing, so export after 1 iteration
             if index == 0:
                 with train_summary_writer.as_default():
@@ -135,7 +154,18 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
         elif index < num_warmup_step + num_prof_step:
             if index == num_warmup_step:
                 tf.profiler.experimental.start(log_dir, options=options)
-            concrete_function(x_train, y_train)
+
+            if not is_llm:
+                concrete_function(x_train, y_train)
+            else:
+                # input must be in list
+                tensor_dict = preprocessor(x_train)
+                # Extract the tensors from the dictionary
+                token_ids = tensor_dict['token_ids']
+                segment_ids = tensor_dict['segment_ids']
+                padding_mask = tensor_dict['padding_mask']
+                concrete_function(token_ids, segment_ids, padding_mask, y_train)
+
             with train_summary_writer.as_default():
                 tf.summary.scalar('loss', train_loss.result(), step=index)
                 tf.summary.scalar('accuracy', train_accuracy.result(), step=index)
