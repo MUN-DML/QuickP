@@ -49,6 +49,8 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     print('ff', len(non_source_node), len(isolate_nodes), len(sink_nodes))
 
     sink_components = graph.subgraph(sink_nodes).copy()
+
+    # Identify weakly connected components whose entire predecessors are from source nodes
     sink_with_source_node_predecessors = set()
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
     for weakly_connected_component in weakly_connected_components:
