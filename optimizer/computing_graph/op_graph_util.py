@@ -37,7 +37,7 @@ def getCifar():
     return (x_train, y_train), (x_test, y_test)
 
 
-def get_gpt_data_loader(batch_size, if_train=True) -> tf.data.Dataset:
+def get_llm_data_loader(batch_size, if_train=True) -> tf.data.Dataset:
     import tensorflow_datasets as tfds
     split_mode = 'train' if if_train else 'test'
 

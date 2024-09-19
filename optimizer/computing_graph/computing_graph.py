@@ -14,13 +14,15 @@ from optimizer.computing_graph.tool import Conf_TB, CONF
 from optimizer.model.graph import CompGraph
 from optimizer.computing_graph.op_graph_util import compile_model, train_loss, train_accuracy, parse_to_comp_graph, \
     process_op_df, update_graph_with_prof, profile_train, get_cifar_data_loader, parse_tensorboard, \
-    find_specific_pb_file, process_mem_dict, get_gpt_data_loader
+    find_specific_pb_file, process_mem_dict, get_llm_data_loader
 
 
 def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e-4),
                           loss_fn=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
                           max_len=128) -> CompGraph:
     # from_logits=False since all of our model has softmax activation that outputs probabilities
+    if not isinstance(model, keras.Sequential):
+        loss_fn = keras.losses.Bi
     compile_model(model, optimizer, loss_fn)
 
     batch_size = 128 if isinstance(model, keras.Sequential) else 1
@@ -67,7 +69,7 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
     concrete_function = training_fun.get_concrete_function(*inputs_spec)
 
     graph = parse_to_comp_graph(concrete_function)
-    data_loader_func = get_cifar_data_loader if isinstance(model, keras.Sequential) else get_gpt_data_loader
+    data_loader_func = get_cifar_data_loader if isinstance(model, keras.Sequential) else get_llm_data_loader
     is_llm = False if isinstance(model, keras.Sequential) else True
     parent_directory = profile_train(concrete_function, data_loader_func(batch_size, True), num_prof_step=20, is_llm=is_llm, max_length=max_len)
     plane_pb_file = find_specific_pb_file(parent_directory, "xplane.pb")

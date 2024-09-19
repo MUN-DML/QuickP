@@ -14,7 +14,7 @@ class InputSpec(Enum):
         tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="token_ids"),
         tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="segment_ids"),
         tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.bool, name="padding_mask"),
-        tf.TensorSpec(shape=[batch_size, 2], dtype=tf.int64, name="labels"), # 2 class for Imdb-review
+        tf.TensorSpec(shape=[batch_size, ], dtype=tf.int64, name="labels"), # 2 class for Imdb-review
     ]
 
 
