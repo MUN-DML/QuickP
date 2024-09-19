@@ -13,17 +13,19 @@ Isolated Nodes: Nodes that neither serve as dependencies for other subgraphs nor
 
 
 def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> Tuple[CompGraph, CompGraph, set]:
+    device = operator_device_mapping[list(graph.nodes)[0]]
+    outgoing_edges = [(u, v) for u, v in edge_cut_list if
+                      operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
+    incoming_edges = [(u, v) for u, v in edge_cut_list if
+                      operator_device_mapping.get(v) == device and operator_device_mapping.get(u) != device]
+
     def get_depended_node_set(node):
-        device = operator_device_mapping[node]
-        outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
         destination_node_depended = set(v for (u, v) in outgoing_edges if nx.has_path(graph, node, u))
         for node in destination_node_depended:
             assert operator_device_mapping.get(node) != device
         return destination_node_depended
 
     def get_depending_node_set(node):
-        device = operator_device_mapping[node]
-        incoming_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(v) == device and operator_device_mapping.get(u) != device]
         source_node_depended = set(u for (u, v) in incoming_edges if nx.has_path(graph, v, node))
         for node in source_node_depended:
             assert operator_device_mapping.get(node) != device
@@ -57,15 +59,14 @@ def handle_sink_components(subgraph, sink_components: nx.DiGraph, device, operat
     incoming_nodes = set(v for u, v in cut_off if operator_device_mapping.get(v) == device)
     # check all node has dependency from outside nodes
     for i in sink_nodes:
+        assert i in subgraph.nodes
+        indicator = False
         for incoming in incoming_nodes:
-            indicator = False
             if nx.has_path(subgraph, incoming, i):
                 indicator = True
                 print("good")
         if indicator == False:
             raise ValueError(i, "does not have depedency")
-
-
 
     # node that directly connected with a cross device dependency
     joint_nodes = sink_nodes.intersection(incoming_nodes)
