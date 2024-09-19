@@ -36,6 +36,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
 
     # Iterate over the nodes and remove those with 0 related subgraphs
     non_source_node = set(node for node in graph.nodes if len(get_depended_node_set(node)) == 0)
+    source_node = set(graph.nodes) - non_source_node
 
     isolate_nodes = set(node for node in non_source_node if len(get_depending_node_set(node)) == 0)
 
@@ -47,6 +48,13 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     print('ff', len(non_source_node), len(isolate_nodes), len(sink_nodes))
 
     sink_components = graph.subgraph(sink_nodes)
+    weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
+    for weakly_connected_component in weakly_connected_components:
+        wcc_predecessors = set()
+        for node in weakly_connected_component:
+            wcc_predecessors.update(graph.predecessors(node))
+        if not wcc_predecessors.issubset(source_node):
+            print("jjjbd")
 
     return new_graph, sink_components, isolate_nodes
 
@@ -64,9 +72,9 @@ def handle_sink_components(subgraph, sink_components: nx.DiGraph, device, operat
         for incoming in incoming_nodes:
             if nx.has_path(subgraph, incoming, i):
                 indicator = True
-                print("good")
+                continue
         if indicator == False:
-            raise ValueError(i, "does not have depedency")
+            raise ValueError(i, "does not have depedency from other subgraph")
 
     # node that directly connected with a cross device dependency
     joint_nodes = sink_nodes.intersection(incoming_nodes)
