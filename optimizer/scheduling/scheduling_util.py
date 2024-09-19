@@ -48,20 +48,24 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
 
     print('ff', len(non_source_node), len(isolate_nodes), len(sink_nodes))
 
-    sink_components = graph.subgraph(sink_nodes)
-    sink_with_source_node_dependency = set()
+    sink_components = graph.subgraph(sink_nodes).copy()
+    sink_with_source_node_predecessors = set()
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
     for weakly_connected_component in weakly_connected_components:
         wcc_predecessors = set()
         for node in weakly_connected_component:
             wcc_predecessors.update(graph.predecessors(node))
         if wcc_predecessors.issubset(source_node):
-            sink_with_source_node_dependency.update(weakly_connected_component)
+            sink_with_source_node_predecessors.update(weakly_connected_component)
+            # remove this part from sink_components
+            sink_components.remove_nodes_from(weakly_connected_component)
 
-    return new_graph, sink_components, isolate_nodes, sink_with_source_node_dependency
+    print('ff2', len(non_source_node), len(isolate_nodes), len(sink_components.nodes), len(sink_with_source_node_predecessors))
+
+    return new_graph, sink_components, isolate_nodes, sink_with_source_node_predecessors
 
 
-def handle_sink_components(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off):
+def handle_sink_components_with_no_source_predecessors(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off):
     topological_order = list(nx.topological_sort(subgraph))
     topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
