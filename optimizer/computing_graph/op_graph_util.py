@@ -132,14 +132,12 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
             if not is_llm:
                 concrete_function(x_train, y_train)
             else:
-                # input must be in list
+                # shape of IMDB-reciew x and y are 1D array in the same shape (bathch_size,)
                 tensor_dict = preprocessor(x_train)
                 # Extract the tensors from the dictionary
                 token_ids = tensor_dict['token_ids']
                 segment_ids = tensor_dict['segment_ids']
                 padding_mask = tensor_dict['padding_mask']
-                y_train = tf.expand_dims(y_train, axis=-1)  # Make it (batch_size, 1)
-                y_train = tf.tile(y_train, [1, 2])  # Repeat it to make (batch_size, num_of_class)
                 concrete_function(token_ids, segment_ids, padding_mask, y_train)
 
             # Call only one trace_export when tracing, so export after 1 iteration

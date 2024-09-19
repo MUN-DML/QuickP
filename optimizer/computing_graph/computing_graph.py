@@ -21,8 +21,7 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
                           loss_fn=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
                           max_len=128) -> CompGraph:
     # from_logits=False since all of our model has softmax activation that outputs probabilities
-    if not isinstance(model, keras.Sequential):
-        loss_fn = keras.losses.Bi
+
     compile_model(model, optimizer, loss_fn)
 
     batch_size = 128 if isinstance(model, keras.Sequential) else 1
