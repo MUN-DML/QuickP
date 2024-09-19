@@ -30,19 +30,23 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
-        subgraph_non_iso_part, sink_components, isolated_node_list = split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
+        subgraph_non_iso_part, sink_components, isolated_node_list, sink_with_source_node_dependency= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
         # Map non_iso_part to device
         device_non_iso_part_mapping[device] = subgraph_non_iso_part
 
-        # Sort the isolated node list according to topo order and apply a sequential constraint
-        isolated_node_list = sorted(isolated_node_list, key=lambda node: topological_order_mapping[node])
-        for a, b in zip(isolated_node_list, isolated_node_list[1:]):
+        # Merge isolated_node_list and sink_with_source_node_dependency
+        iso_and_sink_with_source = isolated_node_list | sink_with_source_node_dependency
+        # print('hhhhh', len(isolated_node_list), len(sink_with_source_node_dependency), len(iso_and_sink_with_source))
+
+        # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
+        iso_and_sink_with_source = sorted(list(iso_and_sink_with_source), key=lambda node: topological_order_mapping[node])
+        for a, b in zip(iso_and_sink_with_source, iso_and_sink_with_source[1:]):
             model.addConstr(finish[a] <= start[b])
         # the isolated part will start after the non-isolated part finished
         for non_isolated_node in subgraph_non_iso_part.getOperatorIDs():
             model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
-        if len(isolated_node_list) > 0:
-            model.addConstr(start[isolated_node_list[0]] >= device_non_isolated_part_finish[device])
+        if len(iso_and_sink_with_source) > 0:
+            model.addConstr(start[iso_and_sink_with_source[0]] >= device_non_isolated_part_finish[device])
 
         # Sort the sink_components
         handle_sink_components(subgraph, sink_components, device, operator_device_mapping, edge_cut_list)

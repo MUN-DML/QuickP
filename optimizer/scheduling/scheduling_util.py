@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Any, Set, Iterator
 
 import networkx as nx
 
@@ -12,7 +12,8 @@ Isolated Nodes: Nodes that neither serve as dependencies for other subgraphs nor
 '''
 
 
-def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> Tuple[CompGraph, CompGraph, set]:
+def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
+    CompGraph, Any, set[Any], set[Any]]:
     device = operator_device_mapping[list(graph.nodes)[0]]
     outgoing_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
@@ -48,15 +49,16 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     print('ff', len(non_source_node), len(isolate_nodes), len(sink_nodes))
 
     sink_components = graph.subgraph(sink_nodes)
+    sink_with_source_node_dependency = set()
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
     for weakly_connected_component in weakly_connected_components:
         wcc_predecessors = set()
         for node in weakly_connected_component:
             wcc_predecessors.update(graph.predecessors(node))
-        if not wcc_predecessors.issubset(source_node):
-            print("jjjbd")
+        if wcc_predecessors.issubset(source_node):
+            sink_with_source_node_dependency.update(weakly_connected_component)
 
-    return new_graph, sink_components, isolate_nodes
+    return new_graph, sink_components, isolate_nodes, sink_with_source_node_dependency
 
 
 def handle_sink_components(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off):
