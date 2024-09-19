@@ -32,19 +32,28 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
     def training_step(train_x: tf.Tensor, train_y: tf.Tensor):
         # https://www.tensorflow.org/guide/autodiff
         with tf.GradientTape() as tape:
+            predictions = model(train_x, training=True)
+            loss = loss_fn(train_y, predictions)
+            loss += sum(model.losses)
+        gradients = tape.gradient(loss, model.trainable_weights)
+        optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+
+        train_loss.update_state(loss)
+        train_accuracy.update_state(train_y, predictions)
+        return loss
+
+    @tf.function
+    def training_step_llm(token_ids: tf.Tensor, segment_ids, padding_mask, train_y: tf.Tensor):
+        # https://www.tensorflow.org/guide/autodiff
+        with tf.GradientTape() as tape:
             # Forward pass
-            if isinstance(model, keras.Sequential):
-                predictions = model(train_x, training=True)
-                loss = loss_fn(train_y, predictions)
-                loss += sum(model.losses)
-            else:
-                outputs = model({
-                    "token_ids": np.ones(shape=(1, 12), dtype="int32"),
-                    "segment_ids": np.array([[0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0]]),
-                    "padding_mask": np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]]),
-                })
-                loss = loss_fn(train_y, outputs)
-                predictions = outputs
+            outputs = model({
+                "token_ids": token_ids,
+                "segment_ids": segment_ids,
+                "padding_mask": padding_mask,
+            })
+            loss = loss_fn(train_y, outputs)
+            predictions = outputs
         gradients = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
 
@@ -54,7 +63,8 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
 
     inputs_spec = get_input_spec(model, batch_size, max_len)
     #for index, (text, label) in enumerate(get_gpt_data_loader(1).take(1)):
-    concrete_function = training_step.get_concrete_function(*inputs_spec)
+    training_fun = training_step if isinstance(model, keras.Sequential) else training_step_llm
+    concrete_function = training_fun.get_concrete_function(*inputs_spec)
 
     graph = parse_to_comp_graph(concrete_function)
     data_loader_func = get_cifar_data_loader if isinstance(model, keras.Sequential) else get_gpt_data_loader
