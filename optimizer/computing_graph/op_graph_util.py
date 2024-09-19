@@ -139,7 +139,7 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
                 segment_ids = tensor_dict['segment_ids']
                 padding_mask = tensor_dict['padding_mask']
                 y_train = tf.expand_dims(y_train, axis=-1)  # Make it (batch_size, 1)
-                y_train = tf.tile(y_train, [1, max_length])  # Repeat it to make (batch_size, max_len)
+                y_train = tf.tile(y_train, [1, 2])  # Repeat it to make (batch_size, num_of_class)
                 concrete_function(token_ids, segment_ids, padding_mask, y_train)
 
             # Call only one trace_export when tracing, so export after 1 iteration
