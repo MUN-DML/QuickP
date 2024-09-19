@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import networkx as nx
 
 from optimizer.model.graph import CompGraph
@@ -10,7 +12,7 @@ Isolated Nodes: Nodes that neither serve as dependencies for other subgraphs nor
 '''
 
 
-def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list):
+def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> Tuple[CompGraph, CompGraph, set]:
     def get_depended_node_set(node):
         device = operator_device_mapping[node]
         outgoing_edges = [(u, v) for u, v in edge_cut_list if operator_device_mapping.get(u) == device]
@@ -49,11 +51,13 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list):
 
 def handle_sink_components(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off):
     weakly_connected_components = list(nx.weakly_connected_components(sink_components))
-    incoming_nodes = [v for u, v in cut_off if operator_device_mapping.get(v) == device]
+    sink_nodes = set(sink_components.nodes)
+    incoming_nodes = set(v for u, v in cut_off if operator_device_mapping.get(v) == device)
+    # node that directly connected with a cross device dependency
+    joint_nodes = sink_nodes.intersection(incoming_nodes)
+    other_nodes = sink_nodes - joint_nodes
     for weakly_connected_component in weakly_connected_components:
         weak_connected_subgraph = sink_components.subgraph(weakly_connected_component)
         topological_order = list(nx.topological_sort(weak_connected_subgraph))
         # start_node = list(weakly_connected_component)[0]  # Take the first node
         # assert topological_order[0] in incoming_nodes
-
-
