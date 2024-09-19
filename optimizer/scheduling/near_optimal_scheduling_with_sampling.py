@@ -23,6 +23,8 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
 
     device_non_isolated_part_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
                                                     name="non_isolated_part_finish")
+    topological_order = list(nx.topological_sort(comp_graph))
+    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
 
     # form new device non-isolated part mapping
     # split into isolated and non-isolated part
@@ -33,8 +35,6 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
         device_non_iso_part_mapping[device] = subgraph_non_iso_part
 
         # Sort the isolated node list according to topo order and apply a sequential constraint
-        topological_order = list(nx.topological_sort(comp_graph))
-        topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
         isolated_node_list = sorted(isolated_node_list, key=lambda node: topological_order_mapping[node])
         for a, b in zip(isolated_node_list, isolated_node_list[1:]):
             model.addConstr(finish[a] <= start[b])
