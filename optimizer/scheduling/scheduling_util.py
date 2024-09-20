@@ -38,29 +38,29 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     new_graph = graph.copy()
 
     # Iterate over the nodes and remove those with 0 related subgraphs
-    non_source_node = set(node for node in graph.nodes if len(get_depended_node_set(node)) == 0)
-    depended_node = set(graph.nodes) - non_source_node
+    terminal_node = set(node for node in graph.nodes if len(get_depended_node_set(node)) == 0)
+    depended_node = set(graph.nodes) - terminal_node
 
-    isolate_terminal_nodes = set(node for node in non_source_node if len(get_depending_node_set(node)) == 0)
+    isolate_terminal_nodes = set(node for node in terminal_node if len(get_depending_node_set(node)) == 0)
 
-    terminal_nodes = non_source_node - isolate_terminal_nodes
+    non_isolated_terminal_nodes = terminal_node - isolate_terminal_nodes
 
     # Remove the nodes from the copied graph
-    new_graph.remove_nodes_from(non_source_node)
+    new_graph.remove_nodes_from(terminal_node)
 
-    print('ff', len(non_source_node), len(isolate_terminal_nodes), len(terminal_nodes))
+    print('ff', len(terminal_node), len(isolate_terminal_nodes), len(non_isolated_terminal_nodes))
 
-    sink_components = graph.subgraph(terminal_nodes).copy()
+    non_isolated_terminal_components = graph.subgraph(non_isolated_terminal_nodes).copy()
 
     # Identify weakly connected components whose entire predecessors are from source nodes
     sink_with_source_node_predecessors = set()
-    weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
+    weakly_connected_components: list[set] = list(nx.weakly_connected_components(non_isolated_terminal_components))
 
     for weakly_connected_component in weakly_connected_components:
         if weakly_connected_component.isdisjoint(incoming_nodes):
             sink_with_source_node_predecessors.update(weakly_connected_component)
             # remove this part from sink_components
-            sink_components.remove_nodes_from(weakly_connected_component)
+            non_isolated_terminal_components.remove_nodes_from(weakly_connected_component)
 
     for weakly_connected_component in weakly_connected_components:
         wcc_predecessors = set()
@@ -69,9 +69,9 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         if wcc_predecessors.issubset(depended_node):
             sink_with_source_node_predecessors.update(weakly_connected_component)
             # remove this part from sink_components
-            sink_components.remove_nodes_from(weakly_connected_component)
+            non_isolated_terminal_components.remove_nodes_from(weakly_connected_component)
 
-    print('ff2', len(non_source_node), len(isolate_terminal_nodes), len(sink_components.nodes), len(sink_with_source_node_predecessors))
+    print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(non_isolated_terminal_components.nodes), len(sink_with_source_node_predecessors))
 
     def visualize():
         # Draw the nodes with different colors based on their group
@@ -81,7 +81,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
                 color_map.append('red')
             elif node in isolate_terminal_nodes:
                 color_map.append('blue')
-            elif node in sink_components:
+            elif node in non_isolated_terminal_components:
                 color_map.append('green')
             elif node in sink_with_source_node_predecessors:
                 color_map.append('purple')
@@ -95,7 +95,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         plt.title("Visualization of Node Groups")
         plt.show()
 
-    return new_graph, sink_components, isolate_terminal_nodes, sink_with_source_node_predecessors
+    return new_graph, non_isolated_terminal_components, isolate_terminal_nodes, sink_with_source_node_predecessors
 
 
 def handle_sink_components_with_no_source_predecessors(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off, topological_order_mapping, model, start, finish):
