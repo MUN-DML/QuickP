@@ -1,6 +1,7 @@
 from typing import Tuple, Any, Set, Iterator
 
 import networkx as nx
+from matplotlib import pyplot as plt
 
 from optimizer.model.graph import CompGraph
 
@@ -71,6 +72,26 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
             sink_components.remove_nodes_from(weakly_connected_component)
 
     print('ff2', len(non_source_node), len(isolate_nodes), len(sink_components.nodes), len(sink_with_source_node_predecessors))
+    # Draw the nodes with different colors based on their group
+    color_map = []
+    for node, data in graph.nodes(data=True):  # Unpack node and attributes
+        if node in source_node:
+            color_map.append('red')
+        elif node in isolate_nodes:
+            color_map.append('blue')
+        elif node in sink_components:
+            color_map.append('green')
+        elif node in sink_with_source_node_predecessors:
+            color_map.append('purple')
+        else:
+            color_map.append('gray')  # Optional: to handle nodes not in any of the sets
+
+    pos = nx.spring_layout(graph)
+    # Plot the graph
+    plt.figure(figsize=(10, 8))
+    nx.draw(graph, pos, node_color=color_map, with_labels=False, node_size=200)
+    plt.title("Visualization of Node Groups")
+    plt.show()
 
     return new_graph, sink_components, isolate_nodes, sink_with_source_node_predecessors
 
