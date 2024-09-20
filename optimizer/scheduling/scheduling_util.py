@@ -53,12 +53,12 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     non_isolated_terminal_components = graph.subgraph(non_isolated_terminal_nodes).copy()
 
     # Identify weakly connected components whose entire predecessors are from source nodes
-    sink_with_source_node_predecessors = set()
+    terminal_nodes_without_incoming_edge = set()
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(non_isolated_terminal_components))
 
     for weakly_connected_component in weakly_connected_components:
         if weakly_connected_component.isdisjoint(incoming_nodes):
-            sink_with_source_node_predecessors.update(weakly_connected_component)
+            terminal_nodes_without_incoming_edge.update(weakly_connected_component)
             # remove this part from sink_components
             non_isolated_terminal_components.remove_nodes_from(weakly_connected_component)
 
@@ -66,12 +66,12 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         wcc_predecessors = set()
         for node in weakly_connected_component:
             wcc_predecessors.update(graph.predecessors(node))
-        if wcc_predecessors.issubset(depended_node):
-            sink_with_source_node_predecessors.update(weakly_connected_component)
+        if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes):
+            terminal_nodes_without_incoming_edge.update(weakly_connected_component)
             # remove this part from sink_components
             non_isolated_terminal_components.remove_nodes_from(weakly_connected_component)
 
-    print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(non_isolated_terminal_components.nodes), len(sink_with_source_node_predecessors))
+    print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(non_isolated_terminal_components.nodes), len(terminal_nodes_without_incoming_edge))
 
     def visualize():
         # Draw the nodes with different colors based on their group
@@ -83,7 +83,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
                 color_map.append('blue')
             elif node in non_isolated_terminal_components:
                 color_map.append('green')
-            elif node in sink_with_source_node_predecessors:
+            elif node in terminal_nodes_without_incoming_edge:
                 color_map.append('purple')
             else:
                 color_map.append('gray')  # Optional: to handle nodes not in any of the sets
@@ -95,7 +95,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         plt.title("Visualization of Node Groups")
         plt.show()
 
-    return new_graph, non_isolated_terminal_components, isolate_terminal_nodes, sink_with_source_node_predecessors
+    return new_graph, non_isolated_terminal_components, isolate_terminal_nodes, terminal_nodes_without_incoming_edge
 
 
 def handle_sink_components_with_no_source_predecessors(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off, topological_order_mapping, model, start, finish):
