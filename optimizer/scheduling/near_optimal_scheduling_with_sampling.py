@@ -48,7 +48,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
             model.addConstr(start[iso_and_sink_with_source[0]] >= device_non_isolated_part_finish[device])
 
         # Sort the sink_components
-        handle_sink_components_with_no_source_predecessors(subgraph, sink_components, device, operator_device_mapping, edge_cut_list)
+        handle_sink_components_with_no_source_predecessors(subgraph, sink_components, device, operator_device_mapping, edge_cut_list, topological_order_mapping, model, start, finish)
 
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_non_iso_part_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,

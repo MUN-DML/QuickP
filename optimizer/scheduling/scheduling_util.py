@@ -96,9 +96,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     return new_graph, sink_components, isolate_nodes, sink_with_source_node_predecessors
 
 
-def handle_sink_components_with_no_source_predecessors(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off):
-    topological_order = list(nx.topological_sort(subgraph))
-    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
+def handle_sink_components_with_no_source_predecessors(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off, topological_order_mapping, model, start, finish):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
     sink_nodes = set(sink_components.nodes)
     incoming_nodes = set(v for u, v in cut_off if operator_device_mapping.get(v) == device)
@@ -118,6 +116,10 @@ def handle_sink_components_with_no_source_predecessors(subgraph, sink_components
     other_nodes = sink_nodes - joint_nodes
     print('ppp', joint_nodes)
     print('kkk', weakly_connected_components)
+    sink_nodes = sorted(sink_nodes, key=lambda node: topological_order_mapping[node])
+    for op_a, op_b in zip(sink_nodes, sink_nodes[1:]):
+        model.addConstr(finish[op_a] <= start[op_b])
+
     for weakly_connected_component in weakly_connected_components:
         # weak_connected_subgraph = sink_components.subgraph(weakly_connected_component)
         weakly_connected_component = sorted(weakly_connected_component, key=lambda node: topological_order_mapping[node])
