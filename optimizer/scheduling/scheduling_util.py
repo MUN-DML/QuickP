@@ -39,18 +39,18 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
 
     # Iterate over the nodes and remove those with 0 related subgraphs
     non_source_node = set(node for node in graph.nodes if len(get_depended_node_set(node)) == 0)
-    source_node = set(graph.nodes) - non_source_node
+    depended_node = set(graph.nodes) - non_source_node
 
-    isolate_nodes = set(node for node in non_source_node if len(get_depending_node_set(node)) == 0)
+    isolate_terminal_nodes = set(node for node in non_source_node if len(get_depending_node_set(node)) == 0)
 
-    sink_nodes = non_source_node - isolate_nodes
+    terminal_nodes = non_source_node - isolate_terminal_nodes
 
     # Remove the nodes from the copied graph
     new_graph.remove_nodes_from(non_source_node)
 
-    print('ff', len(non_source_node), len(isolate_nodes), len(sink_nodes))
+    print('ff', len(non_source_node), len(isolate_terminal_nodes), len(terminal_nodes))
 
-    sink_components = graph.subgraph(sink_nodes).copy()
+    sink_components = graph.subgraph(terminal_nodes).copy()
 
     # Identify weakly connected components whose entire predecessors are from source nodes
     sink_with_source_node_predecessors = set()
@@ -66,34 +66,36 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         wcc_predecessors = set()
         for node in weakly_connected_component:
             wcc_predecessors.update(graph.predecessors(node))
-        if wcc_predecessors.issubset(source_node):
+        if wcc_predecessors.issubset(depended_node):
             sink_with_source_node_predecessors.update(weakly_connected_component)
             # remove this part from sink_components
             sink_components.remove_nodes_from(weakly_connected_component)
 
-    print('ff2', len(non_source_node), len(isolate_nodes), len(sink_components.nodes), len(sink_with_source_node_predecessors))
-    # Draw the nodes with different colors based on their group
-    color_map = []
-    for node, data in graph.nodes(data=True):  # Unpack node and attributes
-        if node in source_node:
-            color_map.append('red')
-        elif node in isolate_nodes:
-            color_map.append('blue')
-        elif node in sink_components:
-            color_map.append('green')
-        elif node in sink_with_source_node_predecessors:
-            color_map.append('purple')
-        else:
-            color_map.append('gray')  # Optional: to handle nodes not in any of the sets
+    print('ff2', len(non_source_node), len(isolate_terminal_nodes), len(sink_components.nodes), len(sink_with_source_node_predecessors))
 
-    pos = nx.spring_layout(graph)
-    # Plot the graph
-    plt.figure(figsize=(10, 8))
-    nx.draw(graph, pos, node_color=color_map, with_labels=False, node_size=200)
-    plt.title("Visualization of Node Groups")
-    plt.show()
+    def visualize():
+        # Draw the nodes with different colors based on their group
+        color_map = []
+        for node, data in graph.nodes(data=True):  # Unpack node and attributes
+            if node in depended_node:
+                color_map.append('red')
+            elif node in isolate_terminal_nodes:
+                color_map.append('blue')
+            elif node in sink_components:
+                color_map.append('green')
+            elif node in sink_with_source_node_predecessors:
+                color_map.append('purple')
+            else:
+                color_map.append('gray')  # Optional: to handle nodes not in any of the sets
 
-    return new_graph, sink_components, isolate_nodes, sink_with_source_node_predecessors
+        pos = nx.spring_layout(graph)
+        # Plot the graph
+        plt.figure(figsize=(10, 8))
+        nx.draw(graph, pos, node_color=color_map, with_labels=False, node_size=200)
+        plt.title("Visualization of Node Groups")
+        plt.show()
+
+    return new_graph, sink_components, isolate_terminal_nodes, sink_with_source_node_predecessors
 
 
 def handle_sink_components_with_no_source_predecessors(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off, topological_order_mapping, model, start, finish):
@@ -116,10 +118,4 @@ def handle_sink_components_with_no_source_predecessors(subgraph, sink_components
     other_nodes = sink_nodes - joint_nodes
     print('ppp', joint_nodes)
     print('kkk', weakly_connected_components)
-    sink_nodes = sorted(sink_nodes, key=lambda node: topological_order_mapping[node])
-    for op_a, op_b in zip(sink_nodes, sink_nodes[1:]):
-        model.addConstr(finish[op_a] <= start[op_b])
 
-    for weakly_connected_component in weakly_connected_components:
-        # weak_connected_subgraph = sink_components.subgraph(weakly_connected_component)
-        weakly_connected_component = sorted(weakly_connected_component, key=lambda node: topological_order_mapping[node])
