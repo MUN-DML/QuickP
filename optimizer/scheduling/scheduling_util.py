@@ -56,20 +56,20 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     terminal_nodes_without_incoming_edge = set()
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(non_isolated_terminal_components))
 
-    for weakly_connected_component in weakly_connected_components:
-        if weakly_connected_component.isdisjoint(incoming_nodes):
-            terminal_nodes_without_incoming_edge.update(weakly_connected_component)
-            # remove this part from sink_components
-            non_isolated_terminal_components.remove_nodes_from(weakly_connected_component)
 
-    for weakly_connected_component in weakly_connected_components:
+
+    for wcc in weakly_connected_components:
         wcc_predecessors = set()
-        for node in weakly_connected_component:
-            wcc_predecessors.update(graph.predecessors(node))
-        if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes):
-            terminal_nodes_without_incoming_edge.update(weakly_connected_component)
+        for node in wcc:
+            # Get all predecessors of the current node
+            for predecessor in graph.predecessors(node):
+                # Only add the predecessor if it's not part of the weakly_connected_component
+                if predecessor not in wcc:
+                    wcc_predecessors.add(predecessor)
+        if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes) and wcc.isdisjoint(incoming_nodes):
+            terminal_nodes_without_incoming_edge.update(wcc)
             # remove this part from sink_components
-            non_isolated_terminal_components.remove_nodes_from(weakly_connected_component)
+            non_isolated_terminal_components.remove_nodes_from(wcc)
 
     print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(non_isolated_terminal_components.nodes), len(terminal_nodes_without_incoming_edge))
 
