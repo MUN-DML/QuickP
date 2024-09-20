@@ -19,6 +19,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
     incoming_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(v) == device and operator_device_mapping.get(u) != device]
+    incoming_nodes = set(v for u, v in edge_cut_list if operator_device_mapping.get(v) == device)
 
     def get_depended_node_set(node):
         destination_node_depended = set(v for (u, v) in outgoing_edges if nx.has_path(graph, node, u))
@@ -53,6 +54,13 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     # Identify weakly connected components whose entire predecessors are from source nodes
     sink_with_source_node_predecessors = set()
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
+
+    for weakly_connected_component in weakly_connected_components:
+        if weakly_connected_component.isdisjoint(incoming_nodes):
+            sink_with_source_node_predecessors.update(weakly_connected_component)
+            # remove this part from sink_components
+            sink_components.remove_nodes_from(weakly_connected_component)
+
     for weakly_connected_component in weakly_connected_components:
         wcc_predecessors = set()
         for node in weakly_connected_component:
