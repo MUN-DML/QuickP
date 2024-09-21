@@ -1,6 +1,7 @@
 from typing import Tuple, Any, Set, Iterator
 
 import networkx as nx
+from gurobipy import Model
 from matplotlib import pyplot as plt
 
 from optimizer.model.graph import CompGraph
@@ -94,14 +95,14 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     return new_graph, terminal_components_to_be_optimized, isolate_terminal_nodes, terminal_nodes_without_comm_np
 
 
-def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model, start, finish):
+def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(components_to_be_op))
     topological_order = list(nx.topological_sort(subgraph))
     topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
-    sink_nodes = set(components_to_be_op.nodes)
+    all_nodes = set(components_to_be_op.nodes)
     comm_end_nodes = set(v for u, v in cut_off if operator_device_mapping.get(v) == device)
     # check all node has dependency from outside nodes
-    for i in sink_nodes:
+    for i in all_nodes:
         assert i in subgraph.nodes
         indicator = False
         for incoming in comm_end_nodes:
@@ -115,7 +116,11 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
 
     for wcc in weakly_connected_components:
         sorted_nodes = sorted(list(wcc), key=lambda node: topological_order_mapping[node])
+        # check the first node in each wcc is a comm end node
         assert sorted_nodes[0] in comm_end_nodes
+        # Apply sequential constraint
+        for a, b in zip(sorted_nodes, sorted_nodes[1:]):
+            model.addConstr(finish[a] <= start[b])
 
 
 
