@@ -69,8 +69,6 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
             # remove this part from sink_components
             terminal_components_to_be_optimized.remove_nodes_from(wcc)
 
-    print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(terminal_components_to_be_optimized.nodes), len(terminal_nodes_without_comm_np))
-
     def visualize():
         # Draw the nodes with different colors based on their group
         color_map = []
