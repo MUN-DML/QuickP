@@ -50,11 +50,11 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
 
     print('ff', len(terminal_node), len(isolate_terminal_nodes), len(non_isolated_terminal_nodes))
 
-    non_isolated_terminal_components = graph.subgraph(non_isolated_terminal_nodes).copy()
+    terminal_components_to_be_optimized = graph.subgraph(non_isolated_terminal_nodes).copy()
 
     # Identify weakly connected components whose entire predecessors are from source nodes
     terminal_nodes_without_incoming_edge = set()
-    weakly_connected_components: list[set] = list(nx.weakly_connected_components(non_isolated_terminal_components))
+    weakly_connected_components: list[set] = list(nx.weakly_connected_components(terminal_components_to_be_optimized))
 
 
 
@@ -69,9 +69,9 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes) and wcc.isdisjoint(incoming_nodes):
             terminal_nodes_without_incoming_edge.update(wcc)
             # remove this part from sink_components
-            non_isolated_terminal_components.remove_nodes_from(wcc)
+            terminal_components_to_be_optimized.remove_nodes_from(wcc)
 
-    print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(non_isolated_terminal_components.nodes), len(terminal_nodes_without_incoming_edge))
+    print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(terminal_components_to_be_optimized.nodes), len(terminal_nodes_without_incoming_edge))
 
     def visualize():
         # Draw the nodes with different colors based on their group
@@ -81,7 +81,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
                 color_map.append('red')
             elif node in isolate_terminal_nodes:
                 color_map.append('blue')
-            elif node in non_isolated_terminal_components:
+            elif node in terminal_components_to_be_optimized:
                 color_map.append('green')
             elif node in terminal_nodes_without_incoming_edge:
                 color_map.append('purple')
@@ -95,7 +95,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         plt.title("Visualization of Node Groups")
         plt.show()
 
-    return new_graph, non_isolated_terminal_components, isolate_terminal_nodes, terminal_nodes_without_incoming_edge
+    return new_graph, terminal_components_to_be_optimized, isolate_terminal_nodes, terminal_nodes_without_incoming_edge
 
 
 def handle_sink_components_with_no_source_predecessors(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off, topological_order_mapping, model, start, finish):
