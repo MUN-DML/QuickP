@@ -7,7 +7,7 @@ import networkx as nx
 from gurobipy import Model, GRB
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
-from optimizer.scheduling.scheduling_util import split_subgraph, handle_sink_components_with_no_source_predecessors
+from optimizer.scheduling.scheduling_util import split_subgraph, handle_terminal_components_with_comm_end_point
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
@@ -30,12 +30,12 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
-        subgraph_non_iso_part, sink_components, isolated_node_list, sink_with_source_node_predecessors= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
+        subgraph_non_iso_part, wccs, isolated_node_list, terminal_nodes_without_comm_np= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
         # Map non_iso_part to device
         device_non_iso_part_mapping[device] = subgraph_non_iso_part
 
         # Merge isolated_node_list and sink_with_source_node_dependency
-        iso_and_sink_with_source = isolated_node_list | sink_with_source_node_predecessors
+        iso_and_sink_with_source = isolated_node_list | terminal_nodes_without_comm_np
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
         iso_and_sink_with_source = sorted(list(iso_and_sink_with_source), key=lambda node: topological_order_mapping[node])
@@ -48,7 +48,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
             model.addConstr(start[iso_and_sink_with_source[0]] >= device_non_isolated_part_finish[device])
 
         # Sort the sink_components
-        handle_sink_components_with_no_source_predecessors(subgraph, sink_components, device, operator_device_mapping, edge_cut_list, topological_order_mapping, model, start, finish)
+        handle_terminal_components_with_comm_end_point(subgraph, wccs, device, operator_device_mapping, edge_cut_list, model, start, finish)
 
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_non_iso_part_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,

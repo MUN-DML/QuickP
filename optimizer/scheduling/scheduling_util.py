@@ -53,7 +53,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     terminal_components_to_be_optimized = graph.subgraph(non_isolated_terminal_nodes).copy()
 
     # Identify weakly connected components whose entire predecessors are from source nodes
-    terminal_nodes_without_incoming_edge = set()
+    terminal_nodes_without_comm_np = set()
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(terminal_components_to_be_optimized))
 
 
@@ -67,7 +67,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
                 if predecessor not in wcc:
                     wcc_predecessors.add(predecessor)
         if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes) and wcc.isdisjoint(incoming_nodes):
-            terminal_nodes_without_incoming_edge.update(wcc)
+            terminal_nodes_without_comm_np.update(wcc)
             # remove this part from sink_components
             terminal_components_to_be_optimized.remove_nodes_from(wcc)
 
@@ -83,7 +83,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
                 color_map.append('blue')
             elif node in terminal_components_to_be_optimized:
                 color_map.append('green')
-            elif node in terminal_nodes_without_incoming_edge:
+            elif node in terminal_nodes_without_comm_np:
                 color_map.append('purple')
             else:
                 color_map.append('gray')  # Optional: to handle nodes not in any of the sets
@@ -95,12 +95,14 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         plt.title("Visualization of Node Groups")
         plt.show()
 
-    return new_graph, terminal_components_to_be_optimized, isolate_terminal_nodes, terminal_nodes_without_incoming_edge
+    return new_graph, terminal_components_to_be_optimized, isolate_terminal_nodes, terminal_nodes_without_comm_np
 
 
-def handle_sink_components_with_no_source_predecessors(subgraph, sink_components: nx.DiGraph, device, operator_device_mapping, cut_off, topological_order_mapping, model, start, finish):
-    weakly_connected_components: list[set] = list(nx.weakly_connected_components(sink_components))
-    sink_nodes = set(sink_components.nodes)
+def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model, start, finish):
+    weakly_connected_components: list[set] = list(nx.weakly_connected_components(components_to_be_op))
+    topological_order = list(nx.topological_sort(subgraph))
+    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
+    sink_nodes = set(components_to_be_op.nodes)
     incoming_nodes = set(v for u, v in cut_off if operator_device_mapping.get(v) == device)
     # check all node has dependency from outside nodes
     for i in sink_nodes:
@@ -116,6 +118,11 @@ def handle_sink_components_with_no_source_predecessors(subgraph, sink_components
     # node that directly connected with a cross device dependency
     joint_nodes = sink_nodes.intersection(incoming_nodes)
     other_nodes = sink_nodes - joint_nodes
-    print('ppp', joint_nodes)
-    print('kkk', weakly_connected_components)
+    # print('ppp', joint_nodes)
+    # print('kkk', weakly_connected_components)
+    for wcc in weakly_connected_components:
+        assert len(wcc.intersection(incoming_nodes)) > 0
+        sorted_nodes = sorted(list(wcc), key=lambda node: topological_order_mapping[node])
+
+
 
