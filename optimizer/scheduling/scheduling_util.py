@@ -102,8 +102,8 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
 
     # Use addVars to create wcc_start and wcc_finish variables for each wcc
-    wcc_start = model.addVars(wcc_tuples, vtype=GRB.CONTINUOUS, name="wcc_start")
-    wcc_finish = model.addVars(wcc_tuples, vtype=GRB.CONTINUOUS, name="wcc_finish")
+    wcc_start = model.addVars(wcc_tuples, vtype=GRB.CONTINUOUS)
+    wcc_finish = model.addVars(wcc_tuples, vtype=GRB.CONTINUOUS)
     topological_order = list(nx.topological_sort(subgraph))
     topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
     all_nodes = set(components_to_be_op.nodes)
