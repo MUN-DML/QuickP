@@ -20,7 +20,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
     incoming_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(v) == device and operator_device_mapping.get(u) != device]
-    incoming_nodes = set(v for u, v in edge_cut_list if operator_device_mapping.get(v) == device)
+    comm_end_nodes = set(v for u, v in edge_cut_list if operator_device_mapping.get(v) == device)
 
     def get_depended_node_set(node):
         destination_node_depended = set(v for (u, v) in outgoing_edges if nx.has_path(graph, node, u))
@@ -48,15 +48,11 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     # Remove the nodes from the copied graph
     new_graph.remove_nodes_from(terminal_node)
 
-    print('ff', len(terminal_node), len(isolate_terminal_nodes), len(non_isolated_terminal_nodes))
-
     terminal_components_to_be_optimized = graph.subgraph(non_isolated_terminal_nodes).copy()
 
     # Identify weakly connected components whose entire predecessors are from source nodes
     terminal_nodes_without_comm_np = set()
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(terminal_components_to_be_optimized))
-
-
 
     for wcc in weakly_connected_components:
         wcc_predecessors = set()
@@ -66,12 +62,12 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
                 # Only add the predecessor if it's not part of the weakly_connected_component
                 if predecessor not in wcc:
                     wcc_predecessors.add(predecessor)
-        if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes) and wcc.isdisjoint(incoming_nodes):
+        if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes) and wcc.isdisjoint(comm_end_nodes):
             terminal_nodes_without_comm_np.update(wcc)
             # remove this part from sink_components
             terminal_components_to_be_optimized.remove_nodes_from(wcc)
 
-    print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(terminal_components_to_be_optimized.nodes), len(terminal_nodes_without_incoming_edge))
+    print('ff2', len(terminal_node), len(isolate_terminal_nodes), len(terminal_components_to_be_optimized.nodes), len(terminal_nodes_without_comm_np))
 
     def visualize():
         # Draw the nodes with different colors based on their group
@@ -103,12 +99,12 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
     topological_order = list(nx.topological_sort(subgraph))
     topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
     sink_nodes = set(components_to_be_op.nodes)
-    incoming_nodes = set(v for u, v in cut_off if operator_device_mapping.get(v) == device)
+    comm_end_nodes = set(v for u, v in cut_off if operator_device_mapping.get(v) == device)
     # check all node has dependency from outside nodes
     for i in sink_nodes:
         assert i in subgraph.nodes
         indicator = False
-        for incoming in incoming_nodes:
+        for incoming in comm_end_nodes:
             if nx.has_path(subgraph, incoming, i):
                 indicator = True
                 continue
@@ -116,13 +112,10 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
             raise ValueError(i, "does not have depedency from other subgraph")
 
     # node that directly connected with a cross device dependency
-    joint_nodes = sink_nodes.intersection(incoming_nodes)
-    other_nodes = sink_nodes - joint_nodes
-    # print('ppp', joint_nodes)
-    # print('kkk', weakly_connected_components)
+
     for wcc in weakly_connected_components:
-        assert len(wcc.intersection(incoming_nodes)) > 0
         sorted_nodes = sorted(list(wcc), key=lambda node: topological_order_mapping[node])
+        assert sorted_nodes[0] in comm_end_nodes
 
 
 
