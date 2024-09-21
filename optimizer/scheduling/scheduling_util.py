@@ -1,10 +1,11 @@
+from itertools import combinations
 from typing import Tuple, Any, Set, Iterator
 
 import networkx as nx
 from gurobipy import Model, GRB
 from matplotlib import pyplot as plt
 
-from optimizer.model.graph import CompGraph
+from optimizer.model.graph import CompGraph, combine_graphs
 
 '''
 Split a graph into three parts
@@ -130,5 +131,11 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
         for a, b in zip(sorted_nodes, sorted_nodes[1:]):
             model.addConstr(finish[a] <= start[b])
 
-
+    order_wcc = {}
+    M = 1000000
+    # add non-overalpping constarints to wcc
+    for wcc, wcc2 in combinations(wcc_tuples, 2):
+        order_wcc[wcc, wcc2] = model.addVar(vtype=GRB.BINARY)
+        model.addConstr(wcc_start[wcc2] >= wcc_finish[wcc] - M * (1 - order_wcc[wcc, wcc2]))
+        model.addConstr(wcc_start[wcc] >= wcc_finish[wcc2] - M * order_wcc[wcc, wcc2])
 
