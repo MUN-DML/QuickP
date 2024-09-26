@@ -2,6 +2,7 @@
 from gurobipy import Model
 
 
-def mcmc_schedule(model: Model, start, finish, comm_start, comm_end, device_subgraph_mapping: dict,
-                  operator_device_mapping: dict, mcmc_order_dict):
-    pass
+def mcmc_schedule(model: Model, start, finish, comm_start, comm_end, mcmc_order_dict: dict):
+    for sequence in mcmc_order_dict.items():
+        for a, b in zip(sequence, sequence[1:]):
+            model.addConstr(finish[a] <= start[b])
