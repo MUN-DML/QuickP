@@ -314,16 +314,16 @@ def convert_data_size(value, from_unit, to_unit):
         'bit': 1 / 8,  # 1 bit is 1/8 bytes
         'byte': 1,  # 1 byte is 1 byte
         'B': 1,  # 1 byte is 1 byte
-        'KB': 1024,  # 1 kilobyte is 1024 bytes
-        'MB': 1024 ** 2,  # 1 megabyte is 1024^2 bytes
-        'GB': 1024 ** 3,  # 1 gigabyte is 1024^3 bytes
-        'TB': 1024 ** 4,  # 1 terabyte is 1024^4 bytes
-        'PB': 1024 ** 5,  # 1 petabyte is 1024^5 bytes
-        'kbit': 128,  # 1 kilobit is 128 bytes (1024 / 8)
-        'Mbit': 128 * 1024,  # 1 megabit is 128 * 1024 bytes
-        'Gbit': 128 * 1024 ** 2,  # 1 gigabit is 128 * 1024^2 bytes
-        'Tbit': 128 * 1024 ** 3,  # 1 terabit is 128 * 1024^3 bytes
-        'Pbit': 128 * 1024 ** 4  # 1 petabit is 128 * 1024^4 bytes
+        'KB': 1000,  # 1 kilobyte is 1024 bytes
+        'MB': 1000 ** 2,  # 1 megabyte is 1024^2 bytes
+        'GB': 1000 ** 3,  # 1 gigabyte is 1024^3 bytes
+        'TB': 1000 ** 4,  # 1 terabyte is 1024^4 bytes
+        'PB': 1000 ** 5,  # 1 petabyte is 1024^5 bytes
+        'kbit': 1000 / 8,  # 1 kilobit (kbit) is 1000 bits or 1000/8 bytes
+        'Mbit': (1000 ** 2) / 8,  # 1 megabit (Mbit) is 1000^2 bits or 1000000/8 bytes
+        'Gbit': (1000 ** 3) / 8,  # 1 gigabit (Gbit) is 1000^3 bits or 1000000000/8 bytes
+        'Tbit': (1000 ** 4) / 8,  # 1 terabit (Tbit) is 1000^4 bits or 1000000000000/8 bytes
+        'Pbit': (1000 ** 5) / 8  # 1 petabit (Pbit) is 1000^5 bits or 1000000000000000/8 bytes
     }
 
     # Convert the input value to bytes

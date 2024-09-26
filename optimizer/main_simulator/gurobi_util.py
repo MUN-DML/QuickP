@@ -30,7 +30,7 @@ def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rat
         -> Tuple[DeviceGraph, CompGraph]:
     # init device topo
     deviceTopo = DeviceGraph()
-    deviceTopo.generata_fat_tree_topo(num_device, 30, 20, 1)
+    deviceTopo.generata_fat_tree_topo(num_device, 50, 20, 2)
 
     if not os.path.exists(filename):
         model = model_type()
