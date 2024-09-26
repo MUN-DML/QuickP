@@ -6,6 +6,7 @@ def bert():
     classifier = keras_nlp.models.BertClassifier.from_preset(
         "bert_base_en_uncased",
         num_classes=2, # Since we use IMDB-review dataset
-        activation="softmax" # make from_logits=False in the loss function
+        activation="softmax", # make from_logits=False in the loss function
+        preprocessor = None,
     )
     return classifier

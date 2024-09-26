@@ -5,7 +5,6 @@ import numpy as np
 # it is weird that on my server, have to import torch to activate tensorflow
 import tensorflow as tf
 from keras import Sequential
-from keras_nlp.src.models import GPT2CausalLM
 from networkx import is_directed_acyclic_graph
 from transformers import TFGPT2LMHeadModel
 
