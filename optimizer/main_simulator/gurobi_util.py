@@ -26,19 +26,24 @@ def gurobi_setup(name: str):
     return model
 
 
-def init_computing_and_device_graph(num_device, filename: str, hetero_adjust_rate, model_type=TFModelEnum.SMALL) \
+def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=TFModelEnum.SMALL) \
         -> Tuple[DeviceGraph, CompGraph]:
+    # get the file path to retrieve and store
+    name_mapper = {TFModelEnum.BERT: 'bert', TFModelEnum.ALEXNET: 'alexnet', TFModelEnum.VGG: 'vgg', TFModelEnum.SMALL: 'small'}
+    appendix = name_mapper[model_type]
+    json_file_path = os.path.join(project_root, 'optimizer', 'computing_graph', 'profiled_computation_graph_json', f"comp_graph_{appendix}.json")
+
     # init device topo
     deviceTopo = DeviceGraph()
     deviceTopo.generata_fat_tree_topo(num_device, 50, 20, 2)
 
-    if not os.path.exists(filename):
+    if not os.path.exists(json_file_path):
         model = model_type()
         comp_graph = get_computation_graph(model=model)
         comp_graph.generata_random_cost(num_device, hetero_adjust_rate)
-        comp_graph.save_to_file(filename)
+        comp_graph.save_to_file(json_file_path)
 
-    comp_graph = CompGraph.load_from_file(filename)
+    comp_graph = CompGraph.load_from_file(json_file_path)
     comp_graph = keep_largest_component(comp_graph)
     # visualize_graph(comp_graph, show_node_labels=False, show_edge_labels=False)
     return deviceTopo, comp_graph

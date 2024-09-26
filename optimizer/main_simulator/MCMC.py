@@ -29,8 +29,8 @@ if __name__ == '__main__':
     }
 
     # init fake data
-    deviceTopo, comp_graph = init_computing_and_device_graph(graph_init["number_of_devices"], "comp_graph.json",
-                                                             None, model_type=graph_init["model_type"])
+    deviceTopo, comp_graph = init_computing_and_device_graph(graph_init["number_of_devices"], None,
+                                                             model_type=graph_init["model_type"])
     # init graph node/edge weight
     init_graph_weight(comp_graph, graph_init["node_weight_function"], graph_init["edge_weight_function"],
                       graph_init["weight_norm_function"])
