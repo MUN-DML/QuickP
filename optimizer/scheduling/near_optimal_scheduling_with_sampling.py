@@ -74,7 +74,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
         important_pairs = [pair for pair in device_unreachable_pairs_mapping[device] if
                            pair[0] in selected_nodes or pair[1] in selected_nodes]
         for op_a, op_b in important_pairs:
-            current_subgraph_dc = device_non_iso_part_mapping[device]
+            current_subgraph_dc = device_DC_mapping[device]
             assert op_a in current_subgraph_dc.nodes and op_b in current_subgraph_dc.nodes
             assert not nx.has_path(current_subgraph_dc, op_a, op_b)
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
