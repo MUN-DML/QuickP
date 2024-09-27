@@ -59,7 +59,7 @@ def show_optimization_solution(model, operator_device_placement: dict, comp_grap
     # init result dict
     result = {'totalLatency': model.ObjVal, 'Assignment': {}, 'CommunicationCosts': [], "CommunicationTimeLine": {},
               "device_utility_rate": {}, "total_communication_time": None, "total_computing_time_per_device": {}}
-    all_communication_period = []
+
     # populate result['Assignment']
     for key, value in operator_device_placement.items():
         # key[1] is the device id
@@ -101,22 +101,25 @@ def show_optimization_solution(model, operator_device_placement: dict, comp_grap
                 bandwidth = deviceTopo.get_link_bandwidth(s_placement, d_placement)
             result['CommunicationCosts'].append(
                 (source_op_ID, s_placement, dest_op_ID, d_placement, comm_cost[edge_id_tuple], tensor_size, bandwidth))
-            all_communication_period.append((comm_start_time, comm_end_time))
+
             # Populate the communication timeline divided by device
             if s_placement not in result['CommunicationTimeLine']:
                 result['CommunicationTimeLine'][s_placement] = []
-            if d_placement not in result['CommunicationTimeLine']:
-                result['CommunicationTimeLine'][d_placement] = []
 
+            # Append outgoing communications
             result['CommunicationTimeLine'][s_placement].append(
                 (source_op_ID, dest_op_ID, comm_start_time, comm_end_time, comm_cost[edge_id_tuple]))
 
-            # only show the sending timeline by device
-            # result['CommunicationTimeLine'][d_placement].append(
-            #     (source_op_ID, dest_op_ID, comm_start_time, comm_end_time, comm_cost))
     # Sort the communication timeline based on the starting time
     for device, timeline in result['CommunicationTimeLine'].items():
         result['CommunicationTimeLine'][device] = sorted(timeline, key=lambda x: x[2])
+
+    non_over_comm_cost = 0
+    # get all non-overlapping communication cost
+    for device, timeline in result['CommunicationTimeLine'].items():
+        communications = [(comm_start_time, comm_end_time) for _, _, comm_start_time, comm_end_time, _ in timeline]
+        non_over_comm_cost += calculate_real_total_cost(communications)
+
 
     # Print operator placement
     for device, op_info_tuples in result['Assignment'].items():
@@ -155,7 +158,7 @@ def show_optimization_solution(model, operator_device_placement: dict, comp_grap
     print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
     print('Expected Training time = ', model.ObjVal, 's', sep='')
     print("Device Utility Rate:", result['device_utility_rate'])
-    print("Total Communication Time:", result['total_communication_time'], "No overlapping time", calculate_real_total_cost(all_communication_period))
+    print("Total Communication Time:", result['total_communication_time'], "No overlapping time", non_over_comm_cost)
     print("total_computing_time_per_device:", result['total_computing_time_per_device'])
 
 
