@@ -38,6 +38,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
 
         # Merge isolated_node_list and sink_with_source_node_dependency
         stage_two = isolated_node_list | terminal_nodes_without_comm_np
+        # stage_2_3 = stage_two | set(wccs.nodes())
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
         # stage_two = sorted(list(stage_two), key=lambda node: topological_order_mapping[node])
