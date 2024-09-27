@@ -59,6 +59,7 @@ def show_optimization_solution(model, operator_device_placement: dict, comp_grap
     # init result dict
     result = {'totalLatency': model.ObjVal, 'Assignment': {}, 'CommunicationCosts': [], "CommunicationTimeLine": {},
               "device_utility_rate": {}, "total_communication_time": None, "total_computing_time_per_device": {}}
+    all_communication_period = []
     # populate result['Assignment']
     for key, value in operator_device_placement.items():
         # key[1] is the device id
@@ -100,6 +101,7 @@ def show_optimization_solution(model, operator_device_placement: dict, comp_grap
                 bandwidth = deviceTopo.get_link_bandwidth(s_placement, d_placement)
             result['CommunicationCosts'].append(
                 (source_op_ID, s_placement, dest_op_ID, d_placement, comm_cost[edge_id_tuple], tensor_size, bandwidth))
+            all_communication_period.append((comm_start_time, comm_end_time))
             # Populate the communication timeline divided by device
             if s_placement not in result['CommunicationTimeLine']:
                 result['CommunicationTimeLine'][s_placement] = []
@@ -153,7 +155,7 @@ def show_optimization_solution(model, operator_device_placement: dict, comp_grap
     print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
     print('Expected Training time = ', model.ObjVal, 's', sep='')
     print("Device Utility Rate:", result['device_utility_rate'])
-    print("Total Communication Time:", result['total_communication_time'])
+    print("Total Communication Time:", result['total_communication_time'], "No overlapping time", calculate_real_total_cost(all_communication_period))
     print("total_computing_time_per_device:", result['total_computing_time_per_device'])
 
 
@@ -346,3 +348,31 @@ def sort_edges_by_subgraph_and_dependency(edges, topo_order):
     return sorted_edges
 
 
+# Function to calculate the real total communication cost by merging overlapping intervals
+def calculate_real_total_cost(communications):
+    # Step 1: Sort intervals by start time
+    communications.sort(key=lambda x: x[0])
+
+    # Step 2: Merge overlapping intervals
+    merged_intervals = []
+    current_start, current_end = communications[0]
+
+    for i in range(1, len(communications)):
+        next_start, next_end = communications[i]
+
+        if next_start <= current_end:  # Overlapping interval, extend the current interval
+            current_end = max(current_end, next_end)
+        else:
+            # No overlap, add the current interval to merged_intervals
+            merged_intervals.append((current_start, current_end))
+            current_start, current_end = next_start, next_end
+
+    # Add the last interval
+    merged_intervals.append((current_start, current_end))
+
+    # Step 3: Calculate total communication cost
+    total_cost = 0
+    for start, end in merged_intervals:
+        total_cost += end - start
+
+    return total_cost
