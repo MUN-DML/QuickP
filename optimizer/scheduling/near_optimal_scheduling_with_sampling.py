@@ -8,7 +8,7 @@ from gurobipy import Model, GRB
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
 from optimizer.scheduling.scheduling_util import split_subgraph, handle_terminal_components_with_comm_end_point
-from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
+from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order, heteroG_scheduling_order
 
 
 def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
@@ -19,6 +19,8 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     order = {}
     device_DC_mapping = {}
     fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
+                                                   operator_device_mapping)
+    heteroG_operator_order, _ = heteroG_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                    operator_device_mapping)
 
     device_DC_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
@@ -39,11 +41,11 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
         stage_two = sorted(list(stage_two), key=lambda node: topological_order_mapping[node])
-        '''
-        local_fifo_order = fifo_operator_order[device]
+
+        local_fifo_order = heteroG_operator_order[device]
         node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
         stage_two = sorted(list(stage_two), key=lambda node: node_order_dict[node])
-        '''
+
         for a, b in zip(stage_two, stage_two[1:]):
             model.addConstr(finish[a] <= start[b])
         # the isolated part will start after the non-isolated part finished
@@ -53,7 +55,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
             model.addConstr(start[stage_two[0]] >= device_DC_finish[device])
 
         # Sort the sink_components
-        # handle_terminal_components_with_comm_end_point(subgraph, wccs, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two[-1])
+        handle_terminal_components_with_comm_end_point(subgraph, wccs, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two[-1], heteroG_operator_order)
 
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_DC_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
