@@ -49,7 +49,7 @@ def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=T
     return deviceTopo, comp_graph
 
 
-def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo: DeviceGraph, start: dict,
+def show_optimization_solution(model, operator_device_placement: dict, comp_graph: CompGraph, deviceTopo: DeviceGraph, start: dict,
                                finish: dict, comm_cost:dict, graph_partition=False, two_dime_node_list=None):
     if isinstance(list(comm_cost.values())[0], Var):
         comm_cost = {key: int(value.X) for key, value in comm_cost.items()}
@@ -60,14 +60,13 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
     result = {'totalLatency': model.ObjVal, 'Assignment': {}, 'CommunicationCosts': [], "CommunicationTimeLine": {},
               "device_utility_rate": {}, "total_communication_time": None, "total_computing_time_per_device": {}}
     # populate result['Assignment']
-    for key, value in x.items():
+    for key, value in operator_device_placement.items():
         # key[1] is the device id
-        if key[1] not in result['Assignment']:
-            result['Assignment'][key[1]] = []
+        if value not in result['Assignment']:
+            result['Assignment'][value] = []
         # key[0] is the operator id. Put id into the list assigned to the device
-        if value.X > 0.5:
-            # Assignment: {device: [(op1, start[op1], finish[op1]), (...)]}
-            result['Assignment'][key[1]].append((key[0], start[key[0]].X, finish[key[0]].X))
+        # Assignment: {device: [(op1, start[op1], finish[op1]), (...)]}
+        result['Assignment'][value].append((key, start[key].X, finish[key].X))
     # Sort operators by their start times for each device
     for device, ops in result['Assignment'].items():
         result['Assignment'][device] = sorted(ops, key=lambda x: x[1])
@@ -122,10 +121,8 @@ def show_optimization_solution(model, x: dict, comp_graph: CompGraph, deviceTopo
         sum_comp = 0
         print(f"Device: {device}")
         for op_tuple in op_info_tuples:
-            comp_cost = 0  # Initialize computation cost for the current operator
-            for device_id in deviceTopo.getDeviceIDs():
-                comp_cost += x[op_tuple[0], device_id].X * comp_graph.getOperatorCompCostByDevice(op_tuple[0],
-                                                                                                  device_id)
+            op = op_tuple[0]
+            comp_cost = comp_graph.getOperatorCompCostByDevice(op, operator_device_placement[op])
             sum_comp += comp_cost
             if comp_cost == 0:
                 continue
