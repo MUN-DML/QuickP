@@ -31,7 +31,7 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
         non_connected_pairs = find_non_connected_pairs(subgraph)
         all_non_connected_pairs.extend(non_connected_pairs)
 
-    for i in range(0, 100):
+    for i in range(0, 10):
         random_tuple = random.choice(all_non_connected_pairs)
         assigned_device = operator_device_mapping[random_tuple[0]]
         new_strategy = current_strategy["scheduling"].copy()
@@ -46,6 +46,8 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
         if new_latency < current_strategy["latency"]:
             current_strategy["scheduling"] = new_strategy
             current_strategy["latency"] = new_latency
+
+    print(current_strategy["latency"])
 
 
 if __name__ == '__main__':
