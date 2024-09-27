@@ -94,7 +94,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     return new_graph, terminal_components_to_be_optimized, isolate_terminal_nodes, terminal_nodes_without_comm_np
 
 
-def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish):
+def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, stage_two_last):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(components_to_be_op))
     # Convert each wcc (which is a set) to a tuple and store it in a list
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
@@ -125,6 +125,7 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
         assert sorted_nodes[0] in comm_end_nodes
         # Apply sequential constraint
         model.addConstr(wcc_start[wcc] == start[sorted_nodes[0]])
+        model.addConstr(wcc_start[wcc] >= finish[stage_two_last])
         model.addConstr(wcc_finish[wcc] == finish[sorted_nodes[-1]])
         for a, b in zip(sorted_nodes, sorted_nodes[1:]):
             model.addConstr(finish[a] <= start[b])
@@ -137,3 +138,9 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
         model.addConstr(wcc_start[wcc2] >= wcc_finish[wcc] - M * (1 - order_wcc[wcc, wcc2]))
         model.addConstr(wcc_start[wcc] >= wcc_finish[wcc2] - M * order_wcc[wcc, wcc2])
 
+    '''
+    sorted_all_nodes = sorted(list(all_nodes), key=lambda node: topological_order_mapping[node])
+    model.addConstr(start[sorted_all_nodes[0]] >= finish[stage_two_last])
+    for a, b in zip(sorted_all_nodes, sorted_all_nodes[1:]):
+        model.addConstr(finish[a] <= start[b])
+    '''
