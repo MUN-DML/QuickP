@@ -20,7 +20,14 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo,
     init_order_dict, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                operator_device_mapping)
     # Execute the simulation
-    expected_training = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list, init_order_dict)
+    init_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list, init_order_dict)
+
+    current_strategy = {"scheduling": init_order_dict, "latency": init_latency}
+
+    # for device, subgraph in device_subgraph_mapping.items():
+
+
+
 
     time_limit = 120
 

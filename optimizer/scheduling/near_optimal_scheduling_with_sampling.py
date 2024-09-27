@@ -17,11 +17,11 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     # The global data dependency is already applied
     M = 1000000
     order = {}
-    device_non_iso_part_mapping = {}
+    device_DC_mapping = {}
     fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                    operator_device_mapping)
 
-    device_non_isolated_part_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+    device_DC_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
                                                     name="non_isolated_part_finish")
     topological_order = list(nx.topological_sort(comp_graph))
     topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
@@ -30,31 +30,31 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
-        subgraph_non_iso_part, wccs, isolated_node_list, terminal_nodes_without_comm_np= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
+        depended_component, wccs, isolated_node_list, terminal_nodes_without_comm_np= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
         # Map non_iso_part to device
-        device_non_iso_part_mapping[device] = subgraph_non_iso_part
+        device_DC_mapping[device] = depended_component
 
         # Merge isolated_node_list and sink_with_source_node_dependency
-        iso_and_sink_with_source = isolated_node_list | terminal_nodes_without_comm_np
+        stage_two = isolated_node_list | terminal_nodes_without_comm_np
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
-        iso_and_sink_with_source = sorted(list(iso_and_sink_with_source), key=lambda node: topological_order_mapping[node])
-        for a, b in zip(iso_and_sink_with_source, iso_and_sink_with_source[1:]):
+        stage_two = sorted(list(stage_two), key=lambda node: topological_order_mapping[node])
+        for a, b in zip(stage_two, stage_two[1:]):
             model.addConstr(finish[a] <= start[b])
         # the isolated part will start after the non-isolated part finished
-        for non_isolated_node in subgraph_non_iso_part.getOperatorIDs():
-            model.addConstr(device_non_isolated_part_finish[device] >= finish[non_isolated_node])
-        if len(iso_and_sink_with_source) > 0:
-            model.addConstr(start[iso_and_sink_with_source[0]] >= device_non_isolated_part_finish[device])
+        for depended_node in depended_component.getOperatorIDs():
+            model.addConstr(device_DC_finish[device] >= finish[depended_node])
+        if len(stage_two) > 0:
+            model.addConstr(start[stage_two[0]] >= device_DC_finish[device])
 
         # Sort the sink_components
         handle_terminal_components_with_comm_end_point(subgraph, wccs, device, operator_device_mapping, edge_cut_list, model, start, finish)
 
-    device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_non_iso_part_mapping)
+    device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_DC_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
                                               sampling_function=sampling_function)
 
-    for device, non_iso_part in device_non_iso_part_mapping.items():
+    for device, non_iso_part in device_DC_mapping.items():
 
         # flatten the pairs to get all the non-repeated nodes, convert to list
         selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], \
@@ -117,10 +117,10 @@ class SamplingFunction(Enum):
     HEAVY_HITTER = "HEAVY_HITTER"
 
 
-def get_device_unreachable_pairs_mapping(device_non_iso_mapping: dict):
+def get_device_unreachable_pairs_mapping(device_DC_mapping: dict):
     mapping = {}
     global_all_nodes = set()
-    for device, non_iso_part in device_non_iso_mapping.items():
+    for device, non_iso_part in device_DC_mapping.items():
         # there will be no pairs with the same element
         non_connected_pairs = find_non_connected_pairs(non_iso_part)
         mapping[device] = non_connected_pairs
