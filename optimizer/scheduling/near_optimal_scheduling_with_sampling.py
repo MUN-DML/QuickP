@@ -40,8 +40,8 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
         stage_two = isolated_node_list | terminal_nodes_without_comm_np
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
-        stage_two = sorted(list(stage_two), key=lambda node: topological_order_mapping[node])
-
+        # stage_two = sorted(list(stage_two), key=lambda node: topological_order_mapping[node])
+        # local_fifo_order = fifo_operator_order[device]
         local_fifo_order = heteroG_operator_order[device]
         node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
         stage_two = sorted(list(stage_two), key=lambda node: node_order_dict[node])
