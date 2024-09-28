@@ -5,6 +5,7 @@ from itertools import combinations
 
 import networkx as nx
 from gurobipy import Model, GRB
+from networkx.classes import DiGraph, Graph
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
 from optimizer.scheduling.scheduling_util import split_subgraph, handle_terminal_components_with_comm_end_point
@@ -17,12 +18,12 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     # The global data dependency is already applied
     M = 1000000
     order = {}
-    device_DC_mapping = {}
+    stage_to_be_optimize_mapping: dict[any, Graph] = {}
     fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
                                                    operator_device_mapping)
 
-    device_DC_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
-                                                    name="non_isolated_part_finish")
+    stage_two_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+                                     name="non_isolated_part_finish")
     topological_order = list(nx.topological_sort(comp_graph))
     topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
 
@@ -32,29 +33,37 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
         # Simply the search space by
         stage_one, dependent_depended, isolated_node_list, terminal_nodes_without_comm_np, wccs_stage_three= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
         # Map non_iso_part to device
-        device_DC_mapping[device] = stage_one
+        stage_to_be_optimize_mapping[device] = comp_graph.subgraph(dependent_depended)
+
+        # stage_one => random topo sort, since no node depends on nodes on other device, no device idle time
+        stage_one = sorted(list(stage_one.nodes), key=lambda node: topological_order_mapping[node])
+        for a, b in zip(stage_one, stage_one[1:]):
+            model.addConstr(finish[a] <= start[b])
+
+        # stage two
+        for stage_two_node in dependent_depended:
+            model.addConstr(start[stage_two_node] >= finish[stage_one[-1]])
+            model.addConstr(stage_two_finish[device] >= finish[stage_two_node])
+
 
         # Merge isolated_node_list and sink_with_source_node_dependency
-        stage_two = isolated_node_list | terminal_nodes_without_comm_np | dependent_depended
+        stage_three = isolated_node_list | terminal_nodes_without_comm_np
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
-        stage_two = sorted(list(stage_two), key=lambda node: topological_order_mapping[node])
-        for a, b in zip(stage_two, stage_two[1:]):
+        stage_three = sorted(list(stage_three), key=lambda node: topological_order_mapping[node])
+        for a, b in zip(stage_three, stage_three[1:]):
             model.addConstr(finish[a] <= start[b])
-        # the isolated part will start after the non-isolated part finished
-        for depended_node in stage_one.getOperatorIDs():
-            model.addConstr(device_DC_finish[device] >= finish[depended_node])
-        if len(stage_two) > 0:
-            model.addConstr(start[stage_two[0]] >= device_DC_finish[device])
+        if len(stage_three) > 0:
+            model.addConstr(start[stage_three[0]] >= stage_two_finish[device])
 
         # Sort the sink_components
-        handle_terminal_components_with_comm_end_point(subgraph, wccs_stage_three, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two_last=stage_two[-1])
+        handle_terminal_components_with_comm_end_point(subgraph, wccs_stage_three, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two_last=stage_three[-1])
 
-    device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_DC_mapping)
+    device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(stage_to_be_optimize_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
                                               sampling_function=sampling_function)
 
-    for device, non_iso_part in device_DC_mapping.items():
+    for device, non_iso_part in stage_to_be_optimize_mapping.items():
 
         # flatten the pairs to get all the non-repeated nodes, convert to list
         selected_nodes, other_nodes = global_node_split_by_device.get(device)["selected_list"], \
@@ -74,7 +83,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
         important_pairs = [pair for pair in device_unreachable_pairs_mapping[device] if
                            pair[0] in selected_nodes or pair[1] in selected_nodes]
         for op_a, op_b in important_pairs:
-            current_subgraph_dc = device_DC_mapping[device]
+            current_subgraph_dc = stage_to_be_optimize_mapping[device]
             assert op_a in current_subgraph_dc.nodes and op_b in current_subgraph_dc.nodes
             assert not nx.has_path(current_subgraph_dc, op_a, op_b)
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
@@ -117,12 +126,12 @@ class SamplingFunction(Enum):
     HEAVY_HITTER = "HEAVY_HITTER"
 
 
-def get_device_unreachable_pairs_mapping(device_DC_mapping: dict):
+def get_device_unreachable_pairs_mapping(device_DC_mapping: dict[any, Graph]):
     mapping = {}
     global_all_nodes = set()
-    for device, non_iso_part in device_DC_mapping.items():
+    for device, graph in device_DC_mapping.items():
         # there will be no pairs with the same element
-        non_connected_pairs = find_non_connected_pairs(non_iso_part)
+        non_connected_pairs = find_non_connected_pairs(graph)
         mapping[device] = non_connected_pairs
         # flatten the pairs to get all the non-repeated nodes, convert to list
         global_all_nodes.update({node for pair in non_connected_pairs for node in pair})
