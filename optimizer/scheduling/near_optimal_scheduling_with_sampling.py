@@ -38,25 +38,28 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
 
         # Merge isolated_node_list and sink_with_source_node_dependency
         stage_two = isolated_node_list | terminal_nodes_without_comm_np
-        # stage_2_3 = stage_two | set(wccs.nodes())
+        stage_2_3 = stage_two | set(wccs.nodes())
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
         # stage_two = sorted(list(stage_two), key=lambda node: topological_order_mapping[node])
         # local_fifo_order = fifo_operator_order[device]
-        local_fifo_order = heteroG_operator_order[device]
-        node_order_dict = {op: idx for idx, op in enumerate(local_fifo_order)}
-        stage_two = sorted(list(stage_two), key=lambda node: node_order_dict[node])
-
-        for a, b in zip(stage_two, stage_two[1:]):
-            model.addConstr(finish[a] <= start[b])
         # the isolated part will start after the non-isolated part finished
         for depended_node in depended_component.getOperatorIDs():
             model.addConstr(device_DC_finish[device] >= finish[depended_node])
-        if len(stage_two) > 0:
-            model.addConstr(start[stage_two[0]] >= device_DC_finish[device])
+        for node in stage_2_3:
+            model.addConstr(start[node] >= device_DC_finish[device])
+
+        non_depended = subgraph.subgraph(stage_2_3)
+        pairs = find_non_connected_pairs(non_depended)
+        print("hhh", pairs)
+        for op_a, op_b in pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+
 
         # Sort the sink_components
-        handle_terminal_components_with_comm_end_point(subgraph, wccs, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two[-1], heteroG_operator_order)
+        # handle_terminal_components_with_comm_end_point(subgraph, wccs, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two[-1], heteroG_operator_order)
 
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_DC_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
