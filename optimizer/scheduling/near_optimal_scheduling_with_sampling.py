@@ -33,7 +33,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
         # Simply the search space by
         stage_one, dependent_depended, isolated_node_list, terminal_nodes_without_comm_np, wccs_stage_three= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
         # Map non_iso_part to device
-        stage_to_be_optimize_mapping[device] = comp_graph.subgraph(dependent_depended)
+        stage_to_be_optimize_mapping[device] = comp_graph.subgraph(dependent_depended | isolated_node_list)
 
         # stage_one => random topo sort, since no node depends on nodes on other device, no device idle time
         stage_one = sorted(list(stage_one.nodes), key=lambda node: topological_order_mapping[node])
@@ -41,13 +41,13 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
             model.addConstr(finish[a] <= start[b])
 
         # stage two
-        for stage_two_node in dependent_depended:
+        for stage_two_node in dependent_depended | isolated_node_list:
             model.addConstr(start[stage_two_node] >= finish[stage_one[-1]])
             model.addConstr(stage_two_finish[device] >= finish[stage_two_node])
 
 
         # Merge isolated_node_list and sink_with_source_node_dependency
-        stage_three = isolated_node_list | terminal_nodes_without_comm_np
+        stage_three = terminal_nodes_without_comm_np
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
         stage_three = sorted(list(stage_three), key=lambda node: topological_order_mapping[node])
