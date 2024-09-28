@@ -57,10 +57,23 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
             model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
             model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
 
+        dc_pairs = find_non_connected_pairs(depended_component)
+        for op_a, op_b in dc_pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
 
+        # optimal
+        '''
+        all_pairs = find_non_connected_pairs(subgraph)
+        for op_a, op_b in all_pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+        '''
         # Sort the sink_components
         # handle_terminal_components_with_comm_end_point(subgraph, wccs, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two[-1], heteroG_operator_order)
-
+    '''
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_DC_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
                                               sampling_function=sampling_function)
@@ -91,7 +104,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
             model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
             model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
-
+    '''
     '''
     for device, subgraph in device_subgraph_mapping.items():
         outgoings = [edge for edge in edge_cut_list if edge[0] in subgraph]
