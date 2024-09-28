@@ -57,7 +57,7 @@ def get_test_graph():
     for node in G.nodes():
         G.nodes[node]['comp_cost'] = comp_cost_dict
     for edge in G.edges():
-        G.edges[edge]['tensor_size_in_bit'] = 160000000
+        G.edges[edge]['tensor_size_in_bit'] = 800000
 
     assert nx.is_directed_acyclic_graph(G)
     '''

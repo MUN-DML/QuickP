@@ -11,4 +11,4 @@ class TFModelEnum(Enum):
     SMALL = small_tf
     ALEXNET = alexnet
     BERT = bert
-    Test = "TEST"
+    TEST = "TEST"

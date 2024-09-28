@@ -30,7 +30,7 @@ def gurobi_setup(name: str):
 
 def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=TFModelEnum.SMALL) \
         -> Tuple[DeviceGraph, CompGraph]:
-    if model_type == TFModelEnum.Test:
+    if model_type == TFModelEnum.TEST:
         graph = get_test_graph()
         deviceTopo = DeviceGraph()
         deviceTopo.generata_fat_tree_topo(num_device, None, 20, 1)
