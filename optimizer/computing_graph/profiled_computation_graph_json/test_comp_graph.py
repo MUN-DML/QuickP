@@ -18,7 +18,6 @@ def get_test_graph():
         ('d0_1', 'd0_5'),
         ('d0_5', 'd0_6'),
         ('d0_4', 'd0_7')
-
     ])
 
     # Edges within Device 2
@@ -28,7 +27,9 @@ def get_test_graph():
         ('d1_3', 'd1_4'),   # d2_3 -> d2_4
         ('d1_1', 'd1_5'),
         ('d1_5', 'd1_6'),
-        ('d1_4', 'd1_7')
+        ('d1_4', 'd1_7'),
+        ('d1_4', 'd1_8'),
+        ('d1_8', 'd1_9')
     ])
 
     # Edges within Device 3
@@ -42,14 +43,14 @@ def get_test_graph():
 
     # From Device 1 to Device 2
     G.add_edges_from([
-        ('d0_2', 'd1_1'),  # d1_2 -> d2_1
+        ('d0_2', 'd1_2'),  # d1_2 -> d2_1
         ('d0_4', 'd1_3')   # d1_4 -> d2_3
     ])
 
     # From Device 2 to Device 3
     G.add_edges_from([
-        ('d1_2', 'd2_1'),  # d2_2 -> d3_1
-        ('d1_4', 'd2_3')   # d2_4 -> d3_3
+        ('d1_2', 'd2_4'),  # d2_2 -> d3_1
+        ('d1_4', 'd2_4')   # d2_4 -> d3_3
     ])
 
     # Step 5: Assign the "comp_cost" attribute = 5 to every node
@@ -57,7 +58,7 @@ def get_test_graph():
     for node in G.nodes():
         G.nodes[node]['comp_cost'] = comp_cost_dict
     for edge in G.edges():
-        G.edges[edge]['tensor_size_in_bit'] = 800000
+        G.edges[edge]['tensor_size_in_bit'] = 1600000
 
     assert nx.is_directed_acyclic_graph(G)
     '''
