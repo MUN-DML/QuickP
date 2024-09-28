@@ -201,3 +201,48 @@ def split_nodes(graph: CompGraph, node_list, device_list: list,
         result_dict[operator_device_mapping[unselected_node]]["unselected_list"].append(unselected_node)
 
     return result_dict
+
+
+def stage_optimal_verify(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
+                                          device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
+                                          rho, sampling_function):
+    # The global data dependency is already applied
+    M = 1000000
+    order = {}
+    device_DC_mapping = {}
+    fifo_operator_order, _ = FIFO_scheduling_order(comp_graph, device_subgraph_mapping, edge_cut_list,
+                                                   operator_device_mapping)
+
+    device_DC_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+                                                    name="non_isolated_part_finish")
+    topological_order = list(nx.topological_sort(comp_graph))
+    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
+
+    # form new device non-isolated part mapping
+    # split into isolated and non-isolated part
+    for device, subgraph in device_subgraph_mapping.items():
+        # Simply the search space by
+        stage_one, dependent_depended, isolated_node_list, terminal_nodes_without_comm_np, wccs_stage_three= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
+        # Map non_iso_part to device
+        device_DC_mapping[device] = stage_one
+
+        # Merge isolated_node_list and sink_with_source_node_dependency
+        stage_two = isolated_node_list | terminal_nodes_without_comm_np | dependent_depended | set(wccs_stage_three.nodes)
+
+        for depended_node in stage_one.getOperatorIDs():
+            model.addConstr(device_DC_finish[device] >= finish[depended_node])
+        for node in stage_two:
+            model.addConstr(start[node] >= device_DC_finish[device])
+
+        non_depended = subgraph.subgraph(stage_two)
+        pairs = find_non_connected_pairs(non_depended)
+        for op_a, op_b in pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+
+        dc_pairs = find_non_connected_pairs(stage_one)
+        for op_a, op_b in dc_pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
