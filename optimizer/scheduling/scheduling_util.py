@@ -94,7 +94,7 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
     return new_graph, terminal_components_to_be_optimized, isolate_terminal_nodes, terminal_nodes_without_comm_np
 
 
-def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, stage_two_last, self_define_order_dict):
+def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, stage_two_last):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(components_to_be_op))
     # Convert each wcc (which is a set) to a tuple and store it in a list
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
@@ -118,7 +118,6 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
             raise ValueError(i, "does not have depedency from other subgraph")
 
     # node that directly connected with a cross device dependency
-    '''
     for wcc in wcc_tuples:
         sorted_nodes = sorted(list(wcc), key=lambda node: topological_order_mapping[node])
         # check the first node in each wcc is a comm end node
@@ -137,12 +136,3 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
         order_wcc[wcc, wcc2] = model.addVar(vtype=GRB.BINARY)
         model.addConstr(wcc_start[wcc2] >= wcc_finish[wcc] - M * (1 - order_wcc[wcc, wcc2]))
         model.addConstr(wcc_start[wcc] >= wcc_finish[wcc2] - M * order_wcc[wcc, wcc2])
-    '''
-
-    self_define_order = self_define_order_dict[device]
-    node_order_dict = {op: idx for idx, op in enumerate(self_define_order)}
-
-    sorted_all_nodes = sorted(list(all_nodes), key=lambda node: topological_order_mapping[node])
-    model.addConstr(start[sorted_all_nodes[0]] >= finish[stage_two_last])
-    for a, b in zip(sorted_all_nodes, sorted_all_nodes[1:]):
-        model.addConstr(finish[a] <= start[b])
