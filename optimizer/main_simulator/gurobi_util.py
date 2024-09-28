@@ -3,6 +3,8 @@ from typing import Tuple
 
 from gurobipy import *
 
+from optimizer.computing_graph.profiled_computation_graph_json.test_comp_graph import get_test_graph
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
@@ -28,6 +30,13 @@ def gurobi_setup(name: str):
 
 def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=TFModelEnum.SMALL) \
         -> Tuple[DeviceGraph, CompGraph]:
+    if model_type == TFModelEnum.Test:
+        graph = get_test_graph()
+        deviceTopo = DeviceGraph()
+        deviceTopo.generata_fat_tree_topo(num_device, None, 20, 1)
+        return deviceTopo, graph
+
+
     # get the file path to retrieve and store
     name_mapper = {TFModelEnum.BERT: 'bert', TFModelEnum.ALEXNET: 'alexnet', TFModelEnum.VGG: 'vgg', TFModelEnum.SMALL: 'small'}
     appendix = name_mapper[model_type]

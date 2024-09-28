@@ -8,13 +8,13 @@ from optimizer.operator_device_placement.metis.subgraph_util import map_subgraph
 from optimizer.operator_device_placement.optimal.optimal_placement import get_optimize_placement
 from optimizer.operator_device_placement.optimal_homo.optimal_placement_homo import get_optimize_placement_homo
 from optimizer.main_simulator.gurobi_util import get_subgraph_op_num_weight_sum_dict
+from optimizer.operator_device_placement.test.test_placement import get_test_device_placement
 
 
 class PlacementGenerator(Enum):
     METIS = "METIS"
+    TEST = "TEST"
     OPTIMIZED = "OPTIMIZED"
-    NEAR_OPTIMAL = "NEAR_OPTIMAL"
-    OPTIMIZED_HOMO = "OPTIMIZED_HOMO"
 
 
 def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: DeviceGraph):
@@ -31,14 +31,10 @@ def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: 
         operator_device_mapping = get_optimize_placement(comp_graph, device_topo)
         edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
 
-    elif placement_type == PlacementGenerator.OPTIMIZED_HOMO.value:
-        operator_device_mapping = get_optimize_placement_homo(comp_graph, device_topo)
+    elif placement_type == PlacementGenerator.TEST.value:
+        operator_device_mapping = get_test_device_placement(comp_graph, device_topo)
         edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
-
-    elif placement_type == "NEAR_OPTIMAL":
-        operator_device_mapping = get_near_optimal_placement(comp_graph, device_topo)
-        print("fuck", operator_device_mapping)
-        edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
+        print("edge_cut_list", edge_cut_list)
 
     else:
         print(placement_type, "does not support this placement type")

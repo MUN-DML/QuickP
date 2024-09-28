@@ -15,9 +15,9 @@ Isolated Nodes: Nodes that neither serve as dependencies for other subgraphs nor
 '''
 
 
-def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
+def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
     CompGraph, Any, set[Any], set[Any]]:
-    device = operator_device_mapping[list(graph.nodes)[0]]
+    device = operator_device_mapping[list(subgraph.nodes)[0]]
     outgoing_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
     incoming_edges = [(u, v) for u, v in edge_cut_list if
@@ -25,23 +25,23 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     comm_end_nodes = set(v for u, v in edge_cut_list if operator_device_mapping.get(v) == device)
 
     def get_depended_node_set(node):
-        destination_node_depended = set(v for (u, v) in outgoing_edges if nx.has_path(graph, node, u))
+        destination_node_depended = set(v for (u, v) in outgoing_edges if nx.has_path(subgraph, node, u))
         for node in destination_node_depended:
             assert operator_device_mapping.get(node) != device
         return destination_node_depended
 
     def get_depending_node_set(node):
-        source_node_depended = set(u for (u, v) in incoming_edges if nx.has_path(graph, v, node))
+        source_node_depended = set(u for (u, v) in incoming_edges if nx.has_path(subgraph, v, node))
         for node in source_node_depended:
             assert operator_device_mapping.get(node) != device
         return source_node_depended
 
     # Create a copy of the original graph
-    new_graph = graph.copy()
+    new_graph = subgraph.copy()
 
     # Iterate over the nodes and remove those with 0 related subgraphs
-    terminal_node = set(node for node in graph.nodes if len(get_depended_node_set(node)) == 0)
-    depended_node = set(graph.nodes) - terminal_node
+    terminal_node = set(node for node in subgraph.nodes if len(get_depended_node_set(node)) == 0)
+    depended_node = set(subgraph.nodes) - terminal_node
 
     isolate_terminal_nodes = set(node for node in terminal_node if len(get_depending_node_set(node)) == 0)
 
@@ -50,7 +50,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     # Remove the nodes from the copied graph
     new_graph.remove_nodes_from(terminal_node)
 
-    terminal_components_to_be_optimized = graph.subgraph(non_isolated_terminal_nodes).copy()
+    terminal_components_to_be_optimized = subgraph.subgraph(non_isolated_terminal_nodes).copy()
 
     # Identify weakly connected components whose entire predecessors are from source nodes
     terminal_nodes_without_comm_np = set()
@@ -60,7 +60,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
         wcc_predecessors = set()
         for node in wcc:
             # Get all predecessors of the current node
-            for predecessor in graph.predecessors(node):
+            for predecessor in subgraph.predecessors(node):
                 # Only add the predecessor if it's not part of the weakly_connected_component
                 if predecessor not in wcc:
                     wcc_predecessors.add(predecessor)
@@ -72,7 +72,7 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
     def visualize():
         # Draw the nodes with different colors based on their group
         color_map = []
-        for node, data in graph.nodes(data=True):  # Unpack node and attributes
+        for node, data in subgraph.nodes(data=True):  # Unpack node and attributes
             if node in depended_node:
                 color_map.append('red')
             elif node in isolate_terminal_nodes:
@@ -84,10 +84,10 @@ def split_subgraph(graph: CompGraph, operator_device_mapping, edge_cut_list) -> 
             else:
                 color_map.append('gray')  # Optional: to handle nodes not in any of the sets
 
-        pos = nx.spring_layout(graph)
+        pos = nx.spring_layout(subgraph)
         # Plot the graph
         plt.figure(figsize=(10, 8))
-        nx.draw(graph, pos, node_color=color_map, with_labels=False, node_size=200)
+        nx.draw(subgraph, pos, node_color=color_map, with_labels=False, node_size=200)
         plt.title("Visualization of Node Groups")
         plt.show()
 
