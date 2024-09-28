@@ -16,7 +16,7 @@ Isolated Nodes: Nodes that neither serve as dependencies for other subgraphs nor
 
 
 def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
-    CompGraph, Any, set[Any], set[Any]]:
+    CompGraph, set, set[Any], set[Any], Any]:
     device = operator_device_mapping[list(subgraph.nodes)[0]]
     outgoing_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
@@ -37,24 +37,25 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
         return source_node_depended
 
     # Create a copy of the original graph
-    new_graph = subgraph.copy()
+    stage_one = subgraph.copy()
 
     # Iterate over the nodes and remove those with 0 related subgraphs
     terminal_node = set(node for node in subgraph.nodes if len(get_depended_node_set(node)) == 0)
-    depended_node = set(subgraph.nodes) - terminal_node
-
     isolate_terminal_nodes = set(node for node in terminal_node if len(get_depending_node_set(node)) == 0)
-
     non_isolated_terminal_nodes = terminal_node - isolate_terminal_nodes
 
+    depended_node = set(subgraph.nodes) - terminal_node
+    independent_depended = set(node for node in depended_node if len(get_depending_node_set(node)) == 0)
+    dependent_depended = depended_node - independent_depended
+
     # Remove the nodes from the copied graph
-    new_graph.remove_nodes_from(terminal_node)
+    stage_one.remove_nodes_from(terminal_node | dependent_depended)
 
-    terminal_components_to_be_optimized = subgraph.subgraph(non_isolated_terminal_nodes).copy()
+    stage_three = subgraph.subgraph(non_isolated_terminal_nodes).copy()
 
-    # Identify weakly connected components whose entire predecessors are from source nodes
+    # Identify weakly connected components whose entire predecessors are from depdended and isolated nodes
     terminal_nodes_without_comm_np = set()
-    weakly_connected_components: list[set] = list(nx.weakly_connected_components(terminal_components_to_be_optimized))
+    weakly_connected_components: list[set] = list(nx.weakly_connected_components(stage_three))
 
     for wcc in weakly_connected_components:
         wcc_predecessors = set()
@@ -67,7 +68,7 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
         if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes) and wcc.isdisjoint(comm_end_nodes):
             terminal_nodes_without_comm_np.update(wcc)
             # remove this part from sink_components
-            terminal_components_to_be_optimized.remove_nodes_from(wcc)
+            stage_three.remove_nodes_from(wcc)
 
     def visualize():
         # Draw the nodes with different colors based on their group
@@ -77,7 +78,7 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
                 color_map.append('red')
             elif node in isolate_terminal_nodes:
                 color_map.append('blue')
-            elif node in terminal_components_to_be_optimized:
+            elif node in stage_three:
                 color_map.append('green')
             elif node in terminal_nodes_without_comm_np:
                 color_map.append('purple')
@@ -90,8 +91,8 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
         nx.draw(subgraph, pos, node_color=color_map, with_labels=False, node_size=200)
         plt.title("Visualization of Node Groups")
         plt.show()
-
-    return new_graph, terminal_components_to_be_optimized, isolate_terminal_nodes, terminal_nodes_without_comm_np
+    assert len(subgraph.nodes) == len(stage_one.nodes) + len(dependent_depended)  + len(isolate_terminal_nodes) + len(terminal_nodes_without_comm_np) + len(stage_three.nodes)
+    return stage_one, dependent_depended, isolate_terminal_nodes, terminal_nodes_without_comm_np, stage_three
 
 
 def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, stage_two_last):

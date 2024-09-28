@@ -30,25 +30,25 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
-        depended_component, wccs, isolated_node_list, terminal_nodes_without_comm_np= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
+        stage_one, dependent_depended, isolated_node_list, terminal_nodes_without_comm_np, wccs_stage_three= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
         # Map non_iso_part to device
-        device_DC_mapping[device] = depended_component
+        device_DC_mapping[device] = stage_one
 
         # Merge isolated_node_list and sink_with_source_node_dependency
-        stage_two = isolated_node_list | terminal_nodes_without_comm_np
+        stage_two = isolated_node_list | terminal_nodes_without_comm_np | dependent_depended
 
         # Sort the isolated node list according to topo order and apply a sequential constraint, from set to sorted list
         stage_two = sorted(list(stage_two), key=lambda node: topological_order_mapping[node])
         for a, b in zip(stage_two, stage_two[1:]):
             model.addConstr(finish[a] <= start[b])
         # the isolated part will start after the non-isolated part finished
-        for depended_node in depended_component.getOperatorIDs():
+        for depended_node in stage_one.getOperatorIDs():
             model.addConstr(device_DC_finish[device] >= finish[depended_node])
         if len(stage_two) > 0:
             model.addConstr(start[stage_two[0]] >= device_DC_finish[device])
 
         # Sort the sink_components
-        handle_terminal_components_with_comm_end_point(subgraph, wccs, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two_last=stage_two[-1])
+        handle_terminal_components_with_comm_end_point(subgraph, wccs_stage_three, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two_last=stage_two[-1])
 
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(device_DC_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
