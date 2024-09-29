@@ -173,8 +173,26 @@ def three_stage_split_subgraph(subgraph: CompGraph, operator_device_mapping, edg
 
     # Remove the nodes from the copied graph
     stage_one = subgraph.subgraph(independent_depended)
-    stage_two = subgraph.subgraph(isolate_terminal_nodes | dependent_depended)
-    stage_three = subgraph.subgraph(non_isolated_terminal_nodes)
+    stage_three = subgraph.subgraph(non_isolated_terminal_nodes).copy()
+
+    # Identify weakly connected components whose entire predecessors are from depdended and isolated nodes
+    terminal_nodes_without_comm_np = set()
+    weakly_connected_components: list[set] = list(nx.weakly_connected_components(stage_three))
+
+    for wcc in weakly_connected_components:
+        wcc_predecessors = set()
+        for node in wcc:
+            # Get all predecessors of the current node
+            for predecessor in subgraph.predecessors(node):
+                # Only add the predecessor if it's not part of the weakly_connected_component
+                if predecessor not in wcc:
+                    wcc_predecessors.add(predecessor)
+        if wcc_predecessors.issubset(depended_node | isolate_terminal_nodes) and wcc.isdisjoint(comm_end_nodes):
+            terminal_nodes_without_comm_np.update(wcc)
+            # remove this part from sink_components
+            stage_three.remove_nodes_from(wcc)
+
+    stage_two = subgraph.subgraph(isolate_terminal_nodes | dependent_depended | terminal_nodes_without_comm_np)
 
 
     assert len(subgraph.nodes) == len(stage_one.nodes) + len(stage_two.nodes) + len(stage_three.nodes)
