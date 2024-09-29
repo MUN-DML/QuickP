@@ -17,7 +17,7 @@ Isolated Nodes: Nodes that neither serve as dependencies for other subgraphs nor
 
 
 def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
-    CompGraph, set, set[Any], set[Any], Any]:
+    Graph, set, set[Any], set[Any], Any]:
     device = operator_device_mapping[list(subgraph.nodes)[0]]
     outgoing_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
@@ -37,9 +37,6 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
             assert operator_device_mapping.get(node) != device
         return source_node_depended
 
-    # Create a copy of the original graph
-    stage_one = subgraph.copy()
-
     # Iterate over the nodes and remove those with 0 related subgraphs
     terminal_node = set(node for node in subgraph.nodes if len(get_depended_node_set(node)) == 0)
     isolate_terminal_nodes = set(node for node in terminal_node if len(get_depending_node_set(node)) == 0)
@@ -50,8 +47,7 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
     dependent_depended = depended_node - independent_depended
 
     # Remove the nodes from the copied graph
-    stage_one.remove_nodes_from(terminal_node | dependent_depended)
-
+    stage_one = subgraph.subgraph(independent_depended)
     stage_three = subgraph.subgraph(non_isolated_terminal_nodes).copy()
 
     # Identify weakly connected components whose entire predecessors are from depdended and isolated nodes
@@ -96,7 +92,7 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
     return stage_one, dependent_depended, isolate_terminal_nodes, terminal_nodes_without_comm_np, stage_three
 
 
-def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, stage_two_last):
+def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, last_stage_finish):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(components_to_be_op))
     # Convert each wcc (which is a set) to a tuple and store it in a list
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
@@ -126,7 +122,7 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
         assert sorted_nodes[0] in comm_end_nodes
         # Apply sequential constraint
         model.addConstr(wcc_start[wcc] == start[sorted_nodes[0]])
-        model.addConstr(wcc_start[wcc] >= finish[stage_two_last])
+        model.addConstr(wcc_start[wcc] >= finish[last_stage_finish])
         model.addConstr(wcc_finish[wcc] == finish[sorted_nodes[-1]])
         for a, b in zip(sorted_nodes, sorted_nodes[1:]):
             model.addConstr(finish[a] <= start[b])

@@ -32,7 +32,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
-        stage_one, dependent_depended, isolated_node_list, terminal_nodes_without_comm_np, wccs_stage_three= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
+        stage_one, dependent_depended, isolated_node_list, terminal_nodes_without_comm_np, wccs_stage_four= split_subgraph(subgraph, operator_device_mapping, edge_cut_list)
         # Map non_iso_part to device
         stage_to_be_optimize_mapping[device] = comp_graph.subgraph(dependent_depended | isolated_node_list)
 
@@ -58,7 +58,7 @@ def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_star
             model.addConstr(start[stage_three[0]] >= stage_two_finish[device])
 
         # Sort the sink_components
-        handle_terminal_components_with_comm_end_point(subgraph, wccs_stage_three, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_two_last=stage_three[-1])
+        handle_terminal_components_with_comm_end_point(subgraph, wccs_stage_four, device, operator_device_mapping, edge_cut_list, model, start, finish, stage_three[-1])
 
     device_unreachable_pairs_mapping, global_set_with_nr = get_device_unreachable_pairs_mapping(stage_to_be_optimize_mapping)
     global_node_split_by_device = split_nodes(comp_graph, global_set_with_nr, list(device_subgraph_mapping.keys()), operator_device_mapping, r=rho,
