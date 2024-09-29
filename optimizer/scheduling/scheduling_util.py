@@ -134,29 +134,40 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
         model.addConstr(wcc_start[wcc] >= wcc_finish[wcc2] - M * order_wcc[wcc, wcc2])
 
 
-def handle_stage_two(subgraph: Graph, dependent_depended, isolated_node_list, terminal_nodes_without_comm_np, model: Model, start, finish, last_stage_finish):
-    weakly_connected_components: list[set] = list(nx.weakly_connected_components(subgraph.subcomponents_to_be_op))
+def handle_stage_two(subgraph: Graph, dependent_depended: set, isolated_node_list: set, terminal_nodes_without_comm_np: set, model: Model, start, finish, topological_order_mapping):
+    weakly_connected_components: list[set] = list(nx.weakly_connected_components(subgraph.subgraph(dependent_depended)))
     # Convert each wcc (which is a set) to a tuple and store it in a list
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
 
     # Use addVars to create wcc_start and wcc_finish variables for each wcc
     wcc_start = model.addVars(wcc_tuples, vtype=GRB.CONTINUOUS)
     wcc_finish = model.addVars(wcc_tuples, vtype=GRB.CONTINUOUS)
-    topological_order = list(nx.topological_sort(subgraph))
-    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
 
     # node that directly connected with a cross device dependency
     for wcc in wcc_tuples:
         sorted_nodes = sorted(list(wcc), key=lambda node: topological_order_mapping[node])
         # Apply sequential constraint
         model.addConstr(wcc_start[wcc] == start[sorted_nodes[0]])
-        model.addConstr(wcc_start[wcc] >= finish[last_stage_finish])
         model.addConstr(wcc_finish[wcc] == finish[sorted_nodes[-1]])
         for a, b in zip(sorted_nodes, sorted_nodes[1:]):
             model.addConstr(finish[a] <= start[b])
 
+    order_wcc = {}
+    M = 1000000
+    # add non-overalpping constarints to wcc
+    for wcc, wcc2 in combinations(wcc_tuples, 2):
+        order_wcc[wcc, wcc2] = model.addVar(vtype=GRB.BINARY)
+        model.addConstr(wcc_start[wcc2] >= wcc_finish[wcc] - M * (1 - order_wcc[wcc, wcc2]))
+        model.addConstr(wcc_start[wcc] >= wcc_finish[wcc2] - M * order_wcc[wcc, wcc2])
 
-def handle_stage_three(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, last_stage_finish):
+    sequential = isolated_node_list | terminal_nodes_without_comm_np
+    sequential = sorted(list(sequential), key=lambda node: topological_order_mapping[node])
+    for a, b in zip(sequential, sequential[1:]):
+        model.addConstr(finish[a] <= start[b])
+
+
+
+def handle_stage_three(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, last_stage_finish, topological_order_mapping):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(components_to_be_op))
     # Convert each wcc (which is a set) to a tuple and store it in a list
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
@@ -164,8 +175,6 @@ def handle_stage_three(subgraph, components_to_be_op: nx.DiGraph, device, operat
     # Use addVars to create wcc_start and wcc_finish variables for each wcc
     wcc_start = model.addVars(wcc_tuples, vtype=GRB.CONTINUOUS)
     wcc_finish = model.addVars(wcc_tuples, vtype=GRB.CONTINUOUS)
-    topological_order = list(nx.topological_sort(subgraph))
-    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
     all_nodes = set(components_to_be_op.nodes)
     comm_end_nodes = set(v for u, v in cut_off if operator_device_mapping.get(v) == device)
     # check all node has dependency from outside nodes

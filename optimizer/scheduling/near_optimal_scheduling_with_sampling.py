@@ -13,7 +13,7 @@ from optimizer.scheduling.scheduling_util import split_subgraph, handle_terminal
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order, heteroG_scheduling_order
 
 
-def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
+def near_optimal_scheduling_with_sampli(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
                                           device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
                                           rho, sampling_function):
     # The global data dependency is already applied
@@ -304,18 +304,16 @@ def three_stage_optimal_verify(model: Model, start, finish, comm_start, comm_end
             model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
 
 
-def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
+def near_optimal_scheduling_with_sampling(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
                                           device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
                                           rho, sampling_function):
-    # The global data dependency is already applied
-    M = 1000000
-    order = {}
+
     stage_to_be_optimize_mapping: dict[any, Graph] = {}
 
     stage_two_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
                                      name="non_isolated_part_finish")
     topological_order = list(nx.topological_sort(comp_graph))
-    topological_order_mapping = {node: index for index, node in enumerate(list(nx.topological_sort(comp_graph)))}
+    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
 
     # form new device non-isolated part mapping
     # split into isolated and non-isolated part
@@ -336,9 +334,9 @@ def near_optimal_scheduling(model: Model, start, finish, comm_start, comm_end, c
             model.addConstr(start[stage_two_node] >= finish[stage_one[-1]])
             model.addConstr(stage_two_finish[device] >= finish[stage_two_node])
 
-        handle_stage_two(subgraph, wccs_stage_four, device, operator_device_mapping,
-                           edge_cut_list, model, start, finish, topological_order_mapping)
+        handle_stage_two(subgraph, dependent_depended, isolated_node_list, terminal_nodes_without_comm_np,
+                         model, start, finish, topological_order_mapping)
 
         # Sort the sink_components
         handle_stage_three(subgraph, wccs_stage_four, device, operator_device_mapping,
-                           edge_cut_list, model, start, finish, stage_two_finish)
+                           edge_cut_list, model, start, finish, stage_two_finish, topological_order_mapping)
