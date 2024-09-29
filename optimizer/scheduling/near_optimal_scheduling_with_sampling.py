@@ -8,7 +8,8 @@ from gurobipy import Model, GRB
 from networkx.classes import DiGraph, Graph
 
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, is_not_connected
-from optimizer.scheduling.scheduling_util import split_subgraph, handle_terminal_components_with_comm_end_point
+from optimizer.scheduling.scheduling_util import split_subgraph, handle_terminal_components_with_comm_end_point, \
+    three_stage_split_subgraph
 from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order, heteroG_scheduling_order
 
 
@@ -252,6 +253,52 @@ def stage_optimal_verify(model: Model, start, finish, comm_start, comm_end, comp
 
         dc_pairs = find_non_connected_pairs(stage_one)
         for op_a, op_b in dc_pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+
+
+def three_stage_optimal_verify(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
+                                          device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
+                                          rho, sampling_function):
+    M = 1000000
+    order = {}
+    stage_one_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+                                     name="non_isolated_part_finish")
+    stage_two_finish = model.addVars(device_subgraph_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+                                     name="non_isolated_part_finish")
+
+    # form new device non-isolated part mapping
+    # split into isolated and non-isolated part
+    for device, subgraph in device_subgraph_mapping.items():
+        # Simply the search space by
+        stage_one, stage_two, stage_three = three_stage_split_subgraph(
+            subgraph, operator_device_mapping, edge_cut_list)
+
+        for stage_one_node in stage_one.nodes:
+            model.addConstr(stage_one_finish[device] >= finish[stage_one_node])
+
+        for stage_two_node in stage_two:
+            model.addConstr(stage_two_finish[device] >= finish[stage_two_node])
+            model.addConstr(start[stage_two_node] >= stage_one_finish[device])
+
+        for node in stage_three.nodes:
+            model.addConstr(start[node] >= stage_two_finish[device])
+
+        stage_one_pairs = find_non_connected_pairs(stage_one)
+        for op_a, op_b in stage_one_pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+
+        stage_two_pairs = find_non_connected_pairs(stage_two)
+        for op_a, op_b in stage_two_pairs:
+            order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
+            model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
+            model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")
+
+        stage_three_pairs = find_non_connected_pairs(stage_three)
+        for op_a, op_b in stage_three_pairs:
             order[op_a, op_b] = model.addVar(vtype=GRB.BINARY, name=f"order_{op_a}_{op_b}")
             model.addConstr(start[op_b] >= finish[op_a] - M * (1 - order[op_a, op_b]), name=f"NoOverlap1_{op_a}_{op_b}")
             model.addConstr(start[op_a] >= finish[op_b] - M * order[op_a, op_b], name=f"NoOverlap2_{op_a}_{op_b}")

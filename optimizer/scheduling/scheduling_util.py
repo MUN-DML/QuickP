@@ -4,6 +4,7 @@ from typing import Tuple, Any, Set, Iterator
 import networkx as nx
 from gurobipy import Model, GRB
 from matplotlib import pyplot as plt
+from networkx.classes import Graph
 
 from optimizer.model.graph import CompGraph, combine_graphs
 
@@ -137,3 +138,44 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
         order_wcc[wcc, wcc2] = model.addVar(vtype=GRB.BINARY)
         model.addConstr(wcc_start[wcc2] >= wcc_finish[wcc] - M * (1 - order_wcc[wcc, wcc2]))
         model.addConstr(wcc_start[wcc] >= wcc_finish[wcc2] - M * order_wcc[wcc, wcc2])
+
+
+def three_stage_split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
+    Graph, Graph, Graph]:
+
+    device = operator_device_mapping[list(subgraph.nodes)[0]]
+    outgoing_edges = [(u, v) for u, v in edge_cut_list if
+                      operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
+    incoming_edges = [(u, v) for u, v in edge_cut_list if
+                      operator_device_mapping.get(v) == device and operator_device_mapping.get(u) != device]
+    comm_end_nodes = set(v for u, v in edge_cut_list if operator_device_mapping.get(v) == device)
+
+    def get_depended_node_set(node):
+        destination_node_depended = set(v for (u, v) in outgoing_edges if nx.has_path(subgraph, node, u))
+        for node in destination_node_depended:
+            assert operator_device_mapping.get(node) != device
+        return destination_node_depended
+
+    def get_depending_node_set(node):
+        source_node_depended = set(u for (u, v) in incoming_edges if nx.has_path(subgraph, v, node))
+        for node in source_node_depended:
+            assert operator_device_mapping.get(node) != device
+        return source_node_depended
+
+    # Iterate over the nodes and remove those with 0 related subgraphs
+    terminal_node = set(node for node in subgraph.nodes if len(get_depended_node_set(node)) == 0)
+    isolate_terminal_nodes = set(node for node in terminal_node if len(get_depending_node_set(node)) == 0)
+    non_isolated_terminal_nodes = terminal_node - isolate_terminal_nodes
+
+    depended_node = set(subgraph.nodes) - terminal_node
+    independent_depended = set(node for node in depended_node if len(get_depending_node_set(node)) == 0)
+    dependent_depended = depended_node - independent_depended
+
+    # Remove the nodes from the copied graph
+    stage_one = subgraph.subgraph(independent_depended)
+    stage_two = subgraph.subgraph(isolate_terminal_nodes | dependent_depended)
+    stage_three = subgraph.subgraph(non_isolated_terminal_nodes)
+
+
+    assert len(subgraph.nodes) == len(stage_one.nodes) + len(stage_two.nodes) + len(stage_three.nodes)
+    return stage_one, stage_two, stage_three
