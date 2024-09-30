@@ -20,7 +20,7 @@ def three_stage_list_schedule(model: Model, start, finish, comm_start, comm_end,
         # give stage one the highest rank and the three the lowest rank
         for stage_one_node in stage_one:
             assert reliance_map[stage_one_node] != 0
-            rank_map[stage_one_node] = 10 * reliance_map[stage_one_node]
+            rank_map[stage_one_node] = 10
         for stage_two_node in stage_two:
             assert reliance_map[stage_two_node] != 0
             rank_map[stage_two_node] = 10 * reliance_map[stage_two_node]
