@@ -272,7 +272,7 @@ def three_stage_split_subgraph(subgraph: CompGraph, operator_device_mapping, edg
 
 
 def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
-    Graph, Graph, Graph]:
+    Graph, Graph, Graph, dict]:
     device = operator_device_mapping[list(subgraph.nodes)[0]]
     outgoing_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
@@ -291,11 +291,14 @@ def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edg
             assert operator_device_mapping.get(node) != device
         return source_node_depended
 
+    node_reliance_map = {node: len(get_relied_node_set(node)) for node in subgraph.nodes}
+    node_dependency_map = {node: len(get_dependent_node_set(node)) for node in subgraph.nodes}
+
     # Iterate over the nodes and remove those with 0 related subgraphs
-    non_exporting_node = set(node for node in subgraph.nodes if len(get_relied_node_set(node)) == 0)
+    non_exporting_node = set(node for node in subgraph.nodes if node_reliance_map[node] == 0)
 
     relied_node = set(subgraph.nodes) - non_exporting_node
-    independent_relied = set(node for node in relied_node if len(get_dependent_node_set(node)) == 0)
+    independent_relied = set(node for node in relied_node if node_dependency_map[node] == 0)
     dependent_relied = relied_node - independent_relied
 
     stage_one = subgraph.subgraph(independent_relied)
@@ -304,7 +307,7 @@ def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edg
     stage_three = subgraph.subgraph(non_exporting_node)
 
     assert len(subgraph.nodes) == len(stage_one.nodes) + len(stage_two.nodes) + len(stage_three.nodes)
-    return stage_one, stage_two, stage_three
+    return stage_one, stage_two, stage_three, node_reliance_map
 
 
 def split_four_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[

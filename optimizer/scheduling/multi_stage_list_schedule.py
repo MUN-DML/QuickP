@@ -15,14 +15,17 @@ def three_stage_list_schedule(model: Model, start, finish, comm_start, comm_end,
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
-        stage_one, stage_two, stage_three = split_three_stage_subgraph(
+        stage_one, stage_two, stage_three, reliance_map = split_three_stage_subgraph(
             subgraph, operator_device_mapping, edge_cut_list)
         # give stage one the highest rank and the three the lowest rank
         for stage_one_node in stage_one:
-            rank_map[stage_one_node] = 10000000
+            assert reliance_map[stage_one_node] != 0
+            rank_map[stage_one_node] = 10 * reliance_map[stage_one_node]
         for stage_two_node in stage_two:
-            rank_map[stage_two_node] = 1000
+            assert reliance_map[stage_two_node] != 0
+            rank_map[stage_two_node] = 10 * reliance_map[stage_two_node]
         for stage_three_node in stage_three:
+            assert reliance_map[stage_three_node] == 0
             rank_map[stage_three_node] = 0
 
     ranked_list_schedule(model, start, finish, comm_start, comm_end, comp_graph,
