@@ -30,7 +30,9 @@ def three_stage_list_schedule(model: Model, start, finish, comm_start, comm_end,
 
 
 def ranked_list_schedule(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                                 device_subgraph_mapping: dict, operator_device_mapping: dict, global_rank):
+                                 device_subgraph_mapping: dict, operator_device_mapping: dict, global_rank: dict):
+
+    assert set(global_rank.keys()) == set(comp_graph.nodes)
 
     def initialize_queues(subgraph_dict, dependency_graph) -> dict[any, PriorityQueue]:
         # Initialize a queue for each device

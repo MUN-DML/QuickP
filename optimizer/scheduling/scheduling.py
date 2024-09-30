@@ -11,6 +11,7 @@ from optimizer.scheduling.near_optimal_scheduling_simple import near_optimal_sch
 from optimizer.scheduling.near_optimal_scheduling_with_sampling import near_optimal_scheduling_with_sampling
 from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_heteroG
 from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_cost
+from optimizer.scheduling.three_stage_list_schedule import three_stage_list_schedule
 
 
 def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish, start):
@@ -93,6 +94,7 @@ class SchedulingAlgorithm(Enum):
     FIFO_SOLVER = "FIFO_SOLVER",
     PRIORITY_HETEROG = "PRIORITY_HETEROG"
     SAMPLING_NEAR_OPTIMAL = "SAMPLING_NEAR_OPTIMAL"
+    THREE_STAGE = "THREE_STAGE"
 
 
 def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
@@ -116,6 +118,9 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         SchedulingAlgorithm.SAMPLING_NEAR_OPTIMAL.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                                          'device_subgraph_mapping', 'edge_cut_list',
                                                          'operator_device_mapping', 'rho', 'sampling_function'],
+        SchedulingAlgorithm.THREE_STAGE.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
+                                                          'device_subgraph_mapping', 'edge_cut_list',
+                                                          'operator_device_mapping'],
     }
 
     if sch_fun_type not in required_args:
@@ -144,3 +149,5 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         return near_optimal_scheduling(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.SAMPLING_NEAR_OPTIMAL.value:
         return near_optimal_scheduling_with_sampling(model, **selected_kwargs)
+    elif sch_fun_type == SchedulingAlgorithm.THREE_STAGE.value:
+        return three_stage_list_schedule(model, **selected_kwargs)
