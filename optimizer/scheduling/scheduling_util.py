@@ -291,14 +291,14 @@ def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edg
             assert operator_device_mapping.get(node) != device
         return source_node_depended
 
-    node_reliance_map = {node: len(get_relied_node_set(node)) for node in subgraph.nodes}
-    node_dependency_map = {node: len(get_dependent_node_set(node)) for node in subgraph.nodes}
+    node_reliance_map = {node: get_relied_node_set(node) for node in subgraph.nodes}
+    node_dependency_map = {node: get_dependent_node_set(node) for node in subgraph.nodes}
 
     # Iterate over the nodes and remove those with 0 related subgraphs
-    non_exporting_node = set(node for node in subgraph.nodes if node_reliance_map[node] == 0)
+    non_exporting_node = set(node for node in subgraph.nodes if len(node_reliance_map[node]) == 0)
 
     relied_node = set(subgraph.nodes) - non_exporting_node
-    independent_relied = set(node for node in relied_node if node_dependency_map[node] == 0)
+    independent_relied = set(node for node in relied_node if len(node_dependency_map[node]) == 0)
     dependent_relied = relied_node - independent_relied
 
     stage_one = subgraph.subgraph(independent_relied)
