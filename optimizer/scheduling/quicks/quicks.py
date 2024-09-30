@@ -4,6 +4,7 @@ from networkx import Graph
 
 from optimizer.model.graph import CompGraph
 from optimizer.scheduling.near_optimal_scheduling_with_sampling import get_device_unreachable_pairs_mapping, split_nodes
+from optimizer.scheduling.quicks.quicks_list_schedule import quicks_list_schedule
 from optimizer.scheduling.scheduling_util import three_stage_split_subgraph, split_three_stage_subgraph
 
 
@@ -13,6 +14,8 @@ def quickS(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGr
     rank_map = optimize_dependent_relied_part(model, start, finish, comm_start, comm_end, comp_graph,
                                               device_subgraph_mapping, edge_cut_list, operator_device_mapping,
                                               rho, sampling_function)
+    quicks_list_schedule(model, start, finish, comm_start, comm_end, comp_graph,
+                         device_subgraph_mapping, operator_device_mapping, rank_map)
 
 
 def optimize_dependent_relied_part(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,

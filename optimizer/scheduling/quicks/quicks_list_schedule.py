@@ -6,28 +6,8 @@ from gurobipy import Model
 from optimizer.model.graph import CompGraph
 
 
-def priority_queue_max_rank_heteroG(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                                 device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
-
-    global_rank = {}
-    topo_sorted = list(nx.topological_sort(comp_graph))
-
-    for current_node in reversed(topo_sorted):
-        # Check if the current node has any predecessors
-        successors = list(comp_graph.successors(current_node))
-
-        if successors:  # If there are predecessors, compute the max computing cost
-            max_suc_computing_cost = max(
-            global_rank[succ_node] for succ_node in successors
-        )
-        else:  # If there are no predecessors, set the max computing cost to 0
-            max_suc_computing_cost = 0
-
-        # Calculate the global rank for the current node
-        global_rank[current_node] = (
-                max_suc_computing_cost + comp_graph.getOperatorCompCostByDevice(current_node,
-                                                                            operator_device_mapping[current_node])
-        )
+def quicks_list_schedule(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
+                                 device_subgraph_mapping: dict, operator_device_mapping: dict, global_rank):
 
     def initialize_queues(subgraph_dict, dependency_graph) -> dict[any, PriorityQueue]:
         # Initialize a queue for each device
