@@ -88,11 +88,15 @@ def split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) 
         nx.draw(subgraph, pos, node_color=color_map, with_labels=False, node_size=200)
         plt.title("Visualization of Node Groups")
         plt.show()
-    assert len(subgraph.nodes) == len(stage_one.nodes) + len(dependent_depended)  + len(isolate_terminal_nodes) + len(terminal_nodes_without_comm_np) + len(stage_three.nodes)
+
+    assert len(subgraph.nodes) == len(stage_one.nodes) + len(dependent_depended) + len(isolate_terminal_nodes) + len(
+        terminal_nodes_without_comm_np) + len(stage_three.nodes)
     return stage_one, dependent_depended, isolate_terminal_nodes, terminal_nodes_without_comm_np, stage_three
 
 
-def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, last_stage_finish, topo_dict):
+def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op: nx.DiGraph, device,
+                                                   operator_device_mapping, cut_off, model: Model, start, finish,
+                                                   last_stage_finish, topo_dict):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(components_to_be_op))
     # Convert each wcc (which is a set) to a tuple and store it in a list
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
@@ -134,7 +138,8 @@ def handle_terminal_components_with_comm_end_point(subgraph, components_to_be_op
         model.addConstr(wcc_start[wcc] >= wcc_finish[wcc2] - M * order_wcc[wcc, wcc2])
 
 
-def handle_stage_two(subgraph: Graph, dependent_depended: set, isolated_node_list: set, terminal_nodes_without_comm_np: set, model: Model, start, finish, topological_order_mapping):
+def handle_stage_two(subgraph: Graph, dependent_depended: set, isolated_node_list: set,
+                     terminal_nodes_without_comm_np: set, model: Model, start, finish, topological_order_mapping):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(subgraph.subgraph(dependent_depended)))
     # Convert each wcc (which is a set) to a tuple and store it in a list
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
@@ -166,8 +171,8 @@ def handle_stage_two(subgraph: Graph, dependent_depended: set, isolated_node_lis
         model.addConstr(finish[a] <= start[b])
 
 
-
-def handle_stage_three(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off, model: Model, start, finish, last_stage_finish, topological_order_mapping):
+def handle_stage_three(subgraph, components_to_be_op: nx.DiGraph, device, operator_device_mapping, cut_off,
+                       model: Model, start, finish, last_stage_finish, topological_order_mapping):
     weakly_connected_components: list[set] = list(nx.weakly_connected_components(components_to_be_op))
     # Convert each wcc (which is a set) to a tuple and store it in a list
     wcc_tuples = [tuple(wcc) for wcc in weakly_connected_components]
@@ -211,7 +216,6 @@ def handle_stage_three(subgraph, components_to_be_op: nx.DiGraph, device, operat
 
 def three_stage_split_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
     Graph, Graph, Graph]:
-
     device = operator_device_mapping[list(subgraph.nodes)[0]]
     outgoing_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
@@ -263,6 +267,41 @@ def three_stage_split_subgraph(subgraph: CompGraph, operator_device_mapping, edg
 
     stage_two = subgraph.subgraph(isolate_terminal_nodes | dependent_depended | terminal_nodes_without_comm_np)
 
+    assert len(subgraph.nodes) == len(stage_one.nodes) + len(stage_two.nodes) + len(stage_three.nodes)
+    return stage_one, stage_two, stage_three
+
+
+def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
+    Graph, Graph, Graph]:
+    device = operator_device_mapping[list(subgraph.nodes)[0]]
+    outgoing_edges = [(u, v) for u, v in edge_cut_list if
+                      operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
+    incoming_edges = [(u, v) for u, v in edge_cut_list if
+                      operator_device_mapping.get(v) == device and operator_device_mapping.get(u) != device]
+
+    def get_relied_node_set(node):
+        destination_node_depended = set(v for (u, v) in outgoing_edges if nx.has_path(subgraph, node, u))
+        for node in destination_node_depended:
+            assert operator_device_mapping.get(node) != device
+        return destination_node_depended
+
+    def get_dependent_node_set(node):
+        source_node_depended = set(u for (u, v) in incoming_edges if nx.has_path(subgraph, v, node))
+        for node in source_node_depended:
+            assert operator_device_mapping.get(node) != device
+        return source_node_depended
+
+    # Iterate over the nodes and remove those with 0 related subgraphs
+    non_exporting_node = set(node for node in subgraph.nodes if len(get_relied_node_set(node)) == 0)
+
+    relied_node = set(subgraph.nodes) - non_exporting_node
+    independent_relied = set(node for node in relied_node if len(get_dependent_node_set(node)) == 0)
+    dependent_relied = relied_node - independent_relied
+
+    stage_one = subgraph.subgraph(independent_relied)
+    # stage two is what we need to optimize
+    stage_two = subgraph.subgraph(dependent_relied)
+    stage_three = subgraph.subgraph(non_exporting_node)
 
     assert len(subgraph.nodes) == len(stage_one.nodes) + len(stage_two.nodes) + len(stage_three.nodes)
     return stage_one, stage_two, stage_three
