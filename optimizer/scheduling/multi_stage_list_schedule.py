@@ -4,7 +4,7 @@ import networkx as nx
 from gurobipy import Model
 
 from optimizer.model.graph import CompGraph
-from optimizer.scheduling.scheduling_util import split_three_stage_subgraph, split_four_stage_subgraph
+from optimizer.scheduling.scheduling_util import split_three_stage_subgraph
 
 
 def three_stage_list_schedule(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
@@ -31,29 +31,6 @@ def three_stage_list_schedule(model: Model, start, finish, comm_start, comm_end,
         for stage_three_node in stage_three:
             assert len(reliance_map[stage_three_node]) == 0
             rank_map[stage_three_node] = 0
-
-    ranked_list_schedule(model, start, finish, comm_start, comm_end, comp_graph,
-                                 device_subgraph_mapping, operator_device_mapping, rank_map)
-
-def four_stage_list_schedule(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                                   device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
-    rank_map = {}
-
-    # form new device non-isolated part mapping
-    # split into isolated and non-isolated part
-    for device, subgraph in device_subgraph_mapping.items():
-        # Simply the search space by
-        stage_one, stage_two, stage_three, stage_four = split_four_stage_subgraph(
-            subgraph, operator_device_mapping, edge_cut_list)
-        # give stage one the highest rank and the three the lowest rank
-        for stage_one_node in stage_one:
-            rank_map[stage_one_node] = 10000000
-        for stage_two_node in stage_two:
-            rank_map[stage_two_node] = 1000
-        for stage_three_node in stage_three:
-            rank_map[stage_three_node] = 10
-        for stage_four_node in stage_four:
-            rank_map[stage_four_node] = 0
 
     ranked_list_schedule(model, start, finish, comm_start, comm_end, comp_graph,
                                  device_subgraph_mapping, operator_device_mapping, rank_map)

@@ -6,7 +6,7 @@ from gurobipy import Model, GRB
 
 from optimizer.model.graph import find_non_connected_pairs, CompGraph, is_not_connected
 from optimizer.scheduling.FIFO import FIFO_scheduling
-from optimizer.scheduling.multi_stage_list_schedule import four_stage_list_schedule, three_stage_list_schedule
+from optimizer.scheduling.multi_stage_list_schedule import three_stage_list_schedule
 from optimizer.scheduling.optimal import optimal_scheduling
 from optimizer.scheduling.near_optimal_scheduling_simple import near_optimal_scheduling
 from optimizer.scheduling.near_optimal_scheduling_with_sampling import near_optimal_scheduling_with_sampling
