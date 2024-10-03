@@ -15,21 +15,21 @@ def three_stage_list_schedule(model: Model, start, finish, comm_start, comm_end,
     # split into isolated and non-isolated part
     for device, subgraph in device_subgraph_mapping.items():
         # Simply the search space by
-        stage_one, stage_two, stage_three, reliance_map = split_three_stage_subgraph(
+        stage_one, stage_two, stage_three, reliance_comm_map, reliance_node_map = split_three_stage_subgraph(
             subgraph, operator_device_mapping, edge_cut_list)
         # turn the reliance_map into computing score
         node_score_map = {
             node: sum(comp_graph.getOperatorCompCostByDevice(relied_node, device) for relied_node in nodeset)
-            for node, nodeset in reliance_map.items()}
+            for node, nodeset in reliance_node_map.items()}
         # give stage one the highest rank and the three the lowest rank
         for stage_one_node in stage_one:
-            assert len(reliance_map[stage_one_node]) != 0
+            assert len(reliance_node_map[stage_one_node]) != 0
             rank_map[stage_one_node] = 10 + node_score_map[stage_one_node]
         for stage_two_node in stage_two:
-            assert len(reliance_map[stage_two_node]) != 0
+            assert len(reliance_node_map[stage_two_node]) != 0
             rank_map[stage_two_node] = 10 + node_score_map[stage_two_node]
         for stage_three_node in stage_three:
-            assert len(reliance_map[stage_three_node]) == 0
+            assert len(reliance_node_map[stage_three_node]) == 0
             rank_map[stage_three_node] = 0
 
     ranked_list_schedule(model, start, finish, comm_start, comm_end, comp_graph,

@@ -272,33 +272,33 @@ def three_stage_split_subgraph(subgraph: CompGraph, operator_device_mapping, edg
 
 
 def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
-    Graph, Graph, Graph, dict]:
+    Graph, Graph, Graph, dict, dict]:
     device = operator_device_mapping[list(subgraph.nodes)[0]]
     outgoing_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
     incoming_edges = [(u, v) for u, v in edge_cut_list if
                       operator_device_mapping.get(v) == device and operator_device_mapping.get(u) != device]
 
-    def get_relied_node_set(node):
-        destination_node_depended = set(v for (u, v) in outgoing_edges if nx.has_path(subgraph, node, u))
+    def get_relied_outgoing_comm_set(node):
+        destination_node_depended = set((u, v) for (u, v) in outgoing_edges if nx.has_path(subgraph, node, u))
         for node in destination_node_depended:
             assert operator_device_mapping.get(node) != device
         return destination_node_depended
 
-    def get_dependent_node_set(node):
-        source_node_depended = set(u for (u, v) in incoming_edges if nx.has_path(subgraph, v, node))
+    def get_dependent_incoming_comm_set(node):
+        source_node_depended = set((u, v) for (u, v) in incoming_edges if nx.has_path(subgraph, v, node))
         for node in source_node_depended:
             assert operator_device_mapping.get(node) != device
         return source_node_depended
 
-    node_reliance_map = {node: get_relied_node_set(node) for node in subgraph.nodes}
-    node_dependency_map = {node: get_dependent_node_set(node) for node in subgraph.nodes}
+    node_reliance_og_map = {node: get_relied_outgoing_comm_set(node) for node in subgraph.nodes}
+    node_dependency_ic_map = {node: get_dependent_incoming_comm_set(node) for node in subgraph.nodes}
 
     # Iterate over the nodes and remove those with 0 related subgraphs
-    non_exporting_node = set(node for node in subgraph.nodes if len(node_reliance_map[node]) == 0)
+    non_exporting_node = set(node for node in subgraph.nodes if len(node_reliance_og_map[node]) == 0)
 
     relied_node = set(subgraph.nodes) - non_exporting_node
-    independent_relied = set(node for node in relied_node if len(node_dependency_map[node]) == 0)
+    independent_relied = set(node for node in relied_node if len(node_dependency_ic_map[node]) == 0)
     dependent_relied = relied_node - independent_relied
 
     stage_one = subgraph.subgraph(independent_relied)
@@ -306,5 +306,7 @@ def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edg
     stage_two = subgraph.subgraph(dependent_relied)
     stage_three = subgraph.subgraph(non_exporting_node)
 
+    node_reliance_node_map = {key: {tup[1] for tup in value} for key, value in node_reliance_og_map.items()}
+
     assert len(subgraph.nodes) == len(stage_one.nodes) + len(stage_two.nodes) + len(stage_three.nodes)
-    return stage_one, stage_two, stage_three, node_reliance_map
+    return stage_one, stage_two, stage_three, node_reliance_og_map, node_reliance_node_map
