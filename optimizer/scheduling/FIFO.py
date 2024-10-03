@@ -74,7 +74,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                 if last_job_dict[current_device] is not None:
                     model.addConstr(start[current_op] >= finish[last_job_dict[current_device]], name=f"start_after_prev_finish_{current_op}_on_subgraph_{current_device}")
 
-                '''
+
                 # Communication scheduling. One device can only send to up to one link at the same time
                 for predecessor in comp_graph.predecessors(current_op):
                     # in edge_cut_list => there exists a cross-device communication
@@ -84,7 +84,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                         if last_communication_dict[source_device] is not None:
                             model.addConstr(comm_start[predecessor, current_op] >= comm_end[last_communication_dict[source_device]])
                         last_communication_dict[source_device] = (predecessor, current_op)
-                '''
+
 
                 # Track the finish time of the current task
                 last_job_dict[current_device] = current_op

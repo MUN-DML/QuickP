@@ -95,8 +95,6 @@ class SchedulingAlgorithm(Enum):
     PRIORITY_HETEROG = "PRIORITY_HETEROG"
     SAMPLING_NEAR_OPTIMAL = "SAMPLING_NEAR_OPTIMAL"
     THREE_STAGE = "THREE_STAGE"
-    FOUR_STAGE = "FOUR_STAGE"
-
 
 def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
     # Define the required arguments for each scheduling algorithm
@@ -121,10 +119,7 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
                                                          'operator_device_mapping', 'rho', 'sampling_function'],
         SchedulingAlgorithm.THREE_STAGE.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                                           'device_subgraph_mapping', 'edge_cut_list',
-                                                          'operator_device_mapping'],
-        SchedulingAlgorithm.FOUR_STAGE.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
-                                                'device_subgraph_mapping', 'edge_cut_list',
-                                                'operator_device_mapping'],
+                                                          'operator_device_mapping']
     }
 
     if sch_fun_type not in required_args:
