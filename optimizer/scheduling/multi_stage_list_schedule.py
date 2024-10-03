@@ -8,7 +8,8 @@ from optimizer.scheduling.scheduling_util import split_three_stage_subgraph
 
 
 def three_stage_list_schedule(model: Model, start, finish, comm_start, comm_end, comp_graph: CompGraph,
-                                   device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict):
+                                   device_subgraph_mapping: dict, edge_cut_list: list, operator_device_mapping: dict,
+                              computing_cost_dict: dict, communication_cost_dict: dict):
     rank_map = {}
 
     # form new device non-isolated part mapping
@@ -19,8 +20,11 @@ def three_stage_list_schedule(model: Model, start, finish, comm_start, comm_end,
             subgraph, operator_device_mapping, edge_cut_list)
         # turn the reliance_map into computing score
         node_score_map = {
-            node: sum(comp_graph.getOperatorCompCostByDevice(relied_node, device) for relied_node in nodeset)
-            for node, nodeset in reliance_node_map.items()}
+            node: (
+                sum(computing_cost_dict[relied_node] for relied_node in
+                        reliance_node_map[node])
+            )
+            for node in reliance_node_map}
         # give stage one the highest rank and the three the lowest rank
         for stage_one_node in stage_one:
             assert len(reliance_node_map[stage_one_node]) != 0

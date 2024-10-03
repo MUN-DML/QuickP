@@ -119,7 +119,7 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
                                                          'operator_device_mapping', 'rho', 'sampling_function'],
         SchedulingAlgorithm.THREE_STAGE.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                                           'device_subgraph_mapping', 'edge_cut_list',
-                                                          'operator_device_mapping']
+                                                          'operator_device_mapping', 'computing_cost_dict', 'communication_cost_dict']
     }
 
     if sch_fun_type not in required_args:
@@ -150,5 +150,3 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         return near_optimal_scheduling_with_sampling(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.THREE_STAGE.value:
         return three_stage_list_schedule(model, **selected_kwargs)
-    elif sch_fun_type == SchedulingAlgorithm.FOUR_STAGE.value:
-        return four_stage_list_schedule(model, **selected_kwargs)
