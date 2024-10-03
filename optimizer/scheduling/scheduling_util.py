@@ -310,3 +310,35 @@ def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edg
 
     assert len(subgraph.nodes) == len(stage_one.nodes) + len(stage_two.nodes) + len(stage_three.nodes)
     return stage_one, stage_two, stage_three, node_reliance_og_map, node_reliance_node_map
+
+
+def split_two_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edge_cut_list) -> tuple[
+    Graph, Graph, dict, dict]:
+    device = operator_device_mapping[list(subgraph.nodes)[0]]
+    outgoing_edges = [(u, v) for u, v in edge_cut_list if
+                      operator_device_mapping.get(u) == device and operator_device_mapping.get(v) != device]
+    incoming_edges = [(u, v) for u, v in edge_cut_list if
+                      operator_device_mapping.get(v) == device and operator_device_mapping.get(u) != device]
+
+    def get_relied_outgoing_comm_set(node):
+        destination_node_depended = set((u, v) for (u, v) in outgoing_edges if nx.has_path(subgraph, node, u))
+        for node in destination_node_depended:
+            assert operator_device_mapping.get(node) != device
+        return destination_node_depended
+
+
+    node_reliance_og_map = {node: get_relied_outgoing_comm_set(node) for node in subgraph.nodes}
+
+    # Iterate over the nodes and remove those with 0 related subgraphs
+    non_exporting_node = set(node for node in subgraph.nodes if len(node_reliance_og_map[node]) == 0)
+
+    relied_node = set(subgraph.nodes) - non_exporting_node
+
+    stage_one = subgraph.subgraph(relied_node)
+    # stage two is what we need to optimize
+    stage_two = subgraph.subgraph(non_exporting_node)
+
+    node_reliance_node_map = {key: {tup[1] for tup in value} for key, value in node_reliance_og_map.items()}
+
+    assert len(subgraph.nodes) == len(stage_one.nodes) + len(stage_two.nodes)
+    return stage_one, stage_two, node_reliance_og_map, node_reliance_node_map
