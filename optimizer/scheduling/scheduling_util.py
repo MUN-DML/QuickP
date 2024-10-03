@@ -315,6 +315,7 @@ def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edg
 def computation_graph_split(computing_graph: CompGraph, operator_device_mapping, edge_cut_list, device_subgraph_mapping: dict) -> tuple[
     Graph, Graph, dict, dict]:
 
+    device_relied_component_map = {}
     device_og_map = {}
     for device, subgraph in device_subgraph_mapping.items():
         outgoing_edges = [(u, v) for u, v in edge_cut_list if
@@ -331,6 +332,7 @@ def computation_graph_split(computing_graph: CompGraph, operator_device_mapping,
 
     node_reliance_og_map = {node: get_relied_outgoing_comm_set(node) for node in computing_graph.nodes}
 
+
     # Iterate over the nodes and remove those with 0 related subgraphs
     non_exporting_node = set(node for node in computing_graph.nodes if len(node_reliance_og_map[node]) == 0)
     relied_node = set(computing_graph.nodes) - non_exporting_node
@@ -340,5 +342,10 @@ def computation_graph_split(computing_graph: CompGraph, operator_device_mapping,
 
     node_reliance_node_map = {key: {tup[1] for tup in value} for key, value in node_reliance_og_map.items()}
 
+    for device, subgraph in device_subgraph_mapping.items():
+        relied_nodes = set(node for node in subgraph.nodes if len(node_reliance_og_map[node]) > 0)
+        device_relied_component_map = subgraph.subgraph(relied_nodes)
+
+
     assert len(computing_graph.nodes) == len(relied_graph.nodes) + len(non_exporting_graph.nodes)
-    return relied_graph, non_exporting_graph, node_reliance_og_map, node_reliance_node_map
+    return relied_graph, non_exporting_graph, node_reliance_node_map, device_relied_component_map
