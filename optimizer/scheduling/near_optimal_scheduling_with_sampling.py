@@ -127,10 +127,10 @@ class SamplingFunction(Enum):
     HEAVY_HITTER = "HEAVY_HITTER"
 
 
-def get_device_unreachable_pairs_mapping(device_DC_mapping: dict[any, Graph]):
+def get_device_unreachable_pairs_mapping(device_RC_mapping: dict[any, Graph]):
     mapping = {}
     global_all_nodes = set()
-    for device, graph in device_DC_mapping.items():
+    for device, graph in device_RC_mapping.items():
         # there will be no pairs with the same element
         non_connected_pairs = find_non_connected_pairs(graph)
         mapping[device] = non_connected_pairs
