@@ -110,7 +110,7 @@ def ranked_list_schedule(model: Model, start, finish, comm_start, comm_end, comp
                 # Operator scheduling within device
                 if last_job_dict[device_id] is not None:
                     model.addConstr(start[task] >= finish[last_job_dict[device_id]], name=f"start_after_prev_finish_{task}_on_subgraph_{device_id}")
-
+                '''
                 # Communication scheduling. One device can only send or receive from up to one link at the same time
                 for predecessor in comp_graph.predecessors(task):
                     if (predecessor, task) in edge_cut_list:
@@ -119,7 +119,7 @@ def ranked_list_schedule(model: Model, start, finish, comm_start, comm_end, comp
                         source_device = operator_device_mapping[predecessor]
                         last_communication_dict[source_device] = (predecessor, task)
                         last_communication_dict[device_id] = (predecessor, task)
-
+                '''
                 # Track the finish time of the current task
                 last_job_dict[device_id] = task
 
