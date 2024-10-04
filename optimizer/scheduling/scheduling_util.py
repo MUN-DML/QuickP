@@ -4,7 +4,7 @@ from typing import Tuple, Any, Set, Iterator
 import networkx as nx
 from gurobipy import Model, GRB
 from matplotlib import pyplot as plt
-from networkx.classes import Graph
+from networkx.classes import Graph, DiGraph
 
 from optimizer.model.graph import CompGraph, combine_graphs
 
@@ -313,7 +313,7 @@ def split_three_stage_subgraph(subgraph: CompGraph, operator_device_mapping, edg
 
 
 def computation_graph_split(computing_graph: CompGraph, operator_device_mapping, edge_cut_list, device_subgraph_mapping: dict) -> tuple[
-    Graph, Graph, dict, dict]:
+    DiGraph, DiGraph, dict, dict]:
 
     device_relied_component_map = {}
     device_og_map = {}
