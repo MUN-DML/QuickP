@@ -344,8 +344,9 @@ def computation_graph_split(computing_graph: CompGraph, operator_device_mapping,
 
     for device, subgraph in device_subgraph_mapping.items():
         relied_nodes = set(node for node in subgraph.nodes if len(node_reliance_og_map[node]) > 0)
-        device_relied_component_map = subgraph.subgraph(relied_nodes)
+        device_relied_component_map[device] = subgraph.subgraph(relied_nodes)
 
+    assert sum(len(rc.nodes) for rc in device_relied_component_map.values()) == len(relied_graph.nodes)
 
     assert len(computing_graph.nodes) == len(relied_graph.nodes) + len(non_exporting_graph.nodes)
     return relied_graph, non_exporting_graph, node_reliance_node_map, device_relied_component_map
