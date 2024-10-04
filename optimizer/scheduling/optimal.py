@@ -3,7 +3,7 @@ import itertools
 import networkx as nx
 from gurobipy import Model, GRB
 
-from optimizer.model.graph import CompGraph
+from optimizer.model.graph import CompGraph, find_non_connected_pairs
 
 
 def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list):
@@ -11,16 +11,11 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
     M = 1000000
     order = {}
     for subgraph in device_subgraph_mapping.values():
-        for a, b in itertools.combinations(subgraph.getOperatorIDs(), 2):
+        for a, b in find_non_connected_pairs(subgraph):
             # Initialize order variables
             order[a, b] = model.addVar(vtype=GRB.BINARY, name=f"order_{a}_{b}")
-            if nx.has_path(subgraph, b, a):
-                model.addConstr(start[a] >= finish[b])
-            elif nx.has_path(subgraph, a, b):
-                model.addConstr(start[b] >= finish[a])
-            else:
-                model.addConstr(start[b] >= finish[a] - M * (1 - order[a, b]),name=f"NoOverlap1_{a}_{b}")
-                model.addConstr(start[a] >= finish[b] - M * order[a, b], name=f"NoOverlap2_{a}_{b}")
+            model.addConstr(start[b] >= finish[a] - M * (1 - order[a, b]),name=f"NoOverlap1_{a}_{b}")
+            model.addConstr(start[a] >= finish[b] - M * order[a, b], name=f"NoOverlap2_{a}_{b}")
     '''
     # Add constraint to ensure each device can only send one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
@@ -58,3 +53,20 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
                 assert nx.has_path(subgraph, source_node_1, source_node_2)
                 model.addConstr(comm_end[comm1] <= comm_start[comm2])
     '''
+'''
+def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_graph, device_subgraph_mapping: dict[any, CompGraph], edge_cut_list):
+    # The global data dependency is already applied
+    M = 1000000
+    order = {}
+    for subgraph in device_subgraph_mapping.values():
+        for a, b in itertools.combinations(subgraph.getOperatorIDs(), 2):
+            # Initialize order variables
+            order[a, b] = model.addVar(vtype=GRB.BINARY, name=f"order_{a}_{b}")
+            if nx.has_path(subgraph, b, a):
+                model.addConstr(start[a] >= finish[b])
+            elif nx.has_path(subgraph, a, b):
+                model.addConstr(start[b] >= finish[a])
+            else:
+                model.addConstr(start[b] >= finish[a] - M * (1 - order[a, b]),name=f"NoOverlap1_{a}_{b}")
+                model.addConstr(start[a] >= finish[b] - M * order[a, b], name=f"NoOverlap2_{a}_{b}")
+'''
