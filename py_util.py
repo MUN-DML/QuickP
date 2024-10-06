@@ -279,7 +279,7 @@ def tensor_shape_to_bits(tensor_shape, dtype: DType):
     # Determine the number of bits per element based on dtype
     if dtype in [tf.float32, tf.int32, tf.uint32]:
         bits_per_element = 32
-    elif dtype in [tf.float64, tf.int64, tf.uint64]:
+    elif dtype in [tf.float64, tf.int64, tf.uint64, tf.complex64]:
         bits_per_element = 64
     elif dtype in [tf.float16, tf.int16, tf.uint16]:
         bits_per_element = 16
