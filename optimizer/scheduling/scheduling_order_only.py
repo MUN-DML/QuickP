@@ -67,15 +67,7 @@ def FIFO_scheduling_order(comp_graph: CompGraph,
                 for predecessor in nx.ancestors(comp_graph, current_op):
                     if predecessor not in completed_tasks:
                         raise ValueError(f"{current_op} 's dependency {predecessor} not satisfied")
-                '''
-                # Communication scheduling. One device can only send to up to one link at the same time
-                for predecessor in comp_graph.predecessors(current_op):
-                    # in edge_cut_list => there exists a cross-device communication
-                    if (predecessor, current_op) in edge_cut_list:
-                        source_device = operator_device_mapping[predecessor]
-                        assert source_device != current_device
-                        device_communication_order[source_device].append((predecessor, current_op))
-                '''
+
                 # Track task completion
                 completed_tasks.add(current_op)
 
@@ -87,11 +79,11 @@ def FIFO_scheduling_order(comp_graph: CompGraph,
     remaining_nodes = all_nodes - completed_tasks
     assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
     # Iterate through all devices in device_node_order and convert each list to a dictionary
-    '''
-    for device_id, node_list in device_node_order.items():
-        # Convert the list to a dictionary where key is the operator and value is the index
-        device_node_order[device_id] = {op: idx for idx, op in enumerate(node_list)}
-    '''
+    for device, op_exe_order in device_node_order.items():
+        subgraph = device_subgraph_mapping[device]
+        device_outgoing_comm = [(u,v) for (u,v) in edge_cut_list if u in subgraph.nodes]
+        device_outgoing_comm.sort(key=lambda comm: op_exe_order.index(comm[0]))
+        device_communication_order[device] = device_outgoing_comm
     return device_node_order, device_communication_order
 
 

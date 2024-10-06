@@ -48,11 +48,12 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
 
     # Initialize the set to track completed tasks
     completed_tasks = set()
-    received_nodes_by_device = {subgraph_id: set() for subgraph_id in device_subgraph_mapping.keys()}
 
     # This list will store all the constraints that we batch before optimization
-    last_job_dict = {subgraph_id: None for subgraph_id in device_subgraph_mapping.keys()}
-    last_communication_dict = {subgraph_id: None for subgraph_id in device_subgraph_mapping.keys()}
+    device_node_order = {device: [] for device in device_subgraph_mapping.keys()}
+    device_communication_order = {device: [] for device in device_subgraph_mapping.keys()}
+    last_job_dict = {device: None for device in device_subgraph_mapping.keys()}
+    last_communication_dict = {device: None for device in device_subgraph_mapping.keys()}
     # Process each subgraph independently
     while any(queue for queue in device_queues.values()):
         for current_device, queue in device_queues.items():
@@ -69,22 +70,13 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
                     if predecessor not in completed_tasks:
                         raise ValueError(f"{current_op} 's dependency {predecessor} not satisfied")
 
+                device_node_order[current_device].append(current_op)
+
                 # Ensure that the task starts after the previous task finishes within the same subgraph
                 # Operator scheduling within device
                 if last_job_dict[current_device] is not None:
                     model.addConstr(start[current_op] >= finish[last_job_dict[current_device]], name=f"start_after_prev_finish_{current_op}_on_subgraph_{current_device}")
 
-                '''
-                # Communication scheduling. One device can only send to up to one link at the same time
-                for predecessor in comp_graph.predecessors(current_op):
-                    # in edge_cut_list => there exists a cross-device communication
-                    if (predecessor, current_op) in edge_cut_list:
-                        source_device = operator_device_mapping[predecessor]
-                        assert source_device != current_device
-                        if last_communication_dict[source_device] is not None:
-                            model.addConstr(comm_start[predecessor, current_op] >= comm_end[last_communication_dict[source_device]])
-                        last_communication_dict[source_device] = (predecessor, current_op)
-                '''
 
                 # Track the finish time of the current task
                 last_job_dict[current_device] = current_op
@@ -99,3 +91,10 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
     all_nodes = set(comp_graph.nodes())
     remaining_nodes = all_nodes - completed_tasks
     assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
+    for device, op_exe_order in device_node_order.items():
+        subgraph = device_subgraph_mapping[device]
+        device_outgoing_comm = [(u,v) for (u,v) in edge_cut_list if u in subgraph.nodes]
+        # sort by operator execution order
+        device_outgoing_comm.sort(key=lambda comm: op_exe_order.index(comm[0]))
+        for comm1, comm2 in zip(device_outgoing_comm, device_outgoing_comm[1:]):
+            model.addConstr(comm_end[comm1] <= comm_start[comm2])
