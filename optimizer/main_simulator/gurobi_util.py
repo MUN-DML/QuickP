@@ -38,7 +38,7 @@ def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=T
 
 
     # get the file path to retrieve and store
-    name_mapper = {TFModelEnum.BERT: 'bert', TFModelEnum.ALEXNET: 'alexnet', TFModelEnum.VGG: 'vgg', TFModelEnum.SMALL: 'small'}
+    name_mapper = {TFModelEnum.BERT: 'bert', TFModelEnum.ALEXNET: 'alexnet', TFModelEnum.VGG: 'vgg', TFModelEnum.SMALL: 'small', TFModelEnum.FNET: 'fnet'}
     appendix = name_mapper[model_type]
     json_file_path = os.path.join(project_root, 'optimizer', 'computing_graph', 'profiled_computation_graph_json', f"comp_graph_{appendix}.json")
 

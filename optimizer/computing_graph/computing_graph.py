@@ -47,11 +47,15 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
         # https://www.tensorflow.org/guide/autodiff
         with tf.GradientTape() as tape:
             # Forward pass
-            outputs = model({
+            model_inputs = {
                 "token_ids": token_ids,
                 "segment_ids": segment_ids,
-                "padding_mask": padding_mask,
-            })
+            }
+
+            # Add padding_mask only if it is provided
+            if padding_mask is not None:
+                model_inputs["padding_mask"] = padding_mask
+            outputs = model(model_inputs)
             loss = loss_fn(train_y, outputs)
             predictions = outputs
         gradients = tape.gradient(loss, model.trainable_weights)
