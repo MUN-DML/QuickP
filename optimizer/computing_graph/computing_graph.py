@@ -72,8 +72,7 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
 
     graph = parse_to_comp_graph(concrete_function)
     data_loader_func = get_cifar_data_loader if isinstance(model, keras.Sequential) else get_llm_data_loader
-    is_llm = False if isinstance(model, keras.Sequential) else True
-    parent_directory = profile_train(concrete_function, data_loader_func(batch_size, True), num_prof_step=50, is_llm=is_llm, max_length=max_len)
+    parent_directory = profile_train(model, concrete_function, data_loader_func(batch_size, True), num_prof_step=50, max_length=max_len)
     plane_pb_file = find_specific_pb_file(parent_directory, "xplane.pb")
     dataframe = parse_tensorboard(plane_pb_file, Conf_TB(CONF.OP))
     mem_data = parse_tensorboard(plane_pb_file, Conf_TB(CONF.MEM))

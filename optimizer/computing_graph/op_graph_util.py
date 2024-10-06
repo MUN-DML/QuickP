@@ -15,6 +15,9 @@ import networkx as nx
 # pip install tensorboard-plugin-profile
 import tensorboard_plugin_profile.convert.raw_to_tool_data as rttd
 from pathlib import Path
+
+from keras_nlp.src.models.bert.bert_text_classifier import BertTextClassifier
+from keras_nlp.src.models.f_net.f_net_text_classifier import FNetTextClassifier
 from pandas import DataFrame
 from tensorflow.python.eager.polymorphic_function.concrete_function import ConcreteFunction
 from tensorflow.python.framework.dtypes import DType
@@ -106,16 +109,25 @@ def testExistModel(model: Sequential, x_test, y_test, test_num):
 # Command to trigger tensorboard: python3 -m tensorboard.main --logdir=logs
 # https://github.com/tensorflow/profiler/issues/24
 # https://www.tensorflow.org/guide/intro_to_modules
-def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
-                  num_prof_step=50, is_llm=False, max_length=None):
+def profile_train(model, concrete_function: ConcreteFunction, dataloader: tf.data.Dataset, num_warmup_step=2,
+                  num_prof_step=50, max_length=None):
+
+    is_llm = False if isinstance(model, keras.Sequential) else True
 
     if is_llm and max_length is None:
         raise ValueError('max length should be specified if training llm')
     else:
-        preprocessor = keras_nlp.models.BertPreprocessor.from_preset(
-            "bert_base_en_uncased",
-            sequence_length=max_length,
+        if isinstance(model, BertTextClassifier):
+            preprocessor = keras_nlp.models.BertPreprocessor.from_preset(
+                "bert_base_en_uncased",
+                sequence_length=max_length,
+            )
+        elif isinstance(model, FNetTextClassifier):
+            preprocessor = keras_nlp.models.TextClassifierPreprocessor.from_preset(
+                "f_net_base_en",
+                sequence_length=max_length,
         )
+
 
     def train_step(x, y):
         if not is_llm:
@@ -126,7 +138,12 @@ def profile_train(concrete_function: ConcreteFunction, dataloader: tf.data.Datas
             # Extract the tensors from the dictionary
             token_ids = tensor_dict['token_ids']
             segment_ids = tensor_dict['segment_ids']
-            padding_mask = tensor_dict['padding_mask']
+            if isinstance(model, BertTextClassifier):
+                padding_mask = tensor_dict['padding_mask']
+            elif isinstance(model, FNetTextClassifier):
+                padding_mask = None
+            else:
+                raise ValueError("model not supported")
             concrete_function(token_ids, segment_ids, padding_mask, y)
 
     options = tf.profiler.experimental.ProfilerOptions(host_tracer_level=3,

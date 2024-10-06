@@ -20,6 +20,7 @@ class InputSpec(Enum):
     IMDB_FNET = lambda batch_size, max_len: [
         tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="token_ids"),
         tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="segment_ids"),
+        None,
         tf.TensorSpec(shape=[batch_size, ], dtype=tf.int64, name="labels"),  # 2 class for Imdb-review
     ]
 
