@@ -88,8 +88,8 @@ def ranked_list_schedule(model: Model, start, finish, comm_start, comm_end, comp
     completed_tasks = set()
 
     # This list will store all the constraints that we batch before optimization
+    device_node_order = {device: [] for device in device_subgraph_mapping.keys()}
     last_job_dict = {subgraph_id: None for subgraph_id in device_subgraph_mapping.keys()}
-    last_communication_dict = {subgraph_id: None for subgraph_id in device_subgraph_mapping.keys()}
     # Process each subgraph independently
     while any(not pqueue.empty() for pqueue in device_queues.values()):
         for device_id, queue in device_queues.items():
@@ -106,20 +106,13 @@ def ranked_list_schedule(model: Model, start, finish, comm_start, comm_end, comp
                     if predecessor not in completed_tasks:
                         raise ValueError(f"{task} 's dependency {predecessor} not satisfied")
 
+                device_node_order[device_id].append(task)
+
                 # Ensure that the task starts after the previous task finishes within the same subgraph
                 # Operator scheduling within device
                 if last_job_dict[device_id] is not None:
                     model.addConstr(start[task] >= finish[last_job_dict[device_id]], name=f"start_after_prev_finish_{task}_on_subgraph_{device_id}")
-                '''
-                # Communication scheduling. One device can only send or receive from up to one link at the same time
-                for predecessor in comp_graph.predecessors(task):
-                    if (predecessor, task) in edge_cut_list:
-                        if last_communication_dict[device_id] is not None:
-                            model.addConstr(comm_start[predecessor, task] >= comm_end[last_communication_dict[device_id]])
-                        source_device = operator_device_mapping[predecessor]
-                        last_communication_dict[source_device] = (predecessor, task)
-                        last_communication_dict[device_id] = (predecessor, task)
-                '''
+
                 # Track the finish time of the current task
                 last_job_dict[device_id] = task
 
@@ -133,3 +126,10 @@ def ranked_list_schedule(model: Model, start, finish, comm_start, comm_end, comp
     all_nodes = set(comp_graph.nodes())
     remaining_nodes = all_nodes - completed_tasks
     assert len(remaining_nodes) == 0, f"the remaining nodes {remaining_nodes} but all nodes should be scheduled"
+    for device, op_exe_order in device_node_order.items():
+        subgraph = device_subgraph_mapping[device]
+        device_outgoing_comm = [(u,v) for (u,v) in edge_cut_list if u in subgraph.nodes]
+        # sort by operator execution order
+        device_outgoing_comm.sort(key=lambda comm: op_exe_order.index(comm[0]))
+        for comm1, comm2 in zip(device_outgoing_comm, device_outgoing_comm[1:]):
+            model.addConstr(comm_end[comm1] <= comm_start[comm2])
