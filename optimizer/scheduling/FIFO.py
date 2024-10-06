@@ -51,9 +51,7 @@ def FIFO_scheduling(model: Model, start, finish, comm_start, comm_end, comp_grap
 
     # This list will store all the constraints that we batch before optimization
     device_node_order = {device: [] for device in device_subgraph_mapping.keys()}
-    device_communication_order = {device: [] for device in device_subgraph_mapping.keys()}
     last_job_dict = {device: None for device in device_subgraph_mapping.keys()}
-    last_communication_dict = {device: None for device in device_subgraph_mapping.keys()}
     # Process each subgraph independently
     while any(queue for queue in device_queues.values()):
         for current_device, queue in device_queues.items():
