@@ -23,7 +23,7 @@ def get_computation_graph(model: keras.Model, optimizer=keras.optimizers.Adam(3e
 
     compile_model(model, optimizer, loss_fn)
 
-    batch_size = 128 if isinstance(model, keras.Sequential) else 1
+    batch_size = 512 if isinstance(model, keras.Sequential) else 16
 
     # tf.function is a decorator that tells TensorFlow to create a graph from the Python function
     # https://www.tensorflow.org/guide/function
