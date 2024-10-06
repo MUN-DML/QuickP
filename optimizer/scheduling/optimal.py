@@ -10,12 +10,19 @@ def optimal_scheduling(model: Model, start, finish, comm_start, comm_end, comp_g
     # The global data dependency is already applied
     M = 1000000
     order = {}
+    comm_order = {}
     for subgraph in device_subgraph_mapping.values():
         for a, b in find_non_connected_pairs(subgraph):
             # Initialize order variables
             order[a, b] = model.addVar(vtype=GRB.BINARY, name=f"order_{a}_{b}")
             model.addConstr(start[b] >= finish[a] - M * (1 - order[a, b]),name=f"NoOverlap1_{a}_{b}")
             model.addConstr(start[a] >= finish[b] - M * order[a, b], name=f"NoOverlap2_{a}_{b}")
+    for device, subgraph in device_subgraph_mapping.items():
+        outgoings = [edge for edge in edge_cut_list if edge[0] in subgraph]
+        for comm1, comm2 in itertools.combinations(outgoings, 2):
+            comm_order[comm1, comm2] = model.addVar(vtype=GRB.BINARY)
+            model.addConstr(comm_start[comm2] >= comm_end[comm1] - M * (1 - comm_order[comm1, comm2]))
+            model.addConstr(comm_start[comm1] >= comm_end[comm2] - M * comm_order[comm1, comm2])
     '''
     # Add constraint to ensure each device can only send one link at a time, communication scheduling
     # Only edges in the edge_cut_list will bring communication cost
