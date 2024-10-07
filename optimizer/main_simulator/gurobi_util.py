@@ -44,7 +44,7 @@ def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=T
 
     # init device topo
     deviceTopo = DeviceGraph()
-    deviceTopo.generata_fat_tree_topo(num_device, 50, 20, 2)
+    deviceTopo.generata_fat_tree_topo(num_device, 50, 20, 1)
 
     if not os.path.exists(json_file_path):
         model = model_type()
@@ -388,3 +388,17 @@ def calculate_real_total_cost(communications):
         total_cost += end - start
 
     return total_cost
+
+def get_proper_M(model: TFModelEnum):
+    if model==TFModelEnum.SMALL:
+        return 1000
+    if model==TFModelEnum.ALEXNET:
+        return 500000
+    if model==TFModelEnum.VGG:
+        return 500000
+    if model==TFModelEnum.FNET:
+        return 300000
+    if model==TFModelEnum.BERT:
+        return 300000
+
+
