@@ -391,14 +391,14 @@ def calculate_real_total_cost(communications):
 
 def get_proper_M(model: TFModelEnum):
     if model==TFModelEnum.SMALL:
-        return 1000
+        return 100
     if model==TFModelEnum.ALEXNET:
-        return 500000
+        return 350000
     if model==TFModelEnum.VGG:
-        return 500000
+        return 350000
     if model==TFModelEnum.FNET:
-        return 300000
+        return 250000
     if model==TFModelEnum.BERT:
-        return 300000
+        return 250000
 
 
