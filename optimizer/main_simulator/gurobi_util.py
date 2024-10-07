@@ -18,7 +18,7 @@ def gurobi_setup(name: str):
     model = Model(name)
     model.setParam("LogToConsole", 0)
     model.setParam("LogFile", "gurobi.log")
-    model.setParam("MIPGap", 0.01)
+    model.setParam("MIPGap", 0.05)
     model.setParam("TimeLimit", 2400)
     model.setParam("MIPFocus", 1)
 
@@ -391,7 +391,7 @@ def calculate_real_total_cost(communications):
 
 def get_proper_M(model: TFModelEnum):
     if model==TFModelEnum.SMALL:
-        return 100
+        return 300
     if model==TFModelEnum.ALEXNET:
         return 350000
     if model==TFModelEnum.VGG:
