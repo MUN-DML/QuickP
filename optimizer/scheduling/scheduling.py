@@ -30,10 +30,9 @@ class SchedulingAlgorithm(Enum):
     FIFO = "FIFO"
     OPTIMIZED = "OPTIMIZED"
     PRIORITY_MIN_COMP = "PRIORITY_MIN_COMP"
-    NEAR_OPTIMAL = "NEAR_OPTIMAL"
     PRIORITY_HETEROG = "PRIORITY_HETEROG"
-    SAMPLING_NEAR_OPTIMAL = "SAMPLING_NEAR_OPTIMAL"
     THREE_STAGE = "THREE_STAGE"
+
 
 def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
     # Define the required arguments for each scheduling algorithm
@@ -48,15 +47,10 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         SchedulingAlgorithm.PRIORITY_HETEROG.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                                      'device_subgraph_mapping', 'edge_cut_list',
                                                      'operator_device_mapping'],
-        SchedulingAlgorithm.NEAR_OPTIMAL.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
-                                                 'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping',
-                                                 'threshold'],
-        SchedulingAlgorithm.SAMPLING_NEAR_OPTIMAL.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
-                                                         'device_subgraph_mapping', 'edge_cut_list',
-                                                         'operator_device_mapping', 'rho', 'sampling_function'],
         SchedulingAlgorithm.THREE_STAGE.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
-                                                          'device_subgraph_mapping', 'edge_cut_list',
-                                                          'operator_device_mapping', 'computing_cost_dict', 'communication_cost_dict']
+                                                'device_subgraph_mapping', 'edge_cut_list',
+                                                'operator_device_mapping', 'computing_cost_dict',
+                                                'communication_cost_dict']
     }
 
     if sch_fun_type not in required_args:
@@ -79,9 +73,5 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         return priority_queue_min_comp_cost(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.PRIORITY_HETEROG.value:
         return priority_queue_max_rank_heteroG(model, **selected_kwargs)
-    elif sch_fun_type == SchedulingAlgorithm.NEAR_OPTIMAL.value:
-        return near_optimal_scheduling(model, **selected_kwargs)
-    elif sch_fun_type == SchedulingAlgorithm.SAMPLING_NEAR_OPTIMAL.value:
-        return near_optimal_scheduling_with_sampling(model, **selected_kwargs)
     elif sch_fun_type == SchedulingAlgorithm.THREE_STAGE.value:
         return three_stage_list_schedule(model, **selected_kwargs)
