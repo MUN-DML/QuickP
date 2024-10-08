@@ -40,7 +40,7 @@ def execute_scheduling_function(sch_fun_type: str, model: Model, **kwargs):
         SchedulingAlgorithm.FIFO.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                          'device_subgraph_mapping', 'edge_cut_list', 'operator_device_mapping'],
         SchedulingAlgorithm.OPTIMIZED.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
-                                              'device_subgraph_mapping', 'edge_cut_list'],
+                                              'device_subgraph_mapping', 'edge_cut_list', 'M'],
         SchedulingAlgorithm.PRIORITY_MIN_COMP.value: ['start', 'finish', 'comm_start', 'comm_end', 'comp_graph',
                                                       'device_subgraph_mapping', 'edge_cut_list',
                                                       'operator_device_mapping'],
