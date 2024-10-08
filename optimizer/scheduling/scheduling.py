@@ -15,7 +15,7 @@ from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_
 
 
 def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish, start):
-    M = 100
+    M = 300
     # Iterate over topologically sorted nodes
     for a, b in itertools.combinations(original_topo_list, 2):
         # For each consecutive pair of operators, add a constraint for each device
