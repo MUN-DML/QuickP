@@ -189,13 +189,14 @@ def profile_train(model, concrete_function: ConcreteFunction, dataloader: tf.dat
 
 
 def parse_to_comp_graph(concrete_function: ConcreteFunction):
-    graph = concrete_function.graph
+    graph: tf.Graph = concrete_function.graph
 
     # Create a directed graph
     G = CompGraph()
 
     # Add nodes and edges to the graph
     # https://www.tensorflow.org/api_docs/python/tf/Operation
+    # op: tf.Operation
     for op in graph.get_operations():
         # name:  AssignAddVariableOp_1/resource outputs:  [<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>] inputs:  () control:  []
         # name:  AssignAddVariableOp_1 outputs:  [] inputs:  (<tf.Tensor 'AssignAddVariableOp_1/resource:0' shape=() dtype=resource>, <tf.Tensor 'Cast:0' shape=() dtype=float32>) control:  [<tf.Operation 'AssignAddVariableOp' type=AssignAddVariableOp>]
@@ -204,7 +205,7 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
         # name:  sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits
         # outputs:  [<tf.Tensor 'sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:0' shape=(200,) dtype=float32>, <tf.Tensor 'sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:1' shape=(200, 10) dtype=float32>]
         # inputs:  (<tf.Tensor 'sequential_1/dense_1/Add:0' shape=(200, 10) dtype=float32>, <tf.Tensor 'sparse_categorical_crossentropy/Squeeze:0' shape=(200,) dtype=int64>) control:  []
-
+        print(op.colocation_groups()[0])
         # Each node is an operation in the TensorFlow graph
         G.add_new_node(op.name, op_type=op.type)
         # op.inputs is a tuple of tf.Tensor objects
