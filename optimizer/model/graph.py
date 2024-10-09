@@ -179,6 +179,16 @@ class CompGraph(DiGraph):
             raise ValueError("node {0} does not exist".format(node_id))
         return int(sum(self.nodes[node_id]['comp_cost'].values()) / len(self.nodes[node_id]['comp_cost']))
 
+    def get_colocation_group(self, node_id):
+        if node_id not in self.nodes:
+            raise ValueError("node {0} does not exist".format(node_id))
+        return self.nodes[node_id]["colocation_group"]
+
+    def set_colocation_group(self, node_id, colocation_group):
+        if node_id not in self.nodes:
+            raise ValueError("node {0} does not exist".format(node_id))
+        self.nodes[node_id]["colocation_group"] = colocation_group
+
     def getAllOperators(self):
         return list(self.nodes(data=True))
 
