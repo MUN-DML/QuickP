@@ -4,7 +4,6 @@ from networkx import topological_sort
 from optimizer.model.graph import find_non_connected_pairs, DeviceGraph, CompGraph
 from optimizer.operator_device_placement.metis.metis_partition import metis_partition
 from optimizer.operator_device_placement.metis.subgraph_util import construct_sub_graph
-from optimizer.scheduling.scheduling import add_topo_order_constraints
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 

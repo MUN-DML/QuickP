@@ -107,7 +107,7 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
     # Global Data dependency
     for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
         model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
-    add_topo_order_constraints(model, list(topological_sort(comp_graph)), x, deviceTopo.getDeviceIDs(), finish, start)
+    add_topo_order_constraints(model, comp_graph, x, deviceTopo.getDeviceIDs(), finish, start)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)

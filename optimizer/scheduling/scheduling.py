@@ -14,10 +14,10 @@ from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_hetero
 from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_cost
 
 
-def add_topo_order_constraints(model, original_topo_list, x, device_ids, finish, start):
+def add_topo_order_constraints(model, graph, x, device_ids, finish, start):
     M = 300
     # Iterate over topologically sorted nodes
-    for a, b in itertools.combinations(original_topo_list, 2):
+    for a, b in find_non_connected_pairs(graph):
         # For each consecutive pair of operators, add a constraint for each device
         for device_id in device_ids:
             # Ensure the correct order for each potential device assignment
