@@ -41,18 +41,25 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
     group_ops_mapping = create_colocation_group_to_ops_map(comp_graph)
     for group in group_ops_mapping.values():
         for device in deviceTopo.getDeviceIDs():
-            model.addConstr(quicksum(x[op, device] for op in group) == len(group) * x[group[0], device],
-                            name=f"colocation_group_{group}_on_device_{device}")
+            for a, b in zip(group, group[1:]):
+                model.addConstr(x[a, device] == x[b, device])
 
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
         model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name=f"one_device_{op}")
 
-    # Add constraints that each op's ending time = starting time + its computing time
+    # Add constraints that each op's ending time = starting time + its computing time. Homogeneous device
+    any_d = deviceTopo.getDeviceIDs()[0]
+    homo_op_cost_dict = comp_graph.getOpCompCostMapByDevice(any_d)
+    for node_id in comp_graph.getOperatorIDs():
+        model.addConstr(finish[node_id] == start[node_id] + homo_op_cost_dict[node_id],
+                            name=f"finish_start_{node_id}")
+    '''
     for node_id in comp_graph.getOperatorIDs():
         comp_cost = quicksum(x[node_id, device_id] * comp_graph.getOperatorCompCostByDevice(node_id, device_id)
                              for device_id in deviceTopo.getDeviceIDs())
         model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
+    '''
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
