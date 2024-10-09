@@ -19,8 +19,8 @@ def add_topo_order_constraints(model, graph, x, device_ids, finish, start, group
     op_group_mapping = get_op_group_map(group_ops_mapping)
     topological_order_mapping = {node: index for index, node in enumerate(list(nx.topological_sort(graph)))}
     non_reachable_pairs = find_non_connected_pairs(graph)
-    ungrouped_non_reachable_pairs = [(a,b) for (a,b) in non_reachable_pairs if a in op_group_mapping and b in op_group_mapping
-                                     and op_group_mapping[a] == op_group_mapping[b]]
+    ungrouped_non_reachable_pairs = [(a,b) for (a,b) in non_reachable_pairs if a not in op_group_mapping and b not in op_group_mapping]
+    print('sisi', len(non_reachable_pairs), len(ungrouped_non_reachable_pairs))
     for group_id, group in group_ops_mapping.items():
         group = sorted(group, key=lambda node: topological_order_mapping[node])
         for a, b in zip(group, group[1:]):
