@@ -46,10 +46,10 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
         model.addConstr(quicksum(group_device_mapping[group, device] for device in deviceTopo.getDeviceIDs()) == 1,
                         name=f"assign_group_{group}_to_one_device")
 
-    for group in group_ops_mapping.values():
+    for group_id, group in group_ops_mapping.items():
         for device in deviceTopo.getDeviceIDs():
             for node in group:
-                model.addConstr(x[node, device] == group_device_mapping[group, device])
+                model.addConstr(x[node, device] == group_device_mapping[group_id, device])
 
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
