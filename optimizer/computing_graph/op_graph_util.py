@@ -8,6 +8,7 @@ import pandas as pd
 import keras
 import torch
 import numpy as np
+from future.utils import bytes_to_native_str
 from keras import Sequential
 from keras.src.datasets import cifar10
 import tensorflow as tf
@@ -205,7 +206,8 @@ def parse_to_comp_graph(concrete_function: ConcreteFunction):
         # name:  sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits
         # outputs:  [<tf.Tensor 'sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:0' shape=(200,) dtype=float32>, <tf.Tensor 'sparse_categorical_crossentropy/SparseSoftmaxCrossEntropyWithLogits/SparseSoftmaxCrossEntropyWithLogits:1' shape=(200, 10) dtype=float32>]
         # inputs:  (<tf.Tensor 'sequential_1/dense_1/Add:0' shape=(200, 10) dtype=float32>, <tf.Tensor 'sparse_categorical_crossentropy/Squeeze:0' shape=(200,) dtype=int64>) control:  []
-        print(op.colocation_groups()[0])
+        print([bytes_to_native_str(colocation_group)
+         for colocation_group in op.colocation_groups()])
         # Each node is an operation in the TensorFlow graph
         G.add_new_node(op.name, op_type=op.type)
         # op.inputs is a tuple of tf.Tensor objects

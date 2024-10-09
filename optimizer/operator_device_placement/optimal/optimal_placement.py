@@ -1,6 +1,7 @@
 from gurobipy import *
 from networkx import topological_sort
 
+from optimizer.co_location.grouper_util import create_colocation_group_to_ops_map
 from optimizer.scheduling.scheduling import add_topo_order_constraints
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
@@ -35,6 +36,13 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
                                name="comm_start")  # comm_start[source_op, dest_op] represent the communication
     comm_end = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
     comm_cost = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_cost")
+
+    # Co-location constraint
+    group_ops_mapping = create_colocation_group_to_ops_map(comp_graph)
+    for group in group_ops_mapping.values():
+        for device in deviceTopo.getDeviceIDs():
+            model.addConstr(quicksum(x[op, device] for op in group) == len(group) * x[group[0], device],
+                            name=f"colocation_group_{group}_on_device_{device}")
 
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
