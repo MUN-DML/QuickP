@@ -24,10 +24,13 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
 
     # Init solver
     model = gurobi_setup("minimize_maxload")
+    group_ops_mapping = create_colocation_group_to_ops_map(comp_graph)
 
     # Define variables
     x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
                       name="x")  # [operator_id, device_id] == 1 means this operator is assigned to this device
+    group_device_mapping = model.addVars(group_ops_mapping.keys(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
+                                         name="y_group")
     start = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                           name="start")  # start[node_id] represent the starting time of this node
     finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
@@ -38,11 +41,15 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
     comm_cost = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_cost")
 
     # Co-location constraint
-    group_ops_mapping = create_colocation_group_to_ops_map(comp_graph)
+    # Ensure each group is assigned to exactly one device
+    for group in group_ops_mapping.keys():
+        model.addConstr(quicksum(group_device_mapping[group, device] for device in deviceTopo.getDeviceIDs()) == 1,
+                        name=f"assign_group_{group}_to_one_device")
+
     for group in group_ops_mapping.values():
         for device in deviceTopo.getDeviceIDs():
-            for a, b in zip(group, group[1:]):
-                model.addConstr(x[a, device] == x[b, device])
+            for node in group:
+                model.addConstr(x[node, device] == group_device_mapping[group, device])
 
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
