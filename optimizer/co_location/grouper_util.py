@@ -17,3 +17,14 @@ def create_colocation_group_to_ops_map(op_graph: DiGraph) -> Dict[any, List[str]
 
     return dict(colocation_group_map)
 
+
+def get_op_group_map(groups_op_mapping: Dict[any, List[any]]) -> Dict[str, any]:
+    op_group_map = {}
+
+    for group, ops in groups_op_mapping.items():
+        for op in ops:
+            op_group_map[op] = group
+
+    return op_group_map
+
+
