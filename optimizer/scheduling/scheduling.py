@@ -19,8 +19,8 @@ def add_topo_order_constraints(model, graph, x, device_ids, finish, start, op_gr
     # Iterate over topologically sorted nodes
     for a, b in find_non_connected_pairs(graph):
         # if they have colocation constraint
-        if op_group_mapping[a] == op_group_mapping[b]:
-            model.addConstr(finish[a] <= start[b])
+        if a in op_group_mapping and b in op_group_mapping and op_group_mapping[a] == op_group_mapping[b]:
+            model.addConstr(finish[a] <= start[b], name=f"finish_{a}_before_start_{b}")
             continue
         # For each consecutive pair of operators, add a constraint for each device
         for device_id in device_ids:
