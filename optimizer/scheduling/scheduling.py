@@ -4,6 +4,7 @@ from enum import Enum
 import networkx as nx
 from gurobipy import Model, GRB
 
+from optimizer.co_location.grouper_util import get_op_group_map
 from optimizer.model.graph import find_non_connected_pairs, CompGraph, is_not_connected
 from optimizer.scheduling.FIFO import FIFO_scheduling
 from optimizer.scheduling.multi_stage_list_schedule import three_stage_list_schedule
@@ -14,14 +15,19 @@ from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_hetero
 from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_cost
 
 
-def add_topo_order_constraints(model, graph, x, device_ids, finish, start, op_group_mapping):
-    M = 300
+def add_topo_order_constraints(model, graph, x, device_ids, finish, start, group_ops_mapping, M):
+    op_group_mapping = get_op_group_map(group_ops_mapping)
+    topological_order_mapping = {node: index for index, node in enumerate(list(nx.topological_sort(graph)))}
+    non_reachable_pairs = find_non_connected_pairs(graph)
+    ungrouped_non_reachable_pairs = [(a,b) for (a,b) in non_reachable_pairs if a in op_group_mapping and b in op_group_mapping
+                                     and op_group_mapping[a] == op_group_mapping[b]]
+    for group_id, group in group_ops_mapping:
+        group = sorted(group, key=lambda node: topological_order_mapping[node])
+        for a, b in zip(group, group[1:]):
+            model.addConstr(finish[a] <= start[b])
+
     # Iterate over topologically sorted nodes
-    for a, b in find_non_connected_pairs(graph):
-        # if they have colocation constraint
-        if a in op_group_mapping and b in op_group_mapping and op_group_mapping[a] == op_group_mapping[b]:
-            model.addConstr(finish[a] <= start[b], name=f"finish_{a}_before_start_{b}")
-            continue
+    for a, b in ungrouped_non_reachable_pairs:
         # For each consecutive pair of operators, add a constraint for each device
         for device_id in device_ids:
             # Ensure the correct order for each potential device assignment

@@ -19,7 +19,7 @@ class PlacementGenerator(Enum):
     INCONTIGUOUS_METIS = "INCONTIGUOUS_METIS"
 
 
-def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: DeviceGraph):
+def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: DeviceGraph, M):
     if placement_type == PlacementGenerator.METIS.value:
         partition_dict, edge_cut_list, edge_cut_weight_sum = metis_partition(comp_graph,
                         num_partitions=len(device_topo.getDeviceIDs()),
@@ -30,7 +30,7 @@ def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: 
         operator_device_mapping = map_subgraph_to_device(partition_dict, device_topo.getDeviceIDs(), device_computing_cost_dict, partition_weights)
 
     elif placement_type == PlacementGenerator.OPTIMIZED.value:
-        operator_device_mapping = get_optimize_placement(comp_graph, device_topo)
+        operator_device_mapping = get_optimize_placement(comp_graph, device_topo, M)
         edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
 
     elif placement_type == PlacementGenerator.TEST.value:

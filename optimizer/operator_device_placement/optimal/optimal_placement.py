@@ -12,7 +12,7 @@ sys.path.append(project_root)
 from optimizer.main_simulator.gurobi_util import gurobi_setup, show_optimization_solution
 
 
-def get_optimize_placement(comp_graph, deviceTopo) -> dict:
+def get_optimize_placement(comp_graph, deviceTopo, M) -> dict:
 
     def get_operator_device_mapping_through_x(x):
         mapping = {}
@@ -27,7 +27,6 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
 
     # get co-location info
     group_ops_mapping = create_colocation_group_to_ops_map(comp_graph)
-    op_group_mapping = get_op_group_map(group_ops_mapping)
 
     # Define variables
     x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
@@ -110,7 +109,7 @@ def get_optimize_placement(comp_graph, deviceTopo) -> dict:
     # Global Data dependency
     for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
         model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
-    add_topo_order_constraints(model, comp_graph, x, deviceTopo.getDeviceIDs(), finish, start, op_group_mapping)
+    add_topo_order_constraints(model, comp_graph, x, deviceTopo.getDeviceIDs(), finish, start, group_ops_mapping, M)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
