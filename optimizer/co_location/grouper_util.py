@@ -87,10 +87,9 @@ def bfs_with_colocation(graph: CompGraph, device_topo: DeviceGraph, start_node, 
             if 'colocation_group' not in graph.nodes[neighbor]:  # If not already visited
                 # potential communication cost and comp_cost
                 computing_cost = computing_cost_dict[neighbor]
-                communication_cost = graph.getEdgeTensorSize(node, neighbor
-                                      * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]))
+                communication_cost = graph.getEdgeTensorSize(node, neighbor) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
                 # Mark the node as visited by adding the 'colocation_group' attribute
                 if communication_cost >= computing_cost:
-                    graph.nodes[node]['colocation_group'] = start_node
+                    graph.set_colocation_group(neighbor, start_node)
                     # only expand node labelled in the same group
                     queue.append(neighbor)
