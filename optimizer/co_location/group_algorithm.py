@@ -1,9 +1,18 @@
 from networkx.classes import DiGraph
 
+from optimizer.co_location.grouper_util import sort_by_critical_score, bfs_with_colocation
+from optimizer.model.graph import CompGraph, DeviceGraph
+
 
 # group with nodes with small computing cost but a large communication cost if on different devices
-def quickcut_group(computing_graph: DiGraph):
-    pass
+def quickcut_group(computing_graph: CompGraph, device_topo: DeviceGraph):
+    computing_cost_dict = computing_graph.getOpCompCostMapByDevice(device_topo.getDeviceIDs()[0])
+    node_order = sort_by_critical_score(computing_graph, computing_cost_dict)
+    for node in node_order:
+        if 'colocation_group' in computing_graph.nodes[node]:
+            continue
+        bfs_with_colocation(computing_graph, highest_bandwidth, node, computing_cost_dict)
+
 
 class ColocationGroupMap():
     """Data structure that maps group to a set of groups that are co-located."""
