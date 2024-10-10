@@ -60,7 +60,7 @@ def sort_by_critical_score(computing_graph: CompGraph, computing_cost_dict):
     return all_nodes
 
 
-def bfs_with_colocation(graph: CompGraph, device_topo: DeviceGraph, start_node, computing_cost_dict):
+def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     """
     Perform BFS on a NetworkX DiGraph starting from any node,
     skipping nodes that already have a 'colocation_group' attribute.
@@ -71,34 +71,47 @@ def bfs_with_colocation(graph: CompGraph, device_topo: DeviceGraph, start_node, 
         :param start_node:
         :param computing_cost_dict:
     """
-    fast_link = device_topo.get_fastest_link()
-    # Queue to keep track of nodes to explore (starting with start_node)
-    queue = deque([start_node])
 
-    # label the beginning node
-    graph.set_colocation_group(start_node, start_node)
+    def BFS_label(from_node):
+        # Queue to keep track of nodes to explore (starting with start_node)
+        queue = deque([from_node])
 
-    # Perform BFS
-    while queue:
-        # Pop the leftmost (oldest) node in the queue
-        node = queue.popleft()
+        # label the beginning node
+        graph.set_colocation_group(from_node, from_node)
 
-        # Check if the node has a 'colocation_group' attribute
-        if 'colocation_group' not in graph.nodes[node]:
-            raise ValueError("Dequeued node should be labelled already")
+        # Perform BFS
+        while queue:
+            # Pop the leftmost (oldest) node in the queue
+            node = queue.popleft()
 
-        # Explore neighbors (outgoing edges in DiGraph)
-        for neighbor in graph.successors(node):  # Only follow outgoing edges
-            if 'colocation_group' not in graph.nodes[neighbor]:  # If not already visited
+            # Check if the node has a 'colocation_group' attribute
+            if 'colocation_group' not in graph.nodes[node]:
+                raise ValueError("Dequeued node should be labelled already")
+
+            # Explore neighbors (outgoing edges in DiGraph)
+            for neighbor in graph.successors(node):  # Only follow outgoing edges
                 # potential communication cost and comp_cost
                 computing_cost = computing_cost_dict[neighbor]
-                communication_cost = graph.getEdgeTensorSize(node, neighbor) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
+                communication_cost = graph.getEdgeTensorSize(node, neighbor) * device_topo.calUnitCommCostInUS(
+                    fast_link[0], fast_link[1])
                 # Mark the node as visited by adding the 'colocation_group' attribute
                 if communication_cost >= computing_cost:
-                    print("from", node, "to", neighbor, graph.getEdgeTensorSize(node, neighbor), communication_cost, computing_cost)
-                    graph.set_colocation_group(neighbor, start_node)
-                    # only expand node labelled in the same group
-                    queue.append(neighbor)
+                    # If not already visited, will expand this successor
+                    if 'colocation_group' not in graph.nodes[neighbor]:
+                        graph.set_colocation_group(neighbor, from_node)
+                        queue.append(neighbor)
+                    # If already visited, add this new group to its existing groups but will not expand further
+                    else:
+                        graph.update_colocation_group(neighbor, from_node)
+
+
+    fast_link = device_topo.get_fastest_link()
+    node_order = sort_by_critical_score(graph, computing_cost_dict)
+    for node in node_order:
+        # skip already labelled node
+        if 'colocation_group' in graph.nodes[node]:
+            continue
+        BFS_label(node)
 
 
 def analyze_group(group_ops_mapping, node_computing_cost_dict):
