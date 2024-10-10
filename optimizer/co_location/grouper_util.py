@@ -113,6 +113,18 @@ def analyze_group(group_ops_mapping, node_computing_cost_dict):
 
 # if there is any node which has two groups labelled, this two groups get merged
 def merge_group(computing_graph: CompGraph):
-    nodes_with_multiple_groups = []
-    for node in computing_graph.nodes:
+    # A 2D array, each list in groups_to_join indicate multiple groups which should be merged
+    groups_to_join = []
+    for op_id, op_data in computing_graph.nodes(data=True):
+        # Check if the node has a 'colocation_group' attribute
+        group_list = op_data.get('colocation_group')
+        # every node should have colocation group
+        if group_list is None or not group_list:
+            raise ValueError(f'colocation group {op_id} has no colocation_group')
+        if len(group_list) > 1:
+            groups_to_join.append(group_list)
+
+    for groups in groups_to_join:
+        new_group = join
+
 
