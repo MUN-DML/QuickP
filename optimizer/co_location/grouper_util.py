@@ -126,6 +126,45 @@ def analyze_group(group_ops_mapping, node_computing_cost_dict):
 
 # if there is any node which has two groups labelled, this two groups get merged
 def merge_group(computing_graph: CompGraph):
+
+    merged_group_op_set_map = {}
+
+    # a list of set [(a, b), (c), (d, e, g), (b, c), (e, p)]
+    # I want to get [(a, b, c), (d, e, g, p)]
+    def merge_sets(sets):
+        merged = []
+
+        for current_set in sets:
+            # Find all existing sets that share elements with current_set
+            overlapping = []
+            for s in merged:
+                if s & current_set:  # if there's an intersection
+                    overlapping.append(s)
+
+            # If no overlap, add the current_set as a new group
+            if not overlapping:
+                merged.append(current_set)
+            else:
+                # Merge all overlapping sets with the current_set
+                merged = [s for s in merged if s not in overlapping]
+                merged.append(set.union(*overlapping, current_set))
+
+        return merged
+
+    def get_group_op_set_map():
+        colocation_group_map = defaultdict(set)
+
+        for op_id, op_data in computing_graph.nodes(data=True):
+            # Check if the node has a 'colocation_group' attribute
+            group_list = op_data.get('colocation_group')
+            # every node should have colocation group
+            if group_list is None or not group_list:
+                raise ValueError(f'colocation group {op_id} has no colocation_group')
+            for group_id in group_list:
+                colocation_group_map[group_id].update(op_id)
+
+        return dict(colocation_group_map)
+
     # A 2D array, each list in groups_to_join indicate multiple groups which should be merged
     groups_to_join = []
     for op_id, op_data in computing_graph.nodes(data=True):
@@ -134,10 +173,19 @@ def merge_group(computing_graph: CompGraph):
         # every node should have colocation group
         if group_list is None or not group_list:
             raise ValueError(f'colocation group {op_id} has no colocation_group')
+        if len(group_list) < 1:
+            raise ValueError(f'colocation group {op_id} has empty colocation_group')
         if len(group_list) > 1:
-            groups_to_join.append(group_list)
+            groups_to_join.append(set(group_list))
 
-    for groups in groups_to_join:
-        new_group = join
+    merged_sets = merge_sets(groups_to_join)
+    group_op_set = get_group_op_set_map()
+    for group_set in merged_sets:
+        merged_nodes = set()
+        merged_string = ''.join(group_set)
+        for group_id in group_op_set:
+            merged_nodes = merged_nodes | group_op_set[group_id]
+        merged_group_op_set_map[merged_string] = merged_nodes
 
+    for new_group_id
 
