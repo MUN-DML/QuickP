@@ -1,6 +1,6 @@
 from networkx.classes import DiGraph
 
-from optimizer.co_location.grouper_util import sort_by_critical_score, bfs_with_colocation
+from optimizer.co_location.grouper_util import sort_by_critical_score, bfs_with_colocation, merge_group
 from optimizer.model.graph import CompGraph, DeviceGraph
 
 
@@ -12,6 +12,8 @@ def quickcut_group(computing_graph: CompGraph, device_topo: DeviceGraph):
         if 'colocation_group' in computing_graph.nodes[node]:
             continue
         bfs_with_colocation(computing_graph, device_topo, node, computing_cost_dict)
+    # After all node get labelled, merge groups
+    merge_group(computing_graph)
 
 
 class ColocationGroupMap():

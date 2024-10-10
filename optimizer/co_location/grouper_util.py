@@ -13,9 +13,14 @@ def create_colocation_group_to_ops_map(op_graph: DiGraph) -> Dict[any, List[str]
 
     for op_id, op_data in op_graph.nodes(data=True):
         # Check if the node has a 'colocation_group' attribute
-        group = op_data.get('colocation_group')
-        if group is not None:
-            colocation_group_map[group].append(op_id)
+        group_list = op_data.get('colocation_group')
+        # every node should have colocation group
+        if group_list is None or not group_list:
+            raise ValueError(f'colocation group {op_id} has no colocation_group')
+        if len(group_list) > 1:
+            raise ValueError(f'colocation group {op_id} has multiple colocation_groups')
+        group_id = group_list[0]
+        colocation_group_map[group_id].append(op_id)
     # {'':list(op_graph.nodes)[0:40], '1': list(op_graph.nodes)[41:80], '2': list(op_graph.nodes)[80:121]}
     # {'':list(op_graph.nodes)[0:600], '1': list(op_graph.nodes)[601:1200], '2': list(op_graph.nodes)[1201:1600]}
     return dict(colocation_group_map)
@@ -90,6 +95,24 @@ def bfs_with_colocation(graph: CompGraph, device_topo: DeviceGraph, start_node, 
                 communication_cost = graph.getEdgeTensorSize(node, neighbor) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
                 # Mark the node as visited by adding the 'colocation_group' attribute
                 if communication_cost >= computing_cost:
+                    print("from", node, "to", neighbor, graph.getEdgeTensorSize(node, neighbor), communication_cost, computing_cost)
                     graph.set_colocation_group(neighbor, start_node)
                     # only expand node labelled in the same group
                     queue.append(neighbor)
+
+
+def analyze_group(group_ops_mapping, node_computing_cost_dict):
+    print({gid: len(group) for gid, group in group_ops_mapping.items()})
+    print('group number', len(group_ops_mapping.keys()))
+    group_computing_cost_sum = {
+        gid: sum(node_computing_cost_dict[op] for op in group)
+        for gid, group in group_ops_mapping.items()
+    }
+    print("group_computing_cost_sum", group_computing_cost_sum)
+
+
+# if there is any node which has two groups labelled, this two groups get merged
+def merge_group(computing_graph: CompGraph):
+    nodes_with_multiple_groups = []
+    for node in computing_graph.nodes:
+
