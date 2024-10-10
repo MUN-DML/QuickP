@@ -355,6 +355,11 @@ class DeviceGraph(DiGraph):
             if not edge[2]["bandwidth"]:
                 raise ValueError(f"Bandwidth from {edge[0]} to {edge[1]} is not valid")
 
+    def get_fastest_link(self) -> tuple[str, str, dict]:
+        fastest_edge = max(self.edges.data(), key=lambda edge: edge[2].get('bandwidth', 0))
+        return fastest_edge
+
+
     def __str__(self):
         return ""
 

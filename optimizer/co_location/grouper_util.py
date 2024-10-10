@@ -4,7 +4,7 @@ from typing import Dict, List
 import networkx as nx
 from networkx.classes import DiGraph
 
-from optimizer.model.graph import CompGraph
+from optimizer.model.graph import CompGraph, DeviceGraph
 
 
 def create_colocation_group_to_ops_map(op_graph: DiGraph) -> Dict[any, List[str]]:
@@ -55,7 +55,7 @@ def sort_by_critical_score(computing_graph: CompGraph, computing_cost_dict):
     return all_nodes
 
 
-def bfs_with_colocation(graph: CompGraph, device_topo, start_node, computing_cost_dict):
+def bfs_with_colocation(graph: CompGraph, device_topo: DeviceGraph, start_node, computing_cost_dict):
     """
     Perform BFS on a NetworkX DiGraph starting from any node,
     skipping nodes that already have a 'colocation_group' attribute.
@@ -66,6 +66,7 @@ def bfs_with_colocation(graph: CompGraph, device_topo, start_node, computing_cos
         :param start_node:
         :param computing_cost_dict:
     """
+    fast_link = device_topo.get_fastest_link()
     # Queue to keep track of nodes to explore (starting with start_node)
     queue = deque([start_node])
 
@@ -85,9 +86,9 @@ def bfs_with_colocation(graph: CompGraph, device_topo, start_node, computing_cos
         for neighbor in graph.successors(node):  # Only follow outgoing edges
             if 'colocation_group' not in graph.nodes[neighbor]:  # If not already visited
                 # potential communication cost and comp_cost
-                computing_cost = computing_cost_dict[node]
+                computing_cost = computing_cost_dict[neighbor]
                 communication_cost = graph.getEdgeTensorSize(node, neighbor
-                                      * device_topo.calUnitCommCostInUS())
+                                      * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]))
                 # Mark the node as visited by adding the 'colocation_group' attribute
                 if communication_cost >= computing_cost:
                     graph.nodes[node]['colocation_group'] = start_node
