@@ -69,25 +69,27 @@ def bfs_with_colocation(graph: CompGraph, device_topo, start_node, computing_cos
     # Queue to keep track of nodes to explore (starting with start_node)
     queue = deque([start_node])
 
+    # label the beginning node
+    graph.set_colocation_group(start_node, start_node)
+
     # Perform BFS
     while queue:
         # Pop the leftmost (oldest) node in the queue
         node = queue.popleft()
 
-        # potential communication cost and comp_cost
-        computing_cost = computing_cost_dict[node]
-        communication_cost = graph.getEdgeTensorSize(source_op_ID, dest_op_ID) * device_topo.calUnitCommCostInUS(
-            operator_device_mapping[source_op_ID], operator_device_mapping[dest_op_ID])
-
         # Check if the node has a 'colocation_group' attribute
-        if 'colocation_group' in graph.nodes[node]:
-            continue  # Skip this node if it is already visited (has colocation_group)
-
-        # Mark the node as visited by adding the 'colocation_group' attribute
-        if communication_cost > computing_cost:
-        graph.nodes[node]['colocation_group'] = True
+        if 'colocation_group' not in graph.nodes[node]:
+            raise ValueError("Dequeued node should be labelled already")
 
         # Explore neighbors (outgoing edges in DiGraph)
         for neighbor in graph.successors(node):  # Only follow outgoing edges
             if 'colocation_group' not in graph.nodes[neighbor]:  # If not already visited
-                queue.append(neighbor)
+                # potential communication cost and comp_cost
+                computing_cost = computing_cost_dict[node]
+                communication_cost = graph.getEdgeTensorSize(node, neighbor
+                                      * device_topo.calUnitCommCostInUS())
+                # Mark the node as visited by adding the 'colocation_group' attribute
+                if communication_cost >= computing_cost:
+                    graph.nodes[node]['colocation_group'] = start_node
+                    # only expand node labelled in the same group
+                    queue.append(neighbor)

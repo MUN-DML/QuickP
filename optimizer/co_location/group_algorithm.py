@@ -11,7 +11,7 @@ def quickcut_group(computing_graph: CompGraph, device_topo: DeviceGraph):
     for node in node_order:
         if 'colocation_group' in computing_graph.nodes[node]:
             continue
-        bfs_with_colocation(computing_graph, highest_bandwidth, node, computing_cost_dict)
+        bfs_with_colocation(computing_graph, device_topo, node, computing_cost_dict)
 
 
 class ColocationGroupMap():
