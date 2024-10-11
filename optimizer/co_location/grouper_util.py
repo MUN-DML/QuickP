@@ -96,7 +96,7 @@ def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, comput
                 communication_cost = graph.getEdgeTensorSize(node, neighbor) * device_topo.calUnitCommCostInUS(
                     fast_link[0], fast_link[1])
                 # Mark the node as visited by adding the 'colocation_group' attribute
-                if communication_cost >= computing_cost:
+                if communication_cost >= computing_cost or (computing_cost_dict[node]==0 and graph.out_degree(node) == 1):
                     # If not already visited, will expand this successor
                     if 'colocation_group' not in graph.nodes[neighbor]:
                         graph.set_colocation_group(neighbor, from_node)
