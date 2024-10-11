@@ -1,3 +1,4 @@
+import hashlib
 from collections import defaultdict, deque
 from typing import Dict, List
 
@@ -185,10 +186,11 @@ def merge_group(computing_graph: CompGraph):
     for multiple_groups_to_be_join in merged_sets:
         merged_nodes = set()
         merged_string = ''.join(multiple_groups_to_be_join)
+        hashed_string = hashlib.md5(merged_string.encode()).hexdigest()
         for group_id in multiple_groups_to_be_join:
             merged_nodes = merged_nodes | group_op_set[group_id]
 
-        merged_group_op_set_map[merged_string] = merged_nodes
+        merged_group_op_set_map[hashed_string] = merged_nodes
 
     for new_group_id, op_set in merged_group_op_set_map.items():
         for op_id in op_set:
