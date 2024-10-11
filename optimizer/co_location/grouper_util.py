@@ -157,14 +157,11 @@ def merge_group(computing_graph: CompGraph):
         for op_id, op_data in computing_graph.nodes(data=True):
             # Check if the node has a 'colocation_group' attribute
             group_list = op_data.get('colocation_group')
-            print("tt", op_id, group_list)
             # every node should have colocation group
             if group_list is None or not group_list:
                 raise ValueError(f'colocation group {op_id} has no colocation_group')
             for group_id in group_list:
-                print('kk', op_id)
                 colocation_group_map[group_id].add(op_id)
-        print("jjb", colocation_group_map)
         return dict(colocation_group_map)
 
     # A 2D array, each list in groups_to_join indicate multiple groups which should be merged
@@ -181,16 +178,13 @@ def merge_group(computing_graph: CompGraph):
             groups_to_join.append(set(group_list))
 
     merged_sets = merge_sets(groups_to_join)
-    print("fuck", merged_sets)
     group_op_set = get_group_op_set_map()
-    print("diu", group_op_set)
     for group_set in merged_sets:
         merged_nodes = set()
         merged_string = ''.join(group_set)
         for group_id in group_op_set:
             merged_nodes = merged_nodes | group_op_set[group_id]
         merged_group_op_set_map[merged_string] = merged_nodes
-    print("suck", merged_group_op_set_map)
 
     for new_group_id, op_set in merged_group_op_set_map.items():
         for op_id in op_set:
