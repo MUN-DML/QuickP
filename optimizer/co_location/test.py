@@ -25,7 +25,7 @@ if __name__ == '__main__':
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=TFModelEnum.TEST)
 
-    computing_cost_dict = comp_graph.getOpCompCostMapByDevice(deviceTopo.getDeviceIDs()[0])
+    computing_cost_dict = {"a": 0, "b": 0, "c": 0, "d": 100, "e": 0, "f": 0, "g":50}
     label_all_node_with_group(comp_graph, deviceTopo, computing_cost_dict)
     for op_id, op_data in comp_graph.nodes(data=True):
         print(op_id, op_data['colocation_group'])

@@ -3,7 +3,8 @@ from typing import Tuple
 
 from gurobipy import *
 
-from optimizer.computing_graph.profiled_computation_graph_json.test_comp_graph import get_test_graph
+from optimizer.computing_graph.profiled_computation_graph_json.test_comp_graph import get_test_graph, \
+    get_test_graph_co_location
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
@@ -31,7 +32,7 @@ def gurobi_setup(name: str):
 def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=TFModelEnum.SMALL) \
         -> Tuple[DeviceGraph, CompGraph]:
     if model_type == TFModelEnum.TEST:
-        graph = get_test_graph()
+        graph = get_test_graph_co_location()
         deviceTopo = DeviceGraph()
         deviceTopo.generata_fat_tree_topo(num_device, None, 20, 1)
         return deviceTopo, graph

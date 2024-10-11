@@ -86,3 +86,31 @@ g = get_test_graph()
 print(g.nodes(data=True))
 print(g.edges(data=True))
 '''
+
+
+def get_test_graph_co_location():
+    # Step 1: Create a directed graph (DAG) using NetworkX
+    G = CompGraph()
+
+    # Step 3: Add edges (dependencies within each device)
+
+    # Edges within Device 1
+    G.add_edges_from([
+        ('a', 'b'),  # d1_1 -> d1_2
+        ('a', 'g'),  # d1_2 -> d1_3
+        ('f', 'g'),   # d1_3 -> d1_4
+        ('c', 'b'),
+        ('c', 'd'),
+        ('d', 'e')
+    ])
+
+    # Step 5: Assign the "comp_cost" attribute = 5 to every node
+    comp_cost_dict = {"mock_device_0": 5.0, "mock_device_1": 5.0, "mock_device_2": 5.0}
+    for node in G.nodes():
+        G.nodes[node]['comp_cost'] = comp_cost_dict
+    for edge in G.edges():
+        G.edges[edge]['tensor_size_in_bit'] = 1000
+
+    assert nx.is_directed_acyclic_graph(G)
+
+    return G
