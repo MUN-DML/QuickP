@@ -30,6 +30,8 @@ if __name__ == '__main__':
     label_all_node_with_group(comp_graph, deviceTopo, computing_cost_dict)
     for op_id, op_data in comp_graph.nodes(data=True):
         print(op_id, op_data['colocation_group'])
+    print('Ready to merge')
     merge_group(comp_graph)
+    print('After merge')
     for op_id, op_data in comp_graph.nodes(data=True):
         print(op_id, op_data['colocation_group'])

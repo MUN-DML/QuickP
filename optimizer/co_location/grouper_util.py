@@ -181,11 +181,13 @@ def merge_group(computing_graph: CompGraph):
     merged_sets = merge_sets(groups_to_join)
     print(groups_to_join, 'merged_sets', merged_sets)
     group_op_set = get_group_op_set_map()
-    for group_set in merged_sets:
+    print('current group_op_set', group_op_set)
+    for multiple_groups_to_be_join in merged_sets:
         merged_nodes = set()
-        merged_string = ''.join(group_set)
-        for group_id in group_op_set:
+        merged_string = ''.join(multiple_groups_to_be_join)
+        for group_id in multiple_groups_to_be_join:
             merged_nodes = merged_nodes | group_op_set[group_id]
+
         merged_group_op_set_map[merged_string] = merged_nodes
 
     for new_group_id, op_set in merged_group_op_set_map.items():
