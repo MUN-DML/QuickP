@@ -192,6 +192,10 @@ class CompGraph(DiGraph):
     def update_colocation_group(self, node_id, colocation_group):
         if node_id not in self.nodes:
             raise ValueError("node {0} does not exist".format(node_id))
+        # for not labelled node
+        if colocation_group not in self.nodes[node_id]["colocation_group"]:
+            self.nodes[node_id]["colocation_group"] = [colocation_group]
+        # for already labelled node
         if isinstance(self.get_colocation_group(node_id), list) and len(self.get_colocation_group(node_id)) >= 1:
             self.nodes[node_id]["colocation_group"].append(colocation_group)
         else:

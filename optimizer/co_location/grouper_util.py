@@ -60,6 +60,22 @@ def sort_by_critical_score(computing_graph: CompGraph, computing_cost_dict):
 
     return all_nodes
 
+def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
+
+    fast_link = device_topo.get_fastest_link()
+    for edge in graph.edges:
+        source, destination = edge
+        destination_computing_cost = computing_cost_dict[destination]
+        communication_cost = graph.getEdgeTensorSize(source, destination) * device_topo.calUnitCommCostInUS(
+            fast_link[0], fast_link[1])
+        # the source only has one outgoing edge and communication cost if on different device is higher than
+        if communication_cost >= destination_computing_cost and graph.out_degree(source) == 1:
+            # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
+            graph.update_colocation_group(source, source)
+            graph.update_colocation_group(destination, source)
+
+
+
 
 def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     """
