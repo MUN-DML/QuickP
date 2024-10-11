@@ -107,6 +107,7 @@ def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, comput
 
     fast_link = device_topo.get_fastest_link()
     node_order = sort_by_critical_score(graph, computing_cost_dict)
+    print("suck", node_order)
     for node in node_order:
         # skip already labelled node
         if 'colocation_group' in graph.nodes[node]:
@@ -178,6 +179,7 @@ def merge_group(computing_graph: CompGraph):
             groups_to_join.append(set(group_list))
 
     merged_sets = merge_sets(groups_to_join)
+    print(groups_to_join, 'merged_sets', merged_sets)
     group_op_set = get_group_op_set_map()
     for group_set in merged_sets:
         merged_nodes = set()
