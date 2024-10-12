@@ -1,6 +1,7 @@
 from collections import deque
 
-from networkx.classes import DiGraph
+import networkx as nx
+from networkx.classes import DiGraph, subgraph
 
 from optimizer.co_location_and_merge.grouper_util import merge_group, label_all_node_with_group, edge_based_label
 from optimizer.model.graph import CompGraph, DeviceGraph
@@ -25,38 +26,31 @@ def merge_operators(computing_graph: CompGraph, operator_2d_list, computing_cost
 
     # _generate_fused_op_graph
     def generate_new_operator(ops_to_be_merged):
-        new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
 
-        internal_edges = deque(
-            [(u, v) for u, v in computing_graph.edges()
-             if u in ops_to_be_merged and v in ops_to_be_merged])
+        # double check if those nodes are connected, forming one weakly connected component
+        sub_graph = computing_graph.subgraph(ops_to_be_merged)
+        if not nx.is_weakly_connected(sub_graph):
+            raise ValueError(f"{ops_to_be_merged} are not connected")
+
+        internal_edges = deque(sub_graph.edges)
+
+        component_incoming_nodes= [u for (u, v) in computing_graph.edges if u not in sub_graph.nodes and v in sub_graph.nodes]
+        component_outgoing_nodes = [v for (u, v) in computing_graph.edges if u in sub_graph.nodes and v not in sub_graph.nodes]
+
         while len(internal_edges) > 0:
             op1, op2 = internal_edges.popleft()
+            if computing_graph.out_degree(op1) > 1 and computing_graph.in_degree(op2) > 1:
+                pass
 
-
-        # Add the new node to the graph
-        computing_graph.add_node(new_node)
-
-        # Redirect all incoming edges to the new node, avoiding duplicates
-        predecessors = set()
-        for node in ops_to_be_merged:
-            predecessors.update(computing_graph.predecessors(node))  # Collect unique predecessors
-
-        for pred in predecessors:
-            if not computing_graph.has_edge(pred, new_node):  # Avoid adding duplicate edges
-                computing_graph.add_edge(pred, new_node)
-
-        # Redirect all outgoing edges from the merged nodes to the new node, avoiding duplicates
-        successors = set()
-        for node in ops_to_be_merged:
-            successors.update(computing_graph.successors(node))  # Collect unique successors
-
-        for succ in successors:
-            if not computing_graph.has_edge(new_node, succ):  # Avoid adding duplicate edges
-                computing_graph.add_edge(new_node, succ)
+        # create a new node
+        new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
+        new_memory = sum(computing_graph.nodes[op] for op in ops_to_be_merged)
 
         # Remove the original nodes
         computing_graph.remove_nodes_from(ops_to_be_merged)
+
+        # Double check if the graph after merge is still DAG
+        assert nx.is_directed_acyclic_graph(computing_graph)
 
 
 
