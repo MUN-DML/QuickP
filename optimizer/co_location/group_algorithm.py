@@ -1,6 +1,6 @@
 from networkx.classes import DiGraph
 
-from optimizer.co_location.grouper_util import merge_group, label_all_node_with_group
+from optimizer.co_location.grouper_util import merge_group, label_all_node_with_group, edge_based_label
 from optimizer.model.graph import CompGraph, DeviceGraph
 
 
@@ -8,6 +8,13 @@ from optimizer.model.graph import CompGraph, DeviceGraph
 def quickcut_group(computing_graph: CompGraph, device_topo: DeviceGraph):
     computing_cost_dict = computing_graph.getOpCompCostMapByDevice(device_topo.getDeviceIDs()[0])
     label_all_node_with_group(computing_graph, device_topo, computing_cost_dict)
+    # After all node get labelled, merge groups
+    merge_group(computing_graph)
+
+
+def group_and_merge_group(computing_graph: CompGraph, device_topo: DeviceGraph):
+    computing_cost_dict = computing_graph.getOpCompCostMapByDevice(device_topo.getDeviceIDs()[0])
+    edge_based_label(computing_graph, device_topo, computing_cost_dict)
     # After all node get labelled, merge groups
     merge_group(computing_graph)
 

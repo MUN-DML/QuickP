@@ -17,7 +17,8 @@ def create_colocation_group_to_ops_map(op_graph: DiGraph) -> Dict[any, List[str]
         group_list = op_data.get('colocation_group')
         # every node should have colocation group
         if group_list is None or not group_list:
-            raise ValueError(f'colocation group {op_id} has no colocation_group')
+            # raise ValueError(f'colocation group {op_id} has no colocation_group')
+            continue
         if len(group_list) > 1:
             raise ValueError(f'colocation group {op_id} has multiple colocation_groups')
         group_id = group_list[0]
@@ -70,6 +71,7 @@ def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_
             fast_link[0], fast_link[1])
         # the source only has one outgoing edge and communication cost if on different device is higher than
         if communication_cost >= destination_computing_cost and graph.out_degree(source) == 1:
+            print('fuck', source, destination)
             # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
             graph.update_colocation_group(source, source)
             graph.update_colocation_group(destination, source)
@@ -177,7 +179,8 @@ def merge_group(computing_graph: CompGraph):
             group_list = op_data.get('colocation_group')
             # every node should have colocation group
             if group_list is None or not group_list:
-                raise ValueError(f'colocation group {op_id} has no colocation_group')
+                # raise ValueError(f'colocation group {op_id} has no colocation_group')
+                continue
             for group_id in group_list:
                 colocation_group_map[group_id].add(op_id)
         return dict(colocation_group_map)
@@ -189,7 +192,8 @@ def merge_group(computing_graph: CompGraph):
         group_list = op_data.get('colocation_group')
         # every node should have colocation group
         if group_list is None or not group_list:
-            raise ValueError(f'colocation group {op_id} has no colocation_group')
+            # raise ValueError(f'colocation group {op_id} has no colocation_group')
+            continue
         if len(group_list) < 1:
             raise ValueError(f'colocation group {op_id} has empty colocation_group')
         if len(group_list) > 1:
