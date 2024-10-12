@@ -137,6 +137,7 @@ def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, comput
 def analyze_group(group_ops_mapping, node_computing_cost_dict):
     print({gid: len(group) for gid, group in group_ops_mapping.items()})
     print('group number', len(group_ops_mapping.keys()))
+    print('number of labelled ', sum(len(group) for group in group_ops_mapping.values()))
     group_computing_cost_sum = {
         gid: sum(node_computing_cost_dict[op] for op in group)
         for gid, group in group_ops_mapping.items()
