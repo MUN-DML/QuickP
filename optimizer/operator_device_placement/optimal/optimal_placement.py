@@ -1,7 +1,7 @@
 from gurobipy import *
 from networkx import topological_sort
 
-from optimizer.co_location.grouper_util import create_colocation_group_to_ops_map, get_op_group_map
+from optimizer.co_location_and_merge.grouper_util import create_colocation_group_to_ops_map, get_op_group_map
 from optimizer.scheduling.scheduling import add_topo_order_constraints
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'

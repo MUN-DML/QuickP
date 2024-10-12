@@ -1,8 +1,7 @@
 import argparse
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from optimizer.co_location.group_algorithm import quickcut_group
-from optimizer.co_location.grouper_util import create_colocation_group_to_ops_map, label_all_node_with_group, \
+from optimizer.co_location_and_merge.grouper_util import create_colocation_group_to_ops_map, label_all_node_with_group, \
     merge_group, analyze_group, edge_based_label
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight

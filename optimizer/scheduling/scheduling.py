@@ -4,7 +4,7 @@ from enum import Enum
 import networkx as nx
 from gurobipy import Model, GRB
 
-from optimizer.co_location.grouper_util import get_op_group_map
+from optimizer.co_location_and_merge.grouper_util import get_op_group_map
 from optimizer.model.graph import find_non_connected_pairs, CompGraph, is_not_connected
 from optimizer.scheduling.FIFO import FIFO_scheduling
 from optimizer.scheduling.multi_stage_list_schedule import three_stage_list_schedule
