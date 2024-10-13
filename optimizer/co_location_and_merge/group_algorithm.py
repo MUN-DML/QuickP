@@ -7,23 +7,21 @@ from optimizer.co_location_and_merge.grouper_util import merge_group, label_all_
 from optimizer.model.graph import CompGraph, DeviceGraph
 
 
-# group with nodes with small computing cost but a large communication cost if on different devices
-def quickcut_group(computing_graph: CompGraph, device_topo: DeviceGraph):
-    computing_cost_dict = computing_graph.getOpCompCostMapByDevice(device_topo.getDeviceIDs()[0])
-    label_all_node_with_group(computing_graph, device_topo, computing_cost_dict)
-    # After all node get labelled, merge groups
-    merge_group(computing_graph)
+def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
+    # there should be many iterations
+    label_and_merge_group(comp_graph, deviceTopo)
+    comp_cost = comp_graph.getOpCompCostMapByDevice(deviceTopo.getDeviceIDs()[0])
+    merge_operators(comp_graph, comp_cost)
 
 
-def group_and_merge_group(computing_graph: CompGraph, device_topo: DeviceGraph):
+def label_and_merge_group(computing_graph: CompGraph, device_topo: DeviceGraph):
     computing_cost_dict = computing_graph.getOpCompCostMapByDevice(device_topo.getDeviceIDs()[0])
     edge_based_label(computing_graph, device_topo, computing_cost_dict)
     # After all node get labelled, merge groups
     merge_group(computing_graph)
 
 
-def merge_operators(computing_graph: CompGraph, operator_2d_list, computing_cost_dict):
-
+def merge_operators(computing_graph: CompGraph, computing_cost_dict):
     # _generate_fused_op_graph
     def generate_new_operator(ops_to_be_merged):
 
@@ -58,12 +56,8 @@ def merge_operators(computing_graph: CompGraph, operator_2d_list, computing_cost
         new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
         new_memory = sum(computing_graph.getMemorySize(op) for op in ops_to_be_merged)
 
-
         # Remove the original nodes
         computing_graph.remove_nodes_from(ops_to_be_merged)
 
         # Double check if the graph after merge is still DAG
         assert nx.is_directed_acyclic_graph(computing_graph)
-
-
-

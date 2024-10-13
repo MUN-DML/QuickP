@@ -1,7 +1,7 @@
 import argparse
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from optimizer.co_location_and_merge.grouper_util import create_colocation_group_to_ops_map, label_all_node_with_group, \
+from optimizer.co_location_and_merge.grouper_util import label_all_node_with_group, \
     merge_group, analyze_group, edge_based_label
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight
@@ -15,7 +15,6 @@ if __name__ == '__main__':
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
     # NEAR_OPTIMAL OPTIMIZED METIS TEST OPTIMIZED_HOMO INCONTIGUOUS_METIS
 
-
     args = parser.parse_args()
 
     # Dynamically access attributes using getattr
@@ -25,7 +24,7 @@ if __name__ == '__main__':
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=TFModelEnum.TEST)
 
-    computing_cost_dict = {"a": 0, "b": 0, "c": 0, "d": 100, "e": 0, "f": 0, "g":50}
+    computing_cost_dict = {"a": 0, "b": 0, "c": 0, "d": 100, "e": 0, "f": 0, "g": 50}
     edge_based_label(comp_graph, deviceTopo, computing_cost_dict)
     for op_id, op_data in comp_graph.nodes(data=True):
         if 'colocation_group' in op_data:
@@ -36,5 +35,4 @@ if __name__ == '__main__':
     for op_id, op_data in comp_graph.nodes(data=True):
         if 'colocation_group' in op_data:
             print(op_id, op_data['colocation_group'])
-    map = create_colocation_group_to_ops_map(comp_graph)
-    analyze_group(map, computing_cost_dict)
+    analyze_group(comp_graph, computing_cost_dict)

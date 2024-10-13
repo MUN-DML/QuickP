@@ -208,6 +208,25 @@ class CompGraph(DiGraph):
         else:
             raise ValueError("colocation_group is not a list or len == 0")
 
+    def create_colocation_group_to_ops_map(self) -> dict[any, list[str]]:
+        """Generate a dict that maps a colocation group to its op id list."""
+        colocation_group_map = defaultdict(list)
+
+        for op_id, op_data in self.nodes(data=True):
+            # Check if the node has a 'colocation_group' attribute
+            group_list = op_data.get('colocation_group')
+            # every node should have colocation group
+            if group_list is None or not group_list:
+                continue
+            if len(group_list) > 1:
+                # this function should only be called after the group merge
+                raise ValueError(f'colocation group {op_id} has multiple colocation_groups')
+            group_id = group_list[0]
+            colocation_group_map[group_id].append(op_id)
+        # {'':list(op_graph.nodes)[0:40], '1': list(op_graph.nodes)[41:80], '2': list(op_graph.nodes)[80:121]}
+        # {'':list(op_graph.nodes)[0:600], '1': list(op_graph.nodes)[601:1200], '2': list(op_graph.nodes)[1201:1600]}
+        return dict(colocation_group_map)
+
     def getAllOperators(self):
         return list(self.nodes(data=True))
 
@@ -377,7 +396,6 @@ class DeviceGraph(DiGraph):
     def get_fastest_link(self) -> tuple[str, str, dict]:
         fastest_edge = max(self.edges.data(), key=lambda edge: edge[2].get('bandwidth', 0))
         return fastest_edge
-
 
     def __str__(self):
         return ""

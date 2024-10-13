@@ -8,26 +8,6 @@ from networkx.classes import DiGraph
 from optimizer.model.graph import CompGraph, DeviceGraph
 
 
-def create_colocation_group_to_ops_map(op_graph: DiGraph) -> Dict[any, List[str]]:
-    """Generate a dict that maps a colocation group to its op id list."""
-    colocation_group_map = defaultdict(list)
-
-    for op_id, op_data in op_graph.nodes(data=True):
-        # Check if the node has a 'colocation_group' attribute
-        group_list = op_data.get('colocation_group')
-        # every node should have colocation group
-        if group_list is None or not group_list:
-            # raise ValueError(f'colocation group {op_id} has no colocation_group')
-            continue
-        if len(group_list) > 1:
-            raise ValueError(f'colocation group {op_id} has multiple colocation_groups')
-        group_id = group_list[0]
-        colocation_group_map[group_id].append(op_id)
-    # {'':list(op_graph.nodes)[0:40], '1': list(op_graph.nodes)[41:80], '2': list(op_graph.nodes)[80:121]}
-    # {'':list(op_graph.nodes)[0:600], '1': list(op_graph.nodes)[601:1200], '2': list(op_graph.nodes)[1201:1600]}
-    return dict(colocation_group_map)
-
-
 def get_op_group_map(groups_op_mapping: Dict[any, List[any]]) -> Dict[str, any]:
     op_group_map = {}
 
@@ -61,8 +41,8 @@ def sort_by_critical_score(computing_graph: CompGraph, computing_cost_dict):
 
     return all_nodes
 
-def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
 
+def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     fast_link = device_topo.get_fastest_link()
     for edge in graph.edges:
         source, destination = edge
@@ -70,7 +50,8 @@ def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_
         communication_cost = graph.getEdgeTensorSize(source, destination) * device_topo.calUnitCommCostInUS(
             fast_link[0], fast_link[1])
         # the source only has one outgoing edge and communication cost if on different device is higher than
-        if communication_cost >= destination_computing_cost and graph.out_degree(source) == 1:
+        if (communication_cost >= destination_computing_cost or computing_cost_dict[source] == 0) and graph.out_degree(
+                source) == 1:
             # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
             graph.update_colocation_group(source, source)
             graph.update_colocation_group(destination, source)
@@ -111,7 +92,8 @@ def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, comput
                 communication_cost = graph.getEdgeTensorSize(node, neighbor) * device_topo.calUnitCommCostInUS(
                     fast_link[0], fast_link[1])
                 # Mark the node as visited by adding the 'colocation_group' attribute
-                if communication_cost >= computing_cost or (computing_cost_dict[node]==0 and graph.out_degree(node) == 1):
+                if communication_cost >= computing_cost or (
+                        computing_cost_dict[node] == 0 and graph.out_degree(node) == 1):
                     # If not already visited, will expand this successor
                     if 'colocation_group' not in graph.nodes[neighbor]:
                         graph.set_colocation_group(neighbor, from_node)
@@ -119,7 +101,6 @@ def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, comput
                     # If already visited, add this new group to its existing groups but will not expand further
                     else:
                         graph.update_colocation_group(neighbor, from_node)
-
 
     fast_link = device_topo.get_fastest_link()
     node_order = sort_by_critical_score(graph, computing_cost_dict)
@@ -130,7 +111,8 @@ def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, comput
         BFS_label(node)
 
 
-def analyze_group(group_ops_mapping, node_computing_cost_dict):
+def analyze_group(graph: CompGraph, node_computing_cost_dict):
+    group_ops_mapping = graph.create_colocation_group_to_ops_map()
     print({gid: len(group) for gid, group in group_ops_mapping.items()})
     print('group number', len(group_ops_mapping.keys()))
     print('number of labelled ', sum(len(group) for group in group_ops_mapping.values()))
@@ -143,7 +125,6 @@ def analyze_group(group_ops_mapping, node_computing_cost_dict):
 
 # if there is any node which has two groups labelled, this two groups get merged
 def merge_group(computing_graph: CompGraph):
-
     merged_group_op_set_map = {}
 
     # a list of set [(a, b), (c), (d, e, g), (b, c), (e, p)]
@@ -212,4 +193,3 @@ def merge_group(computing_graph: CompGraph):
     for new_group_id, op_set in merged_group_op_set_map.items():
         for op_id in op_set:
             computing_graph.set_colocation_group(op_id, new_group_id)
-
