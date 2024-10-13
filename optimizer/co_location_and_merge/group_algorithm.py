@@ -34,17 +34,30 @@ def merge_operators(computing_graph: CompGraph, operator_2d_list, computing_cost
 
         internal_edges = deque(sub_graph.edges)
 
-        component_incoming_nodes= [u for (u, v) in computing_graph.edges if u not in sub_graph.nodes and v in sub_graph.nodes]
-        component_outgoing_nodes = [v for (u, v) in computing_graph.edges if u in sub_graph.nodes and v not in sub_graph.nodes]
+        # get predecessors and successors of this component
+        component_incoming_nodes = set()
+        component_outgoing_nodes = set()
+        # Loop through each node in the subgraph
+        for node in ops_to_be_merged:
+            # Find all predecessors of the node (incoming nodes)
+            component_incoming_nodes.update(
+                pred for pred in computing_graph.predecessors(node) if pred not in ops_to_be_merged)
+            # Find all successors of the node (outgoing nodes)
+            component_outgoing_nodes.update(
+                succ for succ in computing_graph.successors(node) if succ not in ops_to_be_merged)
 
         while len(internal_edges) > 0:
             op1, op2 = internal_edges.popleft()
             if computing_graph.out_degree(op1) > 1 and computing_graph.in_degree(op2) > 1:
-                pass
+                # CAVEATS: finding disjoint paths may take long time
+                paths = list(nx.node_disjoint_paths(computing_graph, op1, op2))
+                if len(paths) > 0:
+                    raise ValueError(f"{op1} and {op2} has more than one disjoint path")
 
         # create a new node
         new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
-        new_memory = sum(computing_graph.nodes[op] for op in ops_to_be_merged)
+        new_memory = sum(computing_graph.getMemorySize(op) for op in ops_to_be_merged)
+
 
         # Remove the original nodes
         computing_graph.remove_nodes_from(ops_to_be_merged)

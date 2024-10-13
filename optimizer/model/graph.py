@@ -155,6 +155,13 @@ class CompGraph(DiGraph):
             raise ValueError(f"no {device_id} found")
         return self.nodes[node_id]["comp_cost"][device_id]
 
+    def getMemorySize(self, node_id):
+        if self.nodes[node_id] is None:
+            raise ValueError("node {0} does not exist".format(node_id))
+        if self.nodes[node_id]["mem"] is None:
+            raise ValueError("no mem found")
+        return self.nodes[node_id]["mem"]
+
     def getOpCompCostMapByDevice(self, device_id):
         comp_cost_map = {}
         for node_id in self.nodes:
