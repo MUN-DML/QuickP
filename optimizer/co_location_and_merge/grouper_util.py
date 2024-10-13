@@ -42,6 +42,7 @@ def sort_by_critical_score(computing_graph: CompGraph, computing_cost_dict):
     return all_nodes
 
 
+# _run_colocation_step
 def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     fast_link = device_topo.get_fastest_link()
     for edge in graph.edges:

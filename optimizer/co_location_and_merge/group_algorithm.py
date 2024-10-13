@@ -12,7 +12,9 @@ def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
     while True:
         # After each merge, the comp_cost map will change
         comp_cost = comp_graph.getOpCompCostMapByDevice(deviceTopo.getDeviceIDs()[0])
-        label_and_merge_group(comp_graph, deviceTopo, comp_cost)
+        edge_based_label(comp_graph, deviceTopo, comp_cost)
+        # After all node get labelled, merge groups
+        merge_group(comp_graph)
         # if no node is labeled with the co-location attribute, there is no need to merge operators any more
         # for node in comp_graph.nodes():
         #     if
@@ -20,14 +22,9 @@ def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
         break
 
 
-def label_and_merge_group(computing_graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict: dict):
-    edge_based_label(computing_graph, device_topo, computing_cost_dict)
-    # After all node get labelled, merge groups
-    merge_group(computing_graph)
-
-
+# _generate_fused_op_graph
 def merge_operators(computing_graph: CompGraph, computing_cost_dict):
-    # _generate_fused_op_graph
+
     def generate_new_operator(ops_to_be_merged):
 
         # double check if those nodes are connected, forming one weakly connected component

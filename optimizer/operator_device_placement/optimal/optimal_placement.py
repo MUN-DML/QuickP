@@ -1,7 +1,7 @@
 from gurobipy import *
 from networkx import topological_sort
 
-from optimizer.co_location_and_merge.grouper_util import create_colocation_group_to_ops_map, get_op_group_map
+from optimizer.model.graph import CompGraph
 from optimizer.scheduling.scheduling import add_topo_order_constraints
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
@@ -12,7 +12,7 @@ sys.path.append(project_root)
 from optimizer.main_simulator.gurobi_util import gurobi_setup, show_optimization_solution
 
 
-def get_optimize_placement(comp_graph, deviceTopo, M) -> dict:
+def get_optimize_placement(comp_graph: CompGraph, deviceTopo, M) -> dict:
 
     def get_operator_device_mapping_through_x(x):
         mapping = {}
@@ -26,7 +26,7 @@ def get_optimize_placement(comp_graph, deviceTopo, M) -> dict:
     model = gurobi_setup("minimize_maxload")
 
     # get co-location info
-    group_ops_mapping = create_colocation_group_to_ops_map(comp_graph)
+    group_ops_mapping = comp_graph.create_colocation_group_to_ops_map()
 
     # Define variables
     x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
