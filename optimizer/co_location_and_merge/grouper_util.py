@@ -45,6 +45,7 @@ def sort_by_critical_score(computing_graph: CompGraph, computing_cost_dict):
 # _run_colocation_step
 def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     fast_link = device_topo.get_fastest_link()
+    is_any_label = False
     for edge in graph.edges:
         source, destination = edge
         destination_computing_cost = computing_cost_dict[destination]
@@ -54,9 +55,10 @@ def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_
         if (communication_cost >= destination_computing_cost or computing_cost_dict[source] == 0) and graph.out_degree(
                 source) == 1:
             # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
+            is_any_label = True
             graph.update_colocation_group(source, source)
             graph.update_colocation_group(destination, source)
-
+    return is_any_label
 
 def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     """

@@ -8,16 +8,17 @@ from optimizer.model.graph import CompGraph, DeviceGraph
 
 
 def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
-    # there should be many iterations
+    # there should be many iterations until there is no eligible ops to merge
     while True:
         # After each merge, the comp_cost map will change
         comp_cost = comp_graph.getOpCompCostMapByDevice(deviceTopo.getDeviceIDs()[0])
-        edge_based_label(comp_graph, deviceTopo, comp_cost)
+        is_new_group = edge_based_label(comp_graph, deviceTopo, comp_cost)
+        # if no node is labeled with the co-location attribute, there is no need to merge operators any more
+        if not is_new_group:
+            break
         # After all node get labelled, merge groups
         merge_group(comp_graph)
-        # if no node is labeled with the co-location attribute, there is no need to merge operators any more
-        # for node in comp_graph.nodes():
-        #     if
+
         merge_operators(comp_graph, comp_cost)
         break
 
