@@ -126,8 +126,10 @@ class CompGraph(DiGraph):
         }
         return functions[edge_weight_function]
 
-    def add_new_node(self, operator_id, op_type):
-        super().add_node(node_for_adding=operator_id, mem=0, op_type=op_type, comp_cost={})
+    def add_new_node(self, operator_id, op_type, memory=None, comp_cost_map=None):
+        memory = memory or 0  # Default to 0 if memory is None or a falsy value
+        comp_cost_map = comp_cost_map or {}
+        super().add_node(node_for_adding=operator_id, mem=memory, op_type=op_type, comp_cost=comp_cost_map)
 
     def add_new_edge(self, source_id, dest_id, tensor_size_in_bit):
         super().add_edge(u_of_edge=source_id, v_of_edge=dest_id, tensor_size_in_bit=tensor_size_in_bit)
@@ -161,6 +163,16 @@ class CompGraph(DiGraph):
         if self.nodes[node_id]["mem"] is None:
             raise ValueError("no mem found")
         return self.nodes[node_id]["mem"]
+
+    def getCompCostMapByOp(self, node_id):
+        if self.nodes[node_id] is None:
+            raise ValueError("node {0} does not exist".format(node_id))
+        if self.nodes[node_id]["comp_cost"] is None:
+            raise ValueError("no comp_cost found")
+        return self.nodes[node_id]["comp_cost"]
+
+    def set_node_computing_cost_map(self, node_id, comp_cost_map: dict):
+        self.nodes[node_id]["comp_cost"] = comp_cost_map
 
     def getOpCompCostMapByDevice(self, device_id):
         comp_cost_map = {}

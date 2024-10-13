@@ -18,15 +18,15 @@ def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
             break
         # After all node get labelled, merge groups
         merge_group(comp_graph)
-
-        merge_operators(comp_graph, comp_cost)
+        # merge ops based on the merged groups
+        graph_coarsen(comp_graph, comp_cost)
         break
 
 
 # _generate_fused_op_graph
-def merge_operators(computing_graph: CompGraph, computing_cost_dict):
+def graph_coarsen(computing_graph: CompGraph, computing_cost_dict):
 
-    def generate_new_operator(ops_to_be_merged):
+    def merge_operators(ops_to_be_merged):
 
         # double check if those nodes are connected, forming one weakly connected component
         sub_graph = computing_graph.subgraph(ops_to_be_merged)
@@ -55,12 +55,24 @@ def merge_operators(computing_graph: CompGraph, computing_cost_dict):
                 if len(paths) > 0:
                     raise ValueError(f"{op1} and {op2} has more than one disjoint path")
 
-        # create a new node
+        # create attributes for the new node
+        random_node_cost_dict = computing_graph.getCompCostMapByOp(ops_to_be_merged[0])
         new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
+        new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
         new_memory = sum(computing_graph.getMemorySize(op) for op in ops_to_be_merged)
 
         # Remove the original nodes
         computing_graph.remove_nodes_from(ops_to_be_merged)
 
+        # add the new node
+        computing_graph.add_new_node("&".join(op_name for op_name in ops_to_be_merged), "merged",
+                                     memory=new_memory, comp_cost_map=new_comp_cost_dict)
+
+        # restore the dependency relationship
+
         # Double check if the graph after merge is still DAG
         assert nx.is_directed_acyclic_graph(computing_graph)
+
+    group_ops_map = computing_graph.create_colocation_group_to_ops_map()
+    for group in group_ops_map.values():
+        merge_operators(group)
