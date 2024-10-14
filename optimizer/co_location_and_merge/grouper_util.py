@@ -53,7 +53,7 @@ def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_
             fast_link[0], fast_link[1])
         # the source only has one outgoing edge and communication cost if on different device is higher than
         # and graph.in_degree(destination) == 1 will minimize the performance loss
-        if communication_cost >= destination_computing_cost  and graph.out_degree(source) == 1:
+        if communication_cost >= destination_computing_cost and graph.out_degree(source) == 1:
             # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
             is_any_label = True
             graph.update_colocation_group(source, source)

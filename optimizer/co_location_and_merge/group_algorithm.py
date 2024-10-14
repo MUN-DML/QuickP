@@ -19,7 +19,7 @@ def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
         # After all node get labelled, merge groups
         merge_group(comp_graph)
         # merge ops based on the merged groups
-        graph_coarsen(comp_graph, comp_cost)
+        # graph_coarsen(comp_graph, comp_cost)
         break
 
 
@@ -61,14 +61,20 @@ def graph_coarsen(computing_graph: CompGraph, computing_cost_dict):
         new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
         new_memory = sum(computing_graph.getMemorySize(op) for op in ops_to_be_merged)
 
-        # Remove the original nodes
-        computing_graph.remove_nodes_from(ops_to_be_merged)
-
         # add the new node
-        computing_graph.add_new_node("&".join(op_name for op_name in ops_to_be_merged), "merged",
+        new_id = "&".join(ops_to_be_merged)
+        computing_graph.add_new_node(new_id, "merged",
                                      memory=new_memory, comp_cost_map=new_comp_cost_dict)
 
         # restore the dependency relationship
+        for incoming_node in component_incoming_nodes:
+            computing_graph.add_new_edge(incoming_node, new_id)
+
+        for outgoing_node in component_outgoing_nodes:
+            computing_graph.add_new_edge(new_id, outgoing_node)
+
+        # Remove the original nodes
+        computing_graph.remove_nodes_from(ops_to_be_merged)
 
         # Double check if the graph after merge is still DAG
         assert nx.is_directed_acyclic_graph(computing_graph)
