@@ -3,7 +3,7 @@ from collections import deque
 import networkx as nx
 
 from optimizer.co_location_and_merge.grouper_util import merge_group, label_all_node_with_group, \
-    create_eligible_edge_subgraph, label_group
+    create_eligible_edge_subgraph, label_group, analyze_group
 from optimizer.model.graph import CompGraph, DeviceGraph
 
 
@@ -18,10 +18,11 @@ def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
             break
         # After all node get labelled, merge groups
         label_group(subgraph_of_wcc)
+        analyze_group(comp_graph, comp_cost)
         # merge ops based on the merged groups
-        # graph_coarsen(comp_graph, subgraph_of_wcc, comp_cost)
-        break
-
+        graph_coarsen(comp_graph, subgraph_of_wcc, comp_cost)
+    print("new computing graph node number", comp_graph.number_of_nodes())
+    comp_graph.save_to_file('grouped_computing_graph.json')
 
 # _generate_fused_op_graph
 def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, computing_cost_dict):
