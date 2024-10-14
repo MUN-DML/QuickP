@@ -43,9 +43,9 @@ def sort_by_critical_score(computing_graph: CompGraph, computing_cost_dict):
 
 
 # _run_colocation_step
-def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
+def create_eligible_edge_subgraph(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     fast_link = device_topo.get_fastest_link()
-    is_any_label = False
+    eligible_edges = []
     for edge in graph.edges:
         source, destination = edge
         destination_computing_cost = computing_cost_dict[destination]
@@ -55,10 +55,8 @@ def edge_based_label(graph: CompGraph, device_topo: DeviceGraph, computing_cost_
         # and graph.in_degree(destination) == 1 will minimize the performance loss
         if communication_cost >= destination_computing_cost and graph.out_degree(source) == 1:
             # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
-            is_any_label = True
-            graph.update_colocation_group(source, source)
-            graph.update_colocation_group(destination, source)
-    return is_any_label
+            eligible_edges.append((source, destination))
+    return graph.edge_subgraph(eligible_edges)
 
 def label_all_node_with_group(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     """
@@ -196,3 +194,13 @@ def merge_group(computing_graph: CompGraph):
     for new_group_id, op_set in merged_group_op_set_map.items():
         for op_id in op_set:
             computing_graph.set_colocation_group(op_id, new_group_id)
+
+
+def label_group(sub_graph: CompGraph):
+    weakly_connected_components = list(nx.weakly_connected_components(sub_graph))
+
+    for wcc in weakly_connected_components:
+        merged_string = ''.join(wcc)
+        hashed_string = hashlib.md5(merged_string.encode()).hexdigest()
+        for node in wcc:
+            sub_graph.set_colocation_group(node, hashed_string)

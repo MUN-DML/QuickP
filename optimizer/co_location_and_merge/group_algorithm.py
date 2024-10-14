@@ -1,9 +1,9 @@
 from collections import deque
 
 import networkx as nx
-from networkx.classes import DiGraph, subgraph
 
-from optimizer.co_location_and_merge.grouper_util import merge_group, label_all_node_with_group, edge_based_label
+from optimizer.co_location_and_merge.grouper_util import merge_group, label_all_node_with_group, \
+    create_eligible_edge_subgraph, label_group
 from optimizer.model.graph import CompGraph, DeviceGraph
 
 
@@ -12,12 +12,12 @@ def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
     while True:
         # After each merge, the comp_cost map will change
         comp_cost = comp_graph.getOpCompCostMapByDevice(deviceTopo.getDeviceIDs()[0])
-        is_new_group = edge_based_label(comp_graph, deviceTopo, comp_cost)
+        subgraph_of_wcc = create_eligible_edge_subgraph(comp_graph, deviceTopo, comp_cost)
         # if no node is labeled with the co-location attribute, there is no need to merge operators any more
-        if not is_new_group:
+        if len(subgraph_of_wcc.nodes) == 0:
             break
         # After all node get labelled, merge groups
-        merge_group(comp_graph)
+        label_group(subgraph_of_wcc)
         # merge ops based on the merged groups
         # graph_coarsen(comp_graph, comp_cost)
         break

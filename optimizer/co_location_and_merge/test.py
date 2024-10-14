@@ -2,7 +2,7 @@ import argparse
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.co_location_and_merge.grouper_util import label_all_node_with_group, \
-    merge_group, analyze_group, edge_based_label
+    merge_group, analyze_group, create_eligible_edge_subgraph
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight
 from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=TFModelEnum.TEST)
 
     computing_cost_dict = {"a": 0, "b": 0, "c": 0, "d": 100, "e": 0, "f": 0, "g": 50}
-    edge_based_label(comp_graph, deviceTopo, computing_cost_dict)
+    create_eligible_edge_subgraph(comp_graph, deviceTopo, computing_cost_dict)
     for op_id, op_data in comp_graph.nodes(data=True):
         if 'colocation_group' in op_data:
             print(op_id, op_data['colocation_group'])
