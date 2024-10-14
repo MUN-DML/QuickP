@@ -19,33 +19,21 @@ def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
         # After all node get labelled, merge groups
         label_group(subgraph_of_wcc)
         # merge ops based on the merged groups
-        # graph_coarsen(comp_graph, comp_cost)
+        # graph_coarsen(comp_graph, subgraph_of_wcc, comp_cost)
         break
 
 
 # _generate_fused_op_graph
-def graph_coarsen(computing_graph: CompGraph, computing_cost_dict):
+def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, computing_cost_dict):
 
-    def merge_operators(ops_to_be_merged):
+    def merge_operators(ops_to_be_merged: set):
 
         # double check if those nodes are connected, forming one weakly connected component
-        sub_graph = computing_graph.subgraph(ops_to_be_merged)
-        if not nx.is_weakly_connected(sub_graph):
+        wcc = computing_graph.subgraph(ops_to_be_merged)
+        if not nx.is_weakly_connected(wcc):
             raise ValueError(f"{ops_to_be_merged} are not connected")
 
-        internal_edges = deque(sub_graph.edges)
-
-        # get predecessors and successors of this component
-        component_incoming_nodes = set()
-        component_outgoing_nodes = set()
-        # Loop through each node in the subgraph
-        for node in ops_to_be_merged:
-            # Find all predecessors of the node (incoming nodes)
-            component_incoming_nodes.update(
-                pred for pred in computing_graph.predecessors(node) if pred not in ops_to_be_merged)
-            # Find all successors of the node (outgoing nodes)
-            component_outgoing_nodes.update(
-                succ for succ in computing_graph.successors(node) if succ not in ops_to_be_merged)
+        internal_edges = deque(wcc.edges)
 
         while len(internal_edges) > 0:
             op1, op2 = internal_edges.popleft()
@@ -56,7 +44,7 @@ def graph_coarsen(computing_graph: CompGraph, computing_cost_dict):
                     raise ValueError(f"{op1} and {op2} has more than one disjoint path")
 
         # create attributes for the new node
-        random_node_cost_dict = computing_graph.getCompCostMapByOp(ops_to_be_merged[0])
+        random_node_cost_dict = computing_graph.getCompCostMapByOp(list(ops_to_be_merged)[0])
         new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
         new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
         new_memory = sum(computing_graph.getMemorySize(op) for op in ops_to_be_merged)
@@ -67,11 +55,17 @@ def graph_coarsen(computing_graph: CompGraph, computing_cost_dict):
                                      memory=new_memory, comp_cost_map=new_comp_cost_dict)
 
         # restore the dependency relationship
-        for incoming_node in component_incoming_nodes:
-            computing_graph.add_new_edge(incoming_node, new_id)
+        # Redirect in-edges (predecessors of the nodes to merge)
+        for node in ops_to_be_merged:
+            for pred in computing_graph.predecessors(node):
+                if pred not in ops_to_be_merged:  # Avoid self-loops
+                    computing_graph.add_edge(pred, new_id, **computing_graph.get_edge_data(pred, node))
 
-        for outgoing_node in component_outgoing_nodes:
-            computing_graph.add_new_edge(new_id, outgoing_node)
+        # Redirect out-edges (successors of the nodes to merge)
+        for node in ops_to_be_merged:
+            for succ in computing_graph.successors(node):
+                if succ not in ops_to_be_merged:  # Avoid self-loops
+                    computing_graph.add_edge(new_id, succ, **computing_graph.get_edge_data(node, succ))
 
         # Remove the original nodes
         computing_graph.remove_nodes_from(ops_to_be_merged)
@@ -79,6 +73,6 @@ def graph_coarsen(computing_graph: CompGraph, computing_cost_dict):
         # Double check if the graph after merge is still DAG
         assert nx.is_directed_acyclic_graph(computing_graph)
 
-    group_ops_map = computing_graph.create_colocation_group_to_ops_map()
-    for group in group_ops_map.values():
-        merge_operators(group)
+    weakly_connected_components = list(nx.weakly_connected_components(sub_graph_of_wcc))
+    for wcc_set in weakly_connected_components:
+        merge_operators(wcc_set)
