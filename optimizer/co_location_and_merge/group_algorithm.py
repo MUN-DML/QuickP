@@ -1,3 +1,4 @@
+import hashlib
 from collections import deque
 
 import networkx as nx
@@ -51,7 +52,7 @@ def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, compu
         new_memory = sum(computing_graph.getMemorySize(op) for op in ops_to_be_merged)
 
         # add the new node
-        new_id = "&".join(ops_to_be_merged)
+        new_id = hashlib.md5("&".join(ops_to_be_merged).encode()).hexdigest()
         computing_graph.add_new_node(new_id, "merged",
                                      memory=new_memory, comp_cost_map=new_comp_cost_dict)
 
