@@ -42,7 +42,7 @@ def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, compu
             if computing_graph.out_degree(op1) > 1 and computing_graph.in_degree(op2) > 1:
                 # CAVEATS: finding disjoint paths may take long time
                 paths = list(nx.node_disjoint_paths(computing_graph, op1, op2))
-                if len(paths) > 0:
+                if len(paths) > 1:
                     raise ValueError(f"{op1} and {op2} has more than one disjoint path")
 
         # create attributes for the new node
@@ -87,8 +87,10 @@ def is_edge_mergable(source, target, computation_graph: CompGraph):
     # If u's out degree or v's in degree is 1, there can only exist one path
     if computation_graph.out_degree(source) == 1 or computation_graph.in_degree(target) == 1:
         return True
-    paths = list(nx.node_disjoint_paths(computation_graph, source, target))
-    if len(paths) > 1:
+    #  the size of a minimum cut set is equal to the maximum number of disjoint paths that can be found between any pair of vertices.
+    # paths = list(nx.node_disjoint_paths(computation_graph, source, target))
+    min_cut_size = len(nx.minimum_node_cut(computation_graph, source, target))
+    if min_cut_size > 1:
         return False
     else:
         return True
