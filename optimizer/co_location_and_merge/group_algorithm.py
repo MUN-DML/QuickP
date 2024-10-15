@@ -80,6 +80,40 @@ def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, compu
         merge_operators(wcc_set)
 
 
+def merge_node_pair(u ,v, computation_graph):
+    if not is_edge_mergable(u, v, computation_graph):
+        return
+    # create attributes for the new node
+    random_node_cost_dict = computation_graph.getCompCostMapByOp(u)
+    new_computing_cost = sum(computation_graph[op] for op in [u,v])
+    new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
+    new_memory = sum(computation_graph.getMemorySize(op) for op in [u,v])
+
+    # add the new node
+    new_id = hashlib.md5("&".join([u,v]).encode()).hexdigest()
+    computation_graph.add_new_node(new_id, "merged",
+                                     memory=new_memory, comp_cost_map=new_comp_cost_dict)
+
+    # restore the dependency relationship
+    # Redirect in-edges (predecessors of the nodes to merge)
+    for node in [u ,v]:
+        for pred in computation_graph.predecessors(node):
+            if pred not in [u,v]:  # Avoid self-loops
+                computation_graph.add_edge(pred, new_id, **computation_graph.get_edge_data(pred, node))
+
+    # Redirect out-edges (successors of the nodes to merge)
+    for node in [u ,v]:
+        for succ in computation_graph.successors(node):
+            if succ not in [u,v]:  # Avoid self-loops
+                computation_graph.add_edge(new_id, succ, **computation_graph.get_edge_data(node, succ))
+
+    # Remove the original nodes
+    computation_graph.remove_nodes_from([u, v])
+
+    # Double check if the graph after merge is still DAG
+    assert nx.is_directed_acyclic_graph(computation_graph)
+
+
 def is_edge_mergable(source, target, computation_graph: CompGraph):
     if not computation_graph.has_edge(source, target):
         raise ValueError(f"Edge {source}, {target} does not exist")
