@@ -25,9 +25,9 @@ def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
     print("new computing graph node number", comp_graph.number_of_nodes())
     comp_graph.save_to_file('grouped_computing_graph.json')
 
+
 # _generate_fused_op_graph
 def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, computing_cost_dict):
-
     def merge_operators(ops_to_be_merged: set):
 
         # double check if those nodes are connected, forming one weakly connected component
@@ -78,3 +78,19 @@ def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, compu
     weakly_connected_components = list(nx.weakly_connected_components(sub_graph_of_wcc))
     for wcc_set in weakly_connected_components:
         merge_operators(wcc_set)
+
+
+def is_edge_mergable(source, target, computation_graph: CompGraph):
+    if not computation_graph.has_edge(source, target):
+        raise ValueError(f"Edge {source}, {target} does not exist")
+    # merging 𝑢, 𝑣 is acyclic if and only if (𝑢, 𝑣) is the only path from 𝑢 to 𝑣 on G.
+    # If u's out degree or v's in degree is 1, there can only exist one path
+    if computation_graph.out_degree(source) == 1 or computation_graph.in_degree(target) == 1:
+        return True
+    paths = list(nx.node_disjoint_paths(computation_graph, source, target))
+    if len(paths) > 1:
+        return False
+    else:
+        return True
+
+
