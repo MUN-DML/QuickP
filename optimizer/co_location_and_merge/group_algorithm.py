@@ -82,6 +82,26 @@ def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, compu
 The below is the latest algorithm
 '''
 
+def get_subgraph_of_eligible_edges(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
+    fast_link = device_topo.get_fastest_link()
+    eligible_edges = set()
+    for edge in graph.edges:
+        source, destination = edge
+        if computing_cost_dict[source] == 0:
+            eligible_edges.add(source)
+            eligible_edges.add(destination)
+            continue
+        communication_cost = graph.getEdgeTensorSize(source, destination) * device_topo.calUnitCommCostInUS(
+            fast_link[0], fast_link[1])
+        # the source only has one outgoing edge and communication cost if on different device is higher than
+        # and graph.in_degree(destination) == 1 will minimize the performance loss
+        if communication_cost >= computing_cost_dict[destination]:
+            # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
+            eligible_edges.add(source)
+            eligible_edges.add(destination)
+    return graph.subgraph(eligible_edges)
+
+
 def coarsen_weakly_connected_component(wcc_set: set, computation_graph: CompGraph, computing_cost_dict):
     sub_graph = computation_graph.subgraph(list(wcc_set))
     if not nx.is_weakly_connected(sub_graph):
@@ -128,6 +148,7 @@ def merge_node_pair(u ,v, computation_graph: CompGraph, computing_cost_dict):
     assert nx.is_directed_acyclic_graph(computation_graph)
 
 
+# Since new node and edge are formed after op-fusion
 def is_worth_merging(source, target, computation_graph: CompGraph, device_topo, fast_link, computing_cost_dict):
     destination_computing_cost = computing_cost_dict[target]
     communication_cost = computation_graph.getEdgeTensorSize(source, target) * device_topo.calUnitCommCostInUS(

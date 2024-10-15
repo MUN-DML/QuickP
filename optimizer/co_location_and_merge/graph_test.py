@@ -2,7 +2,9 @@
 import networkx as nx
 from networkx.algorithms.flow import shortest_augmenting_path, edmonds_karp
 
+from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.co_location_and_merge.group_algorithm import merge_node_pair
+from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.model.graph import CompGraph
 
 
@@ -38,5 +40,22 @@ def test_node_merge():
     merge_node_pair("1", "2", G4, {"1": 0, "2": 0, "3":0, "4":0})
     print(G4.edges)
 
+def test_sub_graph():
+    G1 = CompGraph()
+    G1.add_edges_from([(1, 2), (2, 3), (1, 3)])
+    sub = G1.edge_subgraph([(1, 2), (2, 3)])
+    sub_2 = G1.subgraph([1, 2, 3])
+    print(sub.edges)
+    print(sub_2.edges)
+
+
+def test_any_unmergableedge():
+    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.ALEXNET)
+    for edge in comp_graph.edges:
+        if not comp_graph.is_edge_mergable(edge[0], edge[1]):
+            print(f'{edge[0]} -> {edge[1]} not mergable')
+
 test_has_single_disjoint_path()
 test_node_merge()
+test_sub_graph()
+test_any_unmergableedge()

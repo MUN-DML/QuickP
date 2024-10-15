@@ -295,7 +295,7 @@ class CompGraph(DiGraph):
         #  the size of a minimum cut set is equal to the maximum number of disjoint paths that can be found between any pair of vertices.
         # paths = list(nx.node_disjoint_paths(computation_graph, source, target))
         min_cut_size = len(nx.minimum_edge_cut(self, source, target))
-        return min_cut_size < 2
+        return min_cut_size <= 1
 
     def __str__(self):
         nodes_str = "\n".join(
