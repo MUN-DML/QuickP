@@ -90,13 +90,12 @@ def coarsen_weakly_connected_component(wcc_set: set, computation_graph: CompGrap
     internal_edges = deque(sub_graph.edges)
     while len(internal_edges) > 0:
         source, target = internal_edges.popleft()
-        # if
-        #     merge_node_pair(source, target, computation_graph, computing_cost_dict)
+        if is_worth_merging(source, target, ):
+            merge_node_pair(source, target, computation_graph, computing_cost_dict)
 
 
-
-def merge_node_pair(u ,v, computation_graph, computing_cost_dict):
-    if not is_edge_mergable(u, v, computation_graph):
+def merge_node_pair(u ,v, computation_graph: CompGraph, computing_cost_dict):
+    if not computation_graph.is_edge_mergable(u, v):
         return
     # create attributes for the new node
     random_node_cost_dict = computation_graph.getCompCostMapByOp(u)
@@ -127,19 +126,6 @@ def merge_node_pair(u ,v, computation_graph, computing_cost_dict):
 
     # Double check if the graph after merge is still DAG
     assert nx.is_directed_acyclic_graph(computation_graph)
-
-
-def is_edge_mergable(source, target, computation_graph: CompGraph):
-    if not computation_graph.has_edge(source, target):
-        raise ValueError(f"Edge {source}, {target} does not exist")
-    # merging 𝑢, 𝑣 is acyclic if and only if (𝑢, 𝑣) is the only path from 𝑢 to 𝑣 on G.
-    # If u's out degree or v's in degree is 1, there can only exist one path
-    if computation_graph.out_degree(source) == 1 or computation_graph.in_degree(target) == 1:
-        return True
-    #  the size of a minimum cut set is equal to the maximum number of disjoint paths that can be found between any pair of vertices.
-    # paths = list(nx.node_disjoint_paths(computation_graph, source, target))
-    min_cut_size = len(nx.minimum_edge_cut(computation_graph, source, target))
-    return min_cut_size < 2
 
 
 def is_worth_merging(source, target, computation_graph: CompGraph, device_topo, fast_link, computing_cost_dict):

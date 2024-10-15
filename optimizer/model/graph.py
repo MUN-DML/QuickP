@@ -285,6 +285,18 @@ class CompGraph(DiGraph):
 
         return dict(list(device_sums.items())[:number_of_device])
 
+    def is_edge_mergable(self, source, target):
+        if not self.has_edge(source, target):
+            raise ValueError(f"Edge {source}, {target} does not exist")
+        # merging 𝑢, 𝑣 is acyclic if and only if (𝑢, 𝑣) is the only path from 𝑢 to 𝑣 on G.
+        # If u's out degree or v's in degree is 1, there can only exist one path
+        if self.out_degree(source) == 1 or self.in_degree(target) == 1:
+            return True
+        #  the size of a minimum cut set is equal to the maximum number of disjoint paths that can be found between any pair of vertices.
+        # paths = list(nx.node_disjoint_paths(computation_graph, source, target))
+        min_cut_size = len(nx.minimum_edge_cut(self, source, target))
+        return min_cut_size < 2
+
     def __str__(self):
         nodes_str = "\n".join(
             [f"Operator ID: {node_id}, Attributes: {attrs}" for node_id, attrs in self.nodes(data=True)])
