@@ -3,8 +3,7 @@ from collections import deque
 
 import networkx as nx
 
-from optimizer.co_location_and_merge.grouper_util import merge_group, label_all_node_with_group, \
-    create_eligible_edge_subgraph, label_group, analyze_group
+from optimizer.co_location_and_merge.grouper_util import create_eligible_edge_subgraph, label_group, analyze_group
 from optimizer.model.graph import CompGraph, DeviceGraph
 
 
@@ -79,6 +78,22 @@ def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, compu
     for wcc_set in weakly_connected_components:
         merge_operators(wcc_set)
 
+'''
+The below is the latest algorithm
+'''
+
+def coarsen_weakly_connected_component(wcc_set: set, computation_graph: CompGraph, computing_cost_dict):
+    sub_graph = computation_graph.subgraph(list(wcc_set))
+    if not nx.is_weakly_connected(sub_graph):
+        raise ValueError(f"{sub_graph.nodes} are not connected")
+
+    internal_edges = deque(sub_graph.edges)
+    while len(internal_edges) > 0:
+        source, target = internal_edges.popleft()
+        # if
+        #     merge_node_pair(source, target, computation_graph, computing_cost_dict)
+
+
 
 def merge_node_pair(u ,v, computation_graph, computing_cost_dict):
     if not is_edge_mergable(u, v, computation_graph):
@@ -127,3 +142,11 @@ def is_edge_mergable(source, target, computation_graph: CompGraph):
     return min_cut_size < 2
 
 
+def is_worth_merging(source, target, computation_graph: CompGraph, device_topo, fast_link, computing_cost_dict):
+    destination_computing_cost = computing_cost_dict[target]
+    communication_cost = computation_graph.getEdgeTensorSize(source, target) * device_topo.calUnitCommCostInUS(
+        fast_link[0], fast_link[1])
+    if communication_cost >= destination_computing_cost or computing_cost_dict[source] == 0:
+        return True
+    else:
+        return False
