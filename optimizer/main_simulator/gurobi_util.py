@@ -45,7 +45,7 @@ def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=T
 
     # init device topo
     deviceTopo = DeviceGraph()
-    deviceTopo.generata_fat_tree_topo(num_device, 50, 20, 1)
+    deviceTopo.generata_fat_tree_topo(num_device, 50, 20, 2)
 
     if not os.path.exists(json_file_path):
         model = model_type()
