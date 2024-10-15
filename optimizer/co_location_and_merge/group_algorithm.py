@@ -88,9 +88,8 @@ def is_edge_mergable(source, target, computation_graph: CompGraph):
     if computation_graph.out_degree(source) == 1 or computation_graph.in_degree(target) == 1:
         return True
     #  the size of a minimum cut set is equal to the maximum number of disjoint paths that can be found between any pair of vertices.
-    paths = list(nx.node_disjoint_paths(computation_graph, source, target))
-    # min_cut_size = len(nx.minimum_node_cut(computation_graph, source, target))
-    # print("fuck", min_cut_size)
-    return len(paths) < 2
+    # paths = list(nx.node_disjoint_paths(computation_graph, source, target))
+    min_cut_size = len(nx.minimum_edge_cut(computation_graph, source, target))
+    return min_cut_size < 2
 
 

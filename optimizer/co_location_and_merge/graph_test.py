@@ -1,5 +1,6 @@
 # Test function to verify the correctness of has_single_disjoint_path
 import networkx as nx
+from networkx.algorithms.flow import shortest_augmenting_path, edmonds_karp
 
 from optimizer.co_location_and_merge.group_algorithm import is_edge_mergable
 
@@ -22,8 +23,8 @@ def test_has_single_disjoint_path():
 
     # Test case 4: Graph with a single node-disjoint path but multiple edges between nodes
     G4 = nx.DiGraph()
-    G4.add_edges_from([(1, 2), (2, 3), (1, 2)])  # Multiple edges between 1 and 2
-    assert is_edge_mergable(1, 2, G4) == True, "Test case 4 failed"
+    G4.add_edges_from([(1, 2), (2, 3), (1, 3), (3, 4)])  # Multiple edges between 1 and 2
+    assert is_edge_mergable(1, 3, G4) == False, "Test case 4 failed"
 
     print("All test cases passed!")
 
