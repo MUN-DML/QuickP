@@ -80,21 +80,21 @@ def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, compu
         merge_operators(wcc_set)
 
 
-def merge_node_pair(u ,v, computation_graph):
+def merge_node_pair(u ,v, computation_graph, computing_cost_dict):
     if not is_edge_mergable(u, v, computation_graph):
         return
     # create attributes for the new node
     random_node_cost_dict = computation_graph.getCompCostMapByOp(u)
-    new_computing_cost = sum(computation_graph[op] for op in [u,v])
+    new_computing_cost = sum(computing_cost_dict[op] for op in [u,v])
     new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
     new_memory = sum(computation_graph.getMemorySize(op) for op in [u,v])
+    # new tensorsize should also be created
 
     # add the new node
     new_id = hashlib.md5("&".join([u,v]).encode()).hexdigest()
     computation_graph.add_new_node(new_id, "merged",
                                      memory=new_memory, comp_cost_map=new_comp_cost_dict)
 
-    # restore the dependency relationship
     # Redirect in-edges (predecessors of the nodes to merge)
     for node in [u ,v]:
         for pred in computation_graph.predecessors(node):

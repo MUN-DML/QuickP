@@ -2,7 +2,8 @@
 import networkx as nx
 from networkx.algorithms.flow import shortest_augmenting_path, edmonds_karp
 
-from optimizer.co_location_and_merge.group_algorithm import is_edge_mergable
+from optimizer.co_location_and_merge.group_algorithm import is_edge_mergable, merge_node_pair
+from optimizer.model.graph import CompGraph
 
 
 def test_has_single_disjoint_path():
@@ -28,4 +29,13 @@ def test_has_single_disjoint_path():
 
     print("All test cases passed!")
 
-test_has_single_disjoint_path()
+def test_node_merge():
+    G4 = CompGraph()
+    G4.add_edges_from([("1", "2"), ("2", "3"), ("1", "3"), ("3", "4")])
+    for node in G4.nodes():
+        G4.set_node_computing_cost_map(node, {'d1': 0})
+        G4.setMemorySize(node, 50)
+    merge_node_pair("1", "2", G4, {"1": 0, "2": 0, "3":0, "4":0})
+    print(G4.edges)
+
+test_node_merge()

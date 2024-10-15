@@ -164,6 +164,11 @@ class CompGraph(DiGraph):
             raise ValueError("no mem found")
         return self.nodes[node_id]["mem"]
 
+    def setMemorySize(self, node_id, mem):
+        if self.nodes[node_id] is None:
+            raise ValueError("node {0} does not exist".format(node_id))
+        self.nodes[node_id]["mem"] = mem
+
     def getCompCostMapByOp(self, node_id):
         if self.nodes[node_id] is None:
             raise ValueError("node {0} does not exist".format(node_id))
