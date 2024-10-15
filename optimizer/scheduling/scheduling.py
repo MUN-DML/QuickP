@@ -15,7 +15,7 @@ from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_hetero
 from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_cost
 
 
-def add_topo_order_constraints(model, graph, x, device_ids, finish, start, group_ops_mapping: dict, M):
+def add_topo_order_constraints_with_grouper(model, graph, x, device_ids, finish, start, group_ops_mapping: dict, M):
     op_group_mapping = get_op_group_map(group_ops_mapping)
     topological_order_mapping = {node: index for index, node in enumerate(list(nx.topological_sort(graph)))}
     non_reachable_pairs = find_non_connected_pairs(graph)
@@ -28,6 +28,16 @@ def add_topo_order_constraints(model, graph, x, device_ids, finish, start, group
 
     # Iterate over topologically sorted nodes
     for a, b in ungrouped_non_reachable_pairs:
+        # For each consecutive pair of operators, add a constraint for each device
+        for device_id in device_ids:
+            # Ensure the correct order for each potential device assignment
+            # This constraint will only apply if both a and b are assigned to the same device
+            model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]),
+                            name=f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
+
+def add_topo_order_constraint(model, graph, x, device_ids, finish, start, M):
+    # Iterate over topologically sorted nodes
+    for a, b in find_non_connected_pairs(graph):
         # For each consecutive pair of operators, add a constraint for each device
         for device_id in device_ids:
             # Ensure the correct order for each potential device assignment
