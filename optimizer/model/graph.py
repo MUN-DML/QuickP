@@ -298,6 +298,12 @@ class CompGraph(DiGraph):
         min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
         return min_cut_size <= 1
 
+    def is_all_edge_mergable(self):
+        for source, target in self.edges():
+            if not self.is_edge_mergable(source, target):
+                return False
+        return True
+
     def is_multi_path(self, source, target):
         if not self.has_edge(source, target):
             raise ValueError(f"Edge {source}, {target} does not exist")
@@ -306,35 +312,36 @@ class CompGraph(DiGraph):
         min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
         return min_cut_size >= 2
 
-    def get_multipath_component_by_edge_if_existing(self, source, target):
+    def get_multipath_component_node_set_by_edge(self, source, target):
         if self.is_multi_path(source, target):
             # it will return a 2D list
             all_paths = list(nx.node_disjoint_paths(self, source, target))
             flattened_set = set([element for sublist in all_paths for element in sublist])
-            return self.subgraph(flattened_set)
+            return flattened_set
         else:
             return None
 
-    def create_subgraph_of_multipath_components(self):
-        node_list = []
-        for source, target in self.edges:
-            if self.is_multi_path(source, target):
-                node_list.append(source)
-                node_list.append(target)
-        return self.subgraph(node_list)
-
-    def visualize_all_multipath_components(self):
-        subgraph = self.create_subgraph_of_multipath_components()
-        wccs = list(nx.weakly_connected_components(subgraph))
-        for wcc in wccs:
-            wcc_graph = self.subgraph(wcc)
-            visualize_graph(wcc_graph, show_edge_labels=False, show_node_labels=False)
-
     def visualize_all_multipath_component(self):
         for source, target in self.edges:
-            wcc = self.get_multipath_component_by_edge_if_existing(source, target)
-            if wcc:
+            set = self.get_multipath_component_node_set_by_edge(source, target)
+            if set:
+                wcc = self.subgraph(set)
                 visualize_graph(wcc, show_edge_labels=False, show_node_labels=False)
+
+    def create_subgraph_of_multipath_components(self):
+        all_node_set = set()
+        for source, target in self.edges:
+            local_node_set = self.get_multipath_component_node_set_by_edge(source, target)
+            if local_node_set:
+                all_node_set.update(local_node_set)
+        return self.subgraph(all_node_set)
+
+    def visualize_multipath_component_in_wcc(self):
+        subgraph = self.create_subgraph_of_multipath_components()
+        for wcc in nx.weakly_connected_components(subgraph):
+            wcc_subgraph = self.subgraph(wcc)
+            print("wcc node number", len(wcc), )
+            visualize_graph(wcc_subgraph, show_edge_labels=False, show_node_labels=False)
 
 
     def __str__(self):

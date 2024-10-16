@@ -69,8 +69,13 @@ def visualize_wcc():
     deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.ALEXNET)
     comp_graph.visualize_all_multipath_component()
 
+def visualize_combined_wcc():
+    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.ALEXNET)
+    comp_graph.visualize_multipath_component_in_wcc()
+
 test_has_single_disjoint_path()
 test_node_merge()
 test_sub_graph()
 test_edge_selection()
-visualize_wcc()
+# visualize_wcc()
+visualize_combined_wcc()
