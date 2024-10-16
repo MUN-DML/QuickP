@@ -313,6 +313,21 @@ class CompGraph(DiGraph):
         else:
             return None
 
+    def create_subgraph_of_multipath_components(self):
+        node_list = []
+        for source, target in self.edges:
+            if self.is_multi_path(source, target):
+                node_list.append(source)
+                node_list.append(target)
+        return self.subgraph(node_list)
+
+    def visualize_all_multipath_components(self):
+        subgraph = self.create_subgraph_of_multipath_components()
+        wccs = list(nx.weakly_connected_components(subgraph))
+        for wcc in wccs:
+            wcc_graph = self.subgraph(wcc)
+            visualize_graph(wcc_graph, show_edge_labels=False, show_node_labels=False)
+
     def __str__(self):
         nodes_str = "\n".join(
             [f"Operator ID: {node_id}, Attributes: {attrs}" for node_id, attrs in self.nodes(data=True)])
