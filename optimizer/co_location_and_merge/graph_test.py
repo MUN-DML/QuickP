@@ -1,6 +1,7 @@
 # Test function to verify the correctness of has_single_disjoint_path
 import networkx as nx
 from networkx.algorithms.flow import shortest_augmenting_path, edmonds_karp
+from networkx.classes import subgraph
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.co_location_and_merge.group_algorithm import merge_node_pair, get_subgraph_of_eligible_edges
@@ -45,8 +46,10 @@ def test_sub_graph():
     G1.add_edges_from([(1, 2), (2, 3), (1, 3)])
     sub = G1.edge_subgraph([(1, 2), (2, 3)])
     sub_2 = G1.subgraph([1, 2, 3])
+    sub_3 = G1.subgraph([1,3])
     print(sub.edges)
     print(sub_2.edges)
+    print(sub_3.edges)
 
 
 def test_any_unmergableedge():
@@ -62,7 +65,12 @@ def test_edge_selection():
     for edge in sub_g.edges(data=True):
         print(edge)
 
+def visualize_wcc():
+    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.ALEXNET)
+    comp_graph.visualize_all_multipath_component()
+
 test_has_single_disjoint_path()
 test_node_merge()
 test_sub_graph()
 test_edge_selection()
+visualize_wcc()

@@ -308,8 +308,10 @@ class CompGraph(DiGraph):
 
     def get_multipath_component_by_edge_if_existing(self, source, target):
         if self.is_multi_path(source, target):
+            # it will return a 2D list
             all_paths = list(nx.node_disjoint_paths(self, source, target))
-            return self.edge_subgraph(all_paths)
+            flattened_set = set([element for sublist in all_paths for element in sublist])
+            return self.subgraph(flattened_set)
         else:
             return None
 
@@ -327,6 +329,13 @@ class CompGraph(DiGraph):
         for wcc in wccs:
             wcc_graph = self.subgraph(wcc)
             visualize_graph(wcc_graph, show_edge_labels=False, show_node_labels=False)
+
+    def visualize_all_multipath_component(self):
+        for source, target in self.edges:
+            wcc = self.get_multipath_component_by_edge_if_existing(source, target)
+            if wcc:
+                visualize_graph(wcc, show_edge_labels=False, show_node_labels=False)
+
 
     def __str__(self):
         nodes_str = "\n".join(
