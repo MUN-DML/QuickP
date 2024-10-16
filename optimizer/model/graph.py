@@ -298,6 +298,21 @@ class CompGraph(DiGraph):
         min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
         return min_cut_size <= 1
 
+    def is_multi_path(self, source, target):
+        if not self.has_edge(source, target):
+            raise ValueError(f"Edge {source}, {target} does not exist")
+        if self.out_degree(source) == 1 or self.in_degree(target) == 1:
+            return False
+        min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
+        return min_cut_size >= 2
+
+    def get_multipath_component_by_edge_if_existing(self, source, target):
+        if self.is_multi_path(source, target):
+            all_paths = list(nx.node_disjoint_paths(self, source, target))
+            return self.edge_subgraph(all_paths)
+        else:
+            return None
+
     def __str__(self):
         nodes_str = "\n".join(
             [f"Operator ID: {node_id}, Attributes: {attrs}" for node_id, attrs in self.nodes(data=True)])
