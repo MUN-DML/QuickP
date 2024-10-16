@@ -372,7 +372,10 @@ class CompGraph(DiGraph):
             self.remove_nodes_from(ops_to_be_merged)
 
             # Double check if the graph after merge is still DAG
-            assert nx.is_directed_acyclic_graph(self)
+            if not nx.is_directed_acyclic_graph(self):
+                cycle = nx.find_cycle(self, orientation='original')
+                print(cycle)
+                raise ValueError("Cycle detected")
 
         subgraph = self.create_subgraph_of_multipath_components()
         computing_cost_dict = self.getOpCompCostMapByDevice(self.getDeviceList()[0])
