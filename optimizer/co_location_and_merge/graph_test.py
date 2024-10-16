@@ -3,7 +3,7 @@ import networkx as nx
 from networkx.algorithms.flow import shortest_augmenting_path, edmonds_karp
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from optimizer.co_location_and_merge.group_algorithm import merge_node_pair
+from optimizer.co_location_and_merge.group_algorithm import merge_node_pair, get_subgraph_of_eligible_edges
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.model.graph import CompGraph
 
@@ -55,7 +55,14 @@ def test_any_unmergableedge():
         if not comp_graph.is_edge_mergable(edge[0], edge[1]):
             print(f'{edge[0]} -> {edge[1]} not mergable')
 
+def test_edge_selection():
+    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.ALEXNET)
+    sub_g = get_subgraph_of_eligible_edges(comp_graph, deviceTopo, comp_graph.getOpCompCostMapByDevice(deviceTopo.getDeviceIDs()[0]))
+    print("wcc num", nx.number_weakly_connected_components(sub_g), "node number", len(sub_g.nodes))
+    for edge in sub_g.edges(data=True):
+        print(edge)
+
 test_has_single_disjoint_path()
 test_node_merge()
 test_sub_graph()
-test_any_unmergableedge()
+test_edge_selection()

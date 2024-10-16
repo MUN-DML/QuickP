@@ -10,6 +10,7 @@ import networkx as nx
 from matplotlib import pyplot as plt
 from networkx import DiGraph, draw_networkx_labels, spring_layout, draw, draw_networkx_edge_labels, node_link_graph, \
     node_link_data, number_weakly_connected_components, algorithms
+from networkx.algorithms.flow import shortest_augmenting_path
 
 from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from py_util import convert_data_size, convert_time
@@ -294,7 +295,7 @@ class CompGraph(DiGraph):
             return True
         #  the size of a minimum cut set is equal to the maximum number of disjoint paths that can be found between any pair of vertices.
         # paths = list(nx.node_disjoint_paths(computation_graph, source, target))
-        min_cut_size = len(nx.minimum_edge_cut(self, source, target))
+        min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
         return min_cut_size <= 1
 
     def __str__(self):
