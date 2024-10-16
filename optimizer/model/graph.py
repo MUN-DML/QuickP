@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import random
@@ -269,12 +270,9 @@ class CompGraph(DiGraph):
     def getEdgeObjs(self) -> list[dict]:
         return list(self.edges.values())
 
-    def clean_marginal_operators(self):
-        nodes_to_remove = [node for node in self.nodes if
-                           (self.in_degree(node) + self.out_degree(node)) == 0
-                           and self.getOperatorCompCostSum(node) == 0]
-        print("removed nodes:", nodes_to_remove)
-        self.remove_nodes_from(nodes_to_remove)
+    def getDeviceList(self):
+        any_node = list(self.nodes)[0]
+        return list(self.nodes[any_node]['comp_cost'].keys())
 
     def get_comp_cost_sum_ratio(self, number_of_device: int):
         device_sums = defaultdict(float)
@@ -342,6 +340,45 @@ class CompGraph(DiGraph):
             wcc_subgraph = self.subgraph(wcc)
             print("wcc node number", len(wcc), )
             visualize_graph(wcc_subgraph, show_edge_labels=False, show_node_labels=False)
+
+    def convert_to_mergable_graph(self):
+
+        def merge_multipath_wcc(ops_to_be_merged: set):
+            # create attributes for the new node
+            random_node_cost_dict = self.getCompCostMapByOp(list(ops_to_be_merged)[0])
+            new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
+            new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
+            new_memory = sum(self.getMemorySize(op) for op in ops_to_be_merged)
+
+            # add the new node
+            new_id = hashlib.md5("&".join(ops_to_be_merged).encode()).hexdigest()
+            self.add_new_node(new_id, "merged",
+                                         memory=new_memory, comp_cost_map=new_comp_cost_dict)
+
+            # restore the dependency relationship
+            # Redirect in-edges (predecessors of the nodes to merge)
+            for node in ops_to_be_merged:
+                for pred in self.predecessors(node):
+                    if pred not in ops_to_be_merged:  # Avoid self-loops
+                        self.add_edge(pred, new_id, **self.get_edge_data(pred, node))
+
+            # Redirect out-edges (successors of the nodes to merge)
+            for node in ops_to_be_merged:
+                for succ in self.successors(node):
+                    if succ not in ops_to_be_merged:  # Avoid self-loops
+                        self.add_edge(new_id, succ, **self.get_edge_data(node, succ))
+
+            # Remove the original nodes
+            self.remove_nodes_from(ops_to_be_merged)
+
+            # Double check if the graph after merge is still DAG
+            assert nx.is_directed_acyclic_graph(self)
+
+        subgraph = self.create_subgraph_of_multipath_components()
+        computing_cost_dict = self.getOpCompCostMapByDevice(self.getDeviceList()[0])
+        for wcc_node_set in nx.weakly_connected_components(subgraph):
+            merge_multipath_wcc(wcc_node_set)
+        assert self.is_all_edge_mergable()
 
 
     def __str__(self):
