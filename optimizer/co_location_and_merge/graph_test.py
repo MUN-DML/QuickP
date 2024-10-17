@@ -65,13 +65,13 @@ def test_edge_selection():
     for edge in sub_g.edges(data=True):
         print(edge)
 
-def visualize_wcc():
-    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.ALEXNET)
-    comp_graph.visualize_all_multipath_component()
-
 def visualize_combined_wcc():
     deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
     comp_graph.visualize_multipath_component_in_wcc()
+
+def visualize_graph_comparison():
+    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
+    comp_graph.visualize_mp_subgraph_vs_original_graph()
 
 def test_mergeable_conversion():
     G4 = CompGraph()
@@ -92,7 +92,8 @@ test_has_single_disjoint_path()
 test_node_merge()
 test_sub_graph()
 test_edge_selection()
-# visualize_wcc()
-# visualize_combined_wcc()
+
 find_cycle()
-test_mergeable_conversion()
+# test_mergeable_conversion()
+visualize_graph_comparison()
+visualize_combined_wcc()
