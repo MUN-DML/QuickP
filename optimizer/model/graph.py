@@ -371,6 +371,8 @@ class CompGraph(DiGraph):
             # Remove the original nodes
             self.remove_nodes_from(ops_to_be_merged)
 
+            print(ops_to_be_merged, "get merged")
+
             # Double check if the graph after merge is still DAG
             if not nx.is_directed_acyclic_graph(self):
                 cycle = nx.find_cycle(self, orientation='original')
@@ -379,7 +381,8 @@ class CompGraph(DiGraph):
 
         subgraph = self.create_subgraph_of_multipath_components()
         computing_cost_dict = self.getOpCompCostMapByDevice(self.getDeviceList()[0])
-        for wcc_node_set in nx.weakly_connected_components(subgraph):
+        wcc_node_sets = list(nx.weakly_connected_components(subgraph))
+        for wcc_node_set in wcc_node_sets:
             merge_multipath_wcc(wcc_node_set)
         assert self.is_all_edge_mergable()
 
