@@ -344,6 +344,9 @@ class CompGraph(DiGraph):
     def convert_to_mergable_graph(self):
 
         def merge_multipath_wcc(ops_to_be_merged: set):
+            wcc = self.subgraph(ops_to_be_merged)
+            if not nx.is_weakly_connected(wcc):
+                raise ValueError(f"{ops_to_be_merged} are not connected")
             # create attributes for the new node
             random_node_cost_dict = self.getCompCostMapByOp(list(ops_to_be_merged)[0])
             new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
@@ -371,12 +374,17 @@ class CompGraph(DiGraph):
             # Remove the original nodes
             self.remove_nodes_from(ops_to_be_merged)
 
-            print(ops_to_be_merged, "get merged")
+            print(ops_to_be_merged, "get merged into ", new_id)
+
+            if nx.is_directed_acyclic_graph(self):
+                print("no cycle detect")
+                self.save_to_file("graph_without_cycle.json")
 
             # Double check if the graph after merge is still DAG
             if not nx.is_directed_acyclic_graph(self):
                 cycle = nx.find_cycle(self, orientation='original')
                 print(cycle)
+                self.save_to_file("graph_with_cycle.json")
                 raise ValueError("Cycle detected")
 
         subgraph = self.create_subgraph_of_multipath_components()
