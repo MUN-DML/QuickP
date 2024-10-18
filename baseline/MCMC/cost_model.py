@@ -61,7 +61,7 @@ def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    priority_queue_max_rank_heteroG(model, start, finish, None, None, computing_graph, device_subgraph_mapping, edge_cut_list, op_computing_cost_mapping)
+    priority_queue_max_rank_heteroG(model, start, finish, None, None, computing_graph, device_subgraph_mapping, edge_cut_list, operator_device_mapping)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)

@@ -2,7 +2,7 @@ import random
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from baseline.MCMC.cost_model import evaluate_mcmc
-from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
+from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph, get_proper_M
 from optimizer.model.graph import CompGraph, find_non_connected_pairs
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight, \
     construct_sub_graph
@@ -12,9 +12,10 @@ from optimizer.operator_device_placement.placement import get_placement_info
 
 def mcmc_search(comp_graph: CompGraph, deviceTopo):
     all_non_connected_pairs = []
+    M = get_proper_M(graph_init["model_type"])
     # Partition the computation graph
     operator_device_mapping, edge_cut_list, edge_cut_weight_sum = (
-        get_placement_info("METIS", comp_graph, deviceTopo))
+        get_placement_info("METIS", comp_graph, deviceTopo, M))
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
@@ -50,7 +51,7 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
 if __name__ == '__main__':
     graph_init = {
         "number_of_devices": 6,
-        "model_type": TFModelEnum.ALEXNET,
+        "model_type": TFModelEnum.SMALL,
         "node_weight_function": NodeWeightFunction.AVE_COMP_COST,
         "edge_weight_function": EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
         "weight_norm_function": WeightNormalizationFunction.MIN_MAX,
