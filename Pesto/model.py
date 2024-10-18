@@ -60,14 +60,16 @@ def get_optimize_placement(comp_graph: CompGraph, deviceTopo, M):
         model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID],
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
+    z = {}
     # Iterate over topologically sorted nodes
-    for a, b in find_non_connected_pairs(comp_graph):
+    for i, j in find_non_connected_pairs(comp_graph):
         # For each consecutive pair of operators, add a constraint for each device
         for device_id in deviceTopo.getDeviceIDs():
             # Ensure the correct order for each potential device assignment
             # This constraint will only apply if both a and b are assigned to the same device
-            model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]),
-                            name=f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
+            z[i, j] = model.addVar(vtype=GRB.BINARY, name=f"order_{i}_{j}")
+            model.addConstr(finish[i] <= start[j] + M * (1 - z[i, j] + 1 - x[i, device_id] + 1 - x[j, device_id]))
+            model.addConstr(finish[j] <= start[i] + M * (z[i, j] + 1 - x[i, device_id] + 1 - x[j, device_id]))
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
