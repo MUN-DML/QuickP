@@ -31,6 +31,10 @@ def get_optimize_placement(comp_graph: CompGraph, deviceTopo, M) -> dict:
                           name="start")  # start[node_id] represent the starting time of this node
     finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="finish")  # finish[node_id] represent the finish time of this node
+    comm_start = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+                               name="comm_start")  # comm_start[source_op, dest_op] represent the communication
+    comm_end = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_end")
+    comm_cost = model.addVars(comp_graph.getEdgeIDs(), vtype=GRB.CONTINUOUS, lb=0.0, name="comm_cost")
 
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
@@ -42,6 +46,12 @@ def get_optimize_placement(comp_graph: CompGraph, deviceTopo, M) -> dict:
     for node_id in comp_graph.getOperatorIDs():
         model.addConstr(finish[node_id] == start[node_id] + homo_op_cost_dict[node_id],
                             name=f"finish_start_{node_id}")
+    '''
+    for node_id in comp_graph.getOperatorIDs():
+        comp_cost = quicksum(x[node_id, device_id] * comp_graph.getOperatorCompCostByDevice(node_id, device_id)
+                             for device_id in deviceTopo.getDeviceIDs())
+        model.addConstr(finish[node_id] == start[node_id] + comp_cost, name=f"finish_start_{node_id}")
+    '''
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
@@ -64,10 +74,24 @@ def get_optimize_placement(comp_graph: CompGraph, deviceTopo, M) -> dict:
             for device_id_src, device_id_dest in device_pairs
         )
 
+        model.addConstr(comm_cost[source_op_ID, dest_op_ID] == comm_cost_expr, f"comm_cost_{source_op_ID}_{dest_op_ID}")
+
+        # Ensures the communication starts only after the source operation finishes.
+        model.addConstr(comm_start[source_op_ID, dest_op_ID] >= finish[source_op_ID],
+                        f"bind_finish_to_comm_start_{source_op_ID}_{dest_op_ID}")
+
+        # Ensures the communication ends before the destination operation starts.
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
+                        f"bind_comm_end_to_start_{source_op_ID}_{dest_op_ID}")
+
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID]),
+        model.addConstr(comm_end[source_op_ID, dest_op_ID] == comm_start[source_op_ID, dest_op_ID] + comm_cost[
+            source_op_ID, dest_op_ID],
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
+    # Global Data dependency
+    for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs():
+        model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
     add_topo_order_constraint(model, comp_graph, x, deviceTopo.getDeviceIDs(), finish, start, M)
 
     # TotalLatency that we are minimizing
