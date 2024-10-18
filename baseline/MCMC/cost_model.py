@@ -2,6 +2,7 @@ from gurobipy import *
 
 from optimizer.main_simulator.simulator_util import get_comp_cost_dict, get_comm_cost_dict
 from optimizer.model.graph import CompGraph, DeviceGraph
+from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_heteroG
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
@@ -14,7 +15,7 @@ from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
     show_optimization_solution, show_graph_partition_info
 
 
-def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator_device_mapping, edge_cut_list, sch_order_dict):
+def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator_device_mapping, edge_cut_list):
 
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     device_subgraph_mapping = construct_sub_graph(computing_graph, operator_device_mapping)
@@ -35,9 +36,6 @@ def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator
                           name="start")  # start[node_id] represent the starting time of this node
     finish = model.addVars(computing_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
                            name="finish")  # finish[node_id] represent the finish time of this node
-    comm_start = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0,
-                               name="")  # comm_start[source_op, dest_op] represent the communication
-    comm_end = model.addVars(edge_cut_list, vtype=GRB.CONTINUOUS, lb=0.0, name="")
 
     '''
     Define Constraints
@@ -59,18 +57,11 @@ def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator
         # placed on different devices
         source_op_ID, dest_op_ID = edge_id_tuple
         # Ensures the communication starts only after the source operation finishes.
-        model.addConstr(finish[source_op_ID] <= comm_start[source_op_ID, dest_op_ID],
-                        name = "")
-        # Ensures the communication duration covers the communication cost.
-        model.addConstr(comm_start[source_op_ID, dest_op_ID] + edge_cut_communication_cost_mapping[edge_id_tuple] == comm_end[source_op_ID, dest_op_ID],
-                        name = "")
-        # Ensures the communication ends before the destination operation starts.
-        model.addConstr(comm_end[source_op_ID, dest_op_ID] <= start[dest_op_ID],
-                        name = "")
+        model.addConstr(finish[source_op_ID] + edge_cut_communication_cost_mapping[edge_id_tuple] <= start[dest_op_ID],
+                        f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
     # It is an SCHEDULING problem within each device.
-    mcmc_schedule(model, start=start, finish=finish, comm_start=comm_start,
-                                comm_end=comm_end, mcmc_order_dict=sch_order_dict)
+    priority_queue_max_rank_heteroG(model, start, finish, None, None, computing_graph, device_subgraph_mapping, edge_cut_list, op_computing_cost_mapping)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)

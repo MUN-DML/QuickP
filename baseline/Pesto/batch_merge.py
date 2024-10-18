@@ -3,8 +3,8 @@ import json
 import time
 import numpy as np
 
-from Pesto.op_merge_type import ops_merge_type
-from Pesto.topo_height import topo_level_v2
+from baseline.Pesto.op_merge_type import ops_merge_type
+from baseline.Pesto.topo_height import topo_level_v2
 
 strType = ['nmt-2lyr-1024-PCIE']
 num_models = len(strType)

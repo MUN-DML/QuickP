@@ -1,14 +1,13 @@
 import random
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from optimizer.MCMC.cost_model import evaluate_mcmc
+from baseline.MCMC.cost_model import evaluate_mcmc
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.model.graph import CompGraph, find_non_connected_pairs
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight, \
     construct_sub_graph
 from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.operator_device_placement.placement import get_placement_info
-from optimizer.scheduling.scheduling_order_only import FIFO_scheduling_order
 
 
 def mcmc_search(comp_graph: CompGraph, deviceTopo):
@@ -40,7 +39,7 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
 
         # Swap the two nodes using multiple assignment
         assigned_sequence[index1], assigned_sequence[index2] = assigned_sequence[index2], assigned_sequence[index1]
-        new_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list, init_order_dict)
+        new_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list)
         if new_latency < current_strategy["latency"]:
             current_strategy["scheduling"] = new_strategy
             current_strategy["latency"] = new_latency
