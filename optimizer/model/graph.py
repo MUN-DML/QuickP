@@ -319,13 +319,6 @@ class CompGraph(DiGraph):
         else:
             return None
 
-    def visualize_all_multipath_component(self):
-        for source, target in self.edges:
-            set = self.get_multipath_component_node_set_by_edge(source, target)
-            if set:
-                wcc = self.subgraph(set)
-                visualize_graph(wcc, show_edge_labels=False, show_node_labels=False)
-
     def create_subgraph_of_multipath_components(self):
         all_node_set = set()
         for source, target in self.edges:
@@ -333,6 +326,25 @@ class CompGraph(DiGraph):
             if local_node_set:
                 all_node_set.update(local_node_set)
         return self.subgraph(all_node_set)
+
+    def visualize_mp_subgraph_vs_original_graph(self):
+        subgraph = self.create_subgraph_of_multipath_components()
+        red_nodes = set(subgraph.nodes)
+        blue_nodes = set(self.nodes) - red_nodes
+        # Create the layout for the nodes
+        pos = nx.spring_layout(self)  # Spring layout positions the nodes nicely
+
+        # Draw nodes
+        nx.draw_networkx_nodes(self, pos, nodelist=red_nodes, node_color='red', node_size=50)
+        # nx.draw_networkx_nodes(self, pos, nodelist=blue_nodes, node_color='blue', node_size=5)
+
+        # Draw edges
+        # nx.draw_networkx_edges(self, pos)
+        nx.draw_networkx_edges(subgraph, pos)
+
+        # Display the graph
+        plt.title("Subgraph with Selected Nodes in Red and Others in Blue")
+        plt.show()
 
     def visualize_multipath_component_in_wcc(self):
         subgraph = self.create_subgraph_of_multipath_components()
@@ -344,6 +356,9 @@ class CompGraph(DiGraph):
     def convert_to_mergable_graph(self):
 
         def merge_multipath_wcc(ops_to_be_merged: set):
+            wcc = self.subgraph(ops_to_be_merged)
+            if not nx.is_weakly_connected(wcc):
+                raise ValueError(f"{ops_to_be_merged} are not connected")
             # create attributes for the new node
             random_node_cost_dict = self.getCompCostMapByOp(list(ops_to_be_merged)[0])
             new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
@@ -371,12 +386,17 @@ class CompGraph(DiGraph):
             # Remove the original nodes
             self.remove_nodes_from(ops_to_be_merged)
 
-            print(ops_to_be_merged, "get merged")
+            print(ops_to_be_merged, "get merged into ", new_id)
+
+            if nx.is_directed_acyclic_graph(self):
+                print("no cycle detect")
+                self.save_to_file("graph_without_cycle.json")
 
             # Double check if the graph after merge is still DAG
             if not nx.is_directed_acyclic_graph(self):
                 cycle = nx.find_cycle(self, orientation='original')
                 print(cycle)
+                self.save_to_file("graph_with_cycle.json")
                 raise ValueError("Cycle detected")
 
         subgraph = self.create_subgraph_of_multipath_components()
