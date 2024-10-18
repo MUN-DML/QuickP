@@ -1,35 +1,44 @@
 import numpy as np
 
+import numpy as np
+
 
 def topo_level_v2(comp, prec_list, size_node):
+    """
+    Compute the topological level of each node in the graph.
+
+    Parameters:
+    - comp: numpy array indicating the component type and processing time.
+    - prec_list: list of predecessor nodes for each node.
+    - size_node: total number of nodes.
+
+    Returns:
+    - level_ops: numpy array where level_ops[i] is the topological level of node i.
+    """
     seq = []
-    level_ops = np.zeros(size_node, dtype=int)  # Equivalent to zeros(size_node, 1) in MATLAB
+    level_ops = np.zeros(size_node, dtype=int)
 
-    # Identifying root-level nodes (Level 1)
+    # Identify the head nodes (those without predecessors)
     for i in range(size_node):
-        if comp[i, 0] > 0 and len(prec_list[i]) == 0:  # Head node condition
+        if comp[i, 0] > 0 and not prec_list[i][0]:  # head node has no predecessors
             seq.append(i)
-            level_ops[i] = 1
+            level_ops[i] = 1  # root level
 
-    marked = np.zeros(size_node, dtype=int)  # Track processed nodes (equivalent to marked in MATLAB)
+    marked = np.zeros(size_node, dtype=int)
+    marked[seq] = 1
 
-    # Corrected: Mark each node in seq (which is a list) individually
-    for idx in seq:
-        marked[idx] = 1  # Mark the root nodes
-
-    level_count = 2  # Start level counting from 2 (as level 1 is assigned to root nodes)
-
+    level_count = 2
     while seq:
         temp_seq = seq
         seq = []
 
         for i in range(size_node):
-            if comp[i, 0] > 0 and marked[i] == 0:  # If node is valid and not yet marked
-                # Update the prerequisite list by removing nodes from the current sequence
-                prec_list[i] = [p for p in prec_list[i] if p not in temp_seq]
+            if comp[i, 0] > 0 and marked[i] == 0:
+                # Remove processed nodes from the predecessor list
+                prec_list[i][0] = [prec for prec in prec_list[i][0] if prec not in temp_seq]
 
-                # If the node has no remaining prerequisites, mark it for the next level
-                if len(prec_list[i]) == 0:
+                # If no more predecessors, mark the node and assign the level
+                if not prec_list[i][0]:
                     marked[i] = 1
                     level_ops[i] = level_count
                     seq.append(i)
@@ -37,12 +46,3 @@ def topo_level_v2(comp, prec_list, size_node):
         level_count += 1
 
     return level_ops
-
-
-# Example usage
-comp = np.array([[1], [1], [1], [1]])  # A sample component matrix with 4 nodes
-prec_list = [[], [0], [1], [2]]  # Dependencies (e.g., node 1 depends on node 0, node 2 depends on node 1, etc.)
-size_node = 4
-
-level_ops = topo_level_v2(comp, prec_list, size_node)
-print(level_ops)
