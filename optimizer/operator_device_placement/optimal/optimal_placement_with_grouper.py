@@ -73,12 +73,16 @@ def get_optimize_placement_with_grouper(comp_graph: CompGraph, deviceTopo, M) ->
         for source_op_ID, dest_op_ID in comp_graph.getEdgeIDs()
     }
     for edge_id_tuple in list(comp_graph.getEdgeIDs()):
+
+        # no communication cost for ops on the same device
         source_op_ID, dest_op_ID = edge_id_tuple
-        if comp_graph.get_colocation_group(source_op_ID) == comp_graph.get_colocation_group(dest_op_ID):
-            # Ensures the communication duration covers the communication cost.
-            model.addConstr(model.addConstr(finish[source_op_ID] <= start[dest_op_ID]),
-                            f"data_dependency_{source_op_ID}_{dest_op_ID}")
-            continue
+        if "colocation_group" in comp_graph.nodes[source_op_ID] and "colocation_group" in comp_graph.nodes[dest_op_ID]:
+            if comp_graph.get_colocation_group(source_op_ID) == comp_graph.get_colocation_group(dest_op_ID):
+                # Ensures the communication duration covers the communication cost.
+                model.addConstr(finish[source_op_ID] <= start[dest_op_ID],
+                                f"data_dependency_{source_op_ID}_{dest_op_ID}")
+                continue
+
         # Aggregate communication cost
         comm_cost_expr = quicksum(
             unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
@@ -87,8 +91,11 @@ def get_optimize_placement_with_grouper(comp_graph: CompGraph, deviceTopo, M) ->
         )
 
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID]),
+        model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID],
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
+
+    add_topo_order_constraints_with_grouper(model, comp_graph, x, deviceTopo.getDeviceIDs(), finish, start,
+                                            group_ops_mapping, M)
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)

@@ -65,7 +65,7 @@ def get_optimize_placement(comp_graph: CompGraph, deviceTopo, M) -> dict:
         )
 
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID]),
+        model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID],
                         f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
     add_topo_order_constraint(model, comp_graph, x, deviceTopo.getDeviceIDs(), finish, start, M)
