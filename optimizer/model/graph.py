@@ -263,13 +263,13 @@ class CompGraph(DiGraph):
             all_node_set.update(local_node_set or [])
         return self.subgraph(all_node_set)
 
-    def label_colo_for__dual_path_wcc(self):
+    def label_colo_for_dual_path_wcc(self):
         subgraph = self.create_subgraph_of_dual_path_components()
         wcc_node_sets = list(nx.weakly_connected_components(subgraph))
         for set in wcc_node_sets:
             new_id = hashlib.md5("&".join(set).encode()).hexdigest()
             for node in set:
-
+                self.set_colocation_group(node, new_id)
 
 
     def getAllOperators(self):
