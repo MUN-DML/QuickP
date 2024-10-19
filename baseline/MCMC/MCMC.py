@@ -1,3 +1,4 @@
+import copy
 import random
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
@@ -24,25 +25,17 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
 
     current_strategy = {"placement": operator_device_mapping, "latency": init_latency}
 
-    for device, subgraph in device_subgraph_mapping.items():
-        # there will be no pairs with the same element
-        non_connected_pairs = find_non_connected_pairs(subgraph)
-        all_non_connected_pairs.extend(non_connected_pairs)
 
-    for i in range(0, 10):
-        random_tuple = random.choice(all_non_connected_pairs)
-        assigned_device = operator_device_mapping[random_tuple[0]]
-        new_strategy = current_strategy["scheduling"].copy()
-        assigned_sequence = new_strategy[assigned_device]
-        # Find the indices of the two nodes
-        index1 = assigned_sequence.index(random_tuple[0])
-        index2 = assigned_sequence.index(random_tuple[1])
+    for i in range(0, 100):
+        random_node = random.choice(comp_graph.getOperatorIDs())
+        random_device = random.choice(deviceTopo.getDeviceIDs())
+        new_placement = copy.deepcopy(current_strategy["placement"])
+        new_placement[random_node] = random_device
 
         # Swap the two nodes using multiple assignment
-        assigned_sequence[index1], assigned_sequence[index2] = assigned_sequence[index2], assigned_sequence[index1]
         new_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list)
         if new_latency < current_strategy["latency"]:
-            current_strategy["scheduling"] = new_strategy
+            current_strategy["placement"] = new_placement
             current_strategy["latency"] = new_latency
 
     print(current_strategy["latency"])

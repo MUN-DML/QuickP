@@ -94,6 +94,7 @@ def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator
         print("Model is unbounded.")
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
+        print("The latency is ", model.objVal)
         # show_optimization_solution(model, operator_device_mapping, computing_graph, device_topo, start, finish, edge_cut_communication_cost_mapping, True, two_dime_node_list)
         optimal_value = model.ObjVal
         if model is not None:

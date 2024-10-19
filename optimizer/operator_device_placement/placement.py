@@ -10,11 +10,13 @@ from optimizer.operator_device_placement.optimal.optimal_placement_with_grouper 
     get_optimize_placement_with_grouper
 from optimizer.operator_device_placement.optimal_homo.optimal_placement_homo import get_optimize_placement_homo
 from optimizer.main_simulator.gurobi_util import get_subgraph_op_num_weight_sum_dict
+from optimizer.operator_device_placement.random_placement import get_random_device_placement
 from optimizer.operator_device_placement.test.test_placement import get_test_device_placement
 
 
 class PlacementGenerator(Enum):
     METIS = "METIS"
+    RANDOM = "RANDOM"
     TEST = "TEST"
     OPTIMIZED = "OPTIMIZED"
     OPTIMIZED_GROUPER = "OPTIMIZED_GROUPER"
@@ -31,6 +33,10 @@ def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: 
         _, partition_weights = get_subgraph_op_num_weight_sum_dict(comp_graph, partition_dict)
         # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
         operator_device_mapping = map_subgraph_to_device(partition_dict, device_topo.getDeviceIDs(), device_computing_cost_dict, partition_weights)
+
+    elif placement_type == PlacementGenerator.RANDOM.value:
+        operator_device_mapping = get_random_device_placement(comp_graph, device_topo, M)
+        edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
 
     elif placement_type == PlacementGenerator.OPTIMIZED.value:
         operator_device_mapping = get_optimize_placement(comp_graph, device_topo, M)
