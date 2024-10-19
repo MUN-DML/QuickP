@@ -322,12 +322,6 @@ class CompGraph(DiGraph):
         min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
         return min_cut_size <= 1
 
-    def is_all_edge_mergable(self):
-        for source, target in self.edges():
-            if not self.is_edge_mergable(source, target):
-                return False
-        return True
-
     def is_multi_path(self, source, target):
         if not self.has_edge(source, target):
             raise ValueError(f"Edge {source}, {target} does not exist")
@@ -345,16 +339,8 @@ class CompGraph(DiGraph):
         else:
             return None
 
-    def create_subgraph_of_multipath_components(self):
-        all_node_set = set()
-        for source, target in self.edges:
-            local_node_set = self.get_multipath_component_node_set_by_edge(source, target)
-            if local_node_set:
-                all_node_set.update(local_node_set)
-        return self.subgraph(all_node_set)
-
     def visualize_mp_subgraph_vs_original_graph(self):
-        subgraph = self.create_subgraph_of_multipath_components()
+        subgraph = self.create_subgraph_of_dual_path_components()
         red_nodes = set(subgraph.nodes)
         blue_nodes = set(self.nodes) - red_nodes
         # Create the layout for the nodes

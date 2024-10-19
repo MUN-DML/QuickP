@@ -65,23 +65,9 @@ def test_edge_selection():
     for edge in sub_g.edges(data=True):
         print(edge)
 
-def visualize_combined_wcc():
-    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
-    comp_graph.visualize_multipath_component_in_wcc()
-
 def visualize_graph_comparison():
     deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
     comp_graph.visualize_mp_subgraph_vs_original_graph()
-
-def test_mergeable_conversion():
-    G4 = CompGraph()
-    G4.add_edges_from([("1", "2"), ("2", "3"), ("1", "3"), ("2", "4"), ("6", "1"), ("4", "5"), ("5", "3")])
-    for node in G4.nodes():
-        G4.set_node_computing_cost_map(node, {'d1': 0})
-        G4.setMemorySize(node, 50)
-    G4.visualize_multipath_component_in_wcc()
-    G4.convert_to_mergable_graph()
-    print(G4.edges)
 
 def find_cycle():
     G = nx.DiGraph([(0, 1), (1, 2), (2, 0)])
@@ -94,6 +80,4 @@ test_sub_graph()
 test_edge_selection()
 
 find_cycle()
-# test_mergeable_conversion()
 visualize_graph_comparison()
-visualize_combined_wcc()
