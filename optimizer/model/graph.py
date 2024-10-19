@@ -364,7 +364,7 @@ class CompGraph(DiGraph):
             source, destination = edge
             # the source only has one outgoing edge and communication cost if on different device is higher than
             # and graph.in_degree(destination) == 1 will minimize the performance loss
-            if self.out_degree(source) == 1 and self.in_degree(destination):
+            if self.out_degree(source) == 1 and self.in_degree(destination) == 1:
                 # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
                 eligible_edges.append((source, destination))
         return self.edge_subgraph(eligible_edges)
@@ -384,7 +384,8 @@ class CompGraph(DiGraph):
 
         # create attributes for the new node
         random_node_cost_dict = self.getCompCostMapByOp(list(ops_to_be_merged)[0])
-        new_computing_cost = sum(fuckcomputing_cost_dict[op] for op in ops_to_be_merged)
+        random_device = self.getDeviceList()[0]
+        new_computing_cost = sum(self.getOperatorCompCostByDevice(op, random_device) for op in ops_to_be_merged)
         new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
         new_memory = sum(self.getMemorySize(op) for op in ops_to_be_merged)
 
@@ -416,6 +417,7 @@ class CompGraph(DiGraph):
         weakly_connected_components = list(nx.weakly_connected_components(subgraph))
         for wcc_set in weakly_connected_components:
             self.merge_wcc(wcc_set)
+        print("new node number: ", len(self.nodes))
 
 
     def __str__(self):
