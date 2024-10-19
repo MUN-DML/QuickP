@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 import random
-from collections import defaultdict
+from collections import defaultdict, deque
 from itertools import combinations
 from typing import Union
 
@@ -357,6 +357,65 @@ class CompGraph(DiGraph):
         # Display the graph
         plt.title("Subgraph with Selected Nodes in Red and Others in Blue")
         plt.show()
+
+    def get_wccs_of_straight_lines(self):
+        eligible_edges = []
+        for edge in self.edges:
+            source, destination = edge
+            # the source only has one outgoing edge and communication cost if on different device is higher than
+            # and graph.in_degree(destination) == 1 will minimize the performance loss
+            if self.out_degree(source) == 1 and self.in_degree(destination):
+                # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
+                eligible_edges.append((source, destination))
+        return self.edge_subgraph(eligible_edges)
+
+    def merge_wcc(self, ops_to_be_merged: set):
+        # double check if those nodes are connected, forming one weakly connected component
+        wcc = self.subgraph(ops_to_be_merged)
+        if not nx.is_weakly_connected(wcc):
+            raise ValueError(f"{ops_to_be_merged} are not connected")
+
+        internal_edges = deque(wcc.edges)
+
+        while len(internal_edges) > 0:
+            op1, op2 = internal_edges.popleft()
+            if not self.is_edge_mergable(op1, op2):
+                raise ValueError(f"{op1, op2} are not mergable")
+
+        # create attributes for the new node
+        random_node_cost_dict = self.getCompCostMapByOp(list(ops_to_be_merged)[0])
+        new_computing_cost = sum(fuckcomputing_cost_dict[op] for op in ops_to_be_merged)
+        new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
+        new_memory = sum(self.getMemorySize(op) for op in ops_to_be_merged)
+
+        # add the new node
+        new_id = hashlib.md5("&".join(ops_to_be_merged).encode()).hexdigest()
+        self.add_new_node(new_id, "merged", memory=new_memory, comp_cost_map=new_comp_cost_dict)
+
+        # restore the dependency relationship
+        # Redirect in-edges (predecessors of the nodes to merge)
+        for node in ops_to_be_merged:
+            for pred in self.predecessors(node):
+                if pred not in ops_to_be_merged:  # Avoid self-loops
+                    self.add_edge(pred, new_id, **self.get_edge_data(pred, node))
+
+        # Redirect out-edges (successors of the nodes to merge)
+        for node in ops_to_be_merged:
+            for succ in self.successors(node):
+                if succ not in ops_to_be_merged:  # Avoid self-loops
+                    self.add_edge(new_id, succ, **self.get_edge_data(node, succ))
+
+        # Remove the original nodes
+        self.remove_nodes_from(ops_to_be_merged)
+
+        # Double check if the graph after merge is still DAG
+        assert nx.is_directed_acyclic_graph(self)
+
+    def fuse_straight_lines(self):
+        subgraph = self.get_wccs_of_straight_lines()
+        weakly_connected_components = list(nx.weakly_connected_components(subgraph))
+        for wcc_set in weakly_connected_components:
+            self.merge_wcc(wcc_set)
 
 
     def __str__(self):
