@@ -16,7 +16,7 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
     M = get_proper_M(graph_init["model_type"])
     # Partition the computation graph
     operator_device_mapping, edge_cut_list, edge_cut_weight_sum = (
-        get_placement_info("METIS", comp_graph, deviceTopo, M))
+        get_placement_info("RANDOM", comp_graph, deviceTopo, M))
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
@@ -26,14 +26,14 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
     current_strategy = {"placement": operator_device_mapping, "latency": init_latency}
 
 
-    for i in range(0, 100):
+    for i in range(0, 500):
         random_node = random.choice(comp_graph.getOperatorIDs())
         random_device = random.choice(deviceTopo.getDeviceIDs())
         new_placement = copy.deepcopy(current_strategy["placement"])
         new_placement[random_node] = random_device
 
         # Swap the two nodes using multiple assignment
-        new_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list)
+        new_latency = evaluate_mcmc(comp_graph, deviceTopo, new_placement, edge_cut_list)
         if new_latency < current_strategy["latency"]:
             current_strategy["placement"] = new_placement
             current_strategy["latency"] = new_latency
