@@ -213,19 +213,7 @@ class CompGraph(DiGraph):
     def set_colocation_group(self, node_id, colocation_group):
         if node_id not in self.nodes:
             raise ValueError("node {0} does not exist".format(node_id))
-        self.nodes[node_id]["colocation_group"] = [colocation_group]
-
-    def update_colocation_group(self, node_id, colocation_group):
-        if node_id not in self.nodes:
-            raise ValueError("node {0} does not exist".format(node_id))
-        # for not labelled node
-        if "colocation_group" not in self.nodes[node_id]:
-            self.nodes[node_id]["colocation_group"] = [colocation_group]
-        # for already labelled node
-        elif isinstance(self.get_colocation_group(node_id), list) and len(self.get_colocation_group(node_id)) >= 1:
-            self.nodes[node_id]["colocation_group"].append(colocation_group)
-        else:
-            raise ValueError("colocation_group is not a list or len == 0")
+        self.nodes[node_id]["colocation_group"] = colocation_group
 
     def create_colocation_group_to_ops_map(self) -> dict[any, list[str]]:
         """Generate a dict that maps a colocation group to its op id list."""
@@ -233,18 +221,56 @@ class CompGraph(DiGraph):
 
         for op_id, op_data in self.nodes(data=True):
             # Check if the node has a 'colocation_group' attribute
-            group_list = op_data.get('colocation_group')
+            group_id = op_data.get('colocation_group')
             # every node should have colocation group
-            if group_list is None or not group_list:
-                continue
-            if len(group_list) > 1:
-                # this function should only be called after the group merge
-                raise ValueError(f'colocation group {op_id} has multiple colocation_groups')
-            group_id = group_list[0]
-            colocation_group_map[group_id].append(op_id)
+            if group_id:
+                colocation_group_map[group_id].append(op_id)
         # {'':list(op_graph.nodes)[0:40], '1': list(op_graph.nodes)[41:80], '2': list(op_graph.nodes)[80:121]}
         # {'':list(op_graph.nodes)[0:600], '1': list(op_graph.nodes)[601:1200], '2': list(op_graph.nodes)[1201:1600]}
         return dict(colocation_group_map)
+
+    def create_op_group_id_mapping(self):
+        op_group_map = {}
+
+        for op_id, op_data in self.nodes(data=True):
+            # Check if the node has a 'colocation_group' attribute
+            group_id = op_data.get('colocation_group')
+            # every node should have colocation group
+            if group_id:
+                op_group_map[group_id] = op_id
+
+        return op_group_map
+
+    def get_dual_path_component_nodes_by_edge(self, source, target):
+        if self.is_multi_path(source, target):
+            # it will return a 2D list
+            all_paths = list(nx.node_disjoint_paths(self, source, target))
+            if len(all_paths) > 2:
+                min_len_list = min(all_paths, key=len)
+                # the list with the lowest
+                assert min_len_list == [source, target]
+                max_len_list = max(all_paths, key=len)
+                all_paths = [[min_len_list, max_len_list]]
+            flattened_set = set([element for sublist in all_paths for element in sublist])
+            return flattened_set
+        else:
+            return None
+
+    def create_subgraph_of_dual_path_components(self):
+        all_node_set = set()
+        for source, target in self.edges:
+            local_node_set = self.get_dual_path_component_nodes_by_edge(source, target)
+            all_node_set.update(local_node_set or [])
+        return self.subgraph(all_node_set)
+
+    def label_colo_for__dual_path_wcc(self):
+        subgraph = self.create_subgraph_of_dual_path_components()
+        wcc_node_sets = list(nx.weakly_connected_components(subgraph))
+        for set in wcc_node_sets:
+            new_id = hashlib.md5("&".join(set).encode()).hexdigest()
+            for node in set:
+
+
 
     def getAllOperators(self):
         return list(self.nodes(data=True))
@@ -345,66 +371,6 @@ class CompGraph(DiGraph):
         # Display the graph
         plt.title("Subgraph with Selected Nodes in Red and Others in Blue")
         plt.show()
-
-    def visualize_multipath_component_in_wcc(self):
-        subgraph = self.create_subgraph_of_multipath_components()
-        for wcc in nx.weakly_connected_components(subgraph):
-            wcc_subgraph = self.subgraph(wcc)
-            print("wcc node number", len(wcc), )
-            visualize_graph(wcc_subgraph, show_edge_labels=False, show_node_labels=False)
-
-    def convert_to_mergable_graph(self):
-
-        def merge_multipath_wcc(ops_to_be_merged: set):
-            wcc = self.subgraph(ops_to_be_merged)
-            if not nx.is_weakly_connected(wcc):
-                raise ValueError(f"{ops_to_be_merged} are not connected")
-            # create attributes for the new node
-            random_node_cost_dict = self.getCompCostMapByOp(list(ops_to_be_merged)[0])
-            new_computing_cost = sum(computing_cost_dict[op] for op in ops_to_be_merged)
-            new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
-            new_memory = sum(self.getMemorySize(op) for op in ops_to_be_merged)
-
-            # add the new node
-            new_id = hashlib.md5("&".join(ops_to_be_merged).encode()).hexdigest()
-            self.add_new_node(new_id, "merged",
-                                         memory=new_memory, comp_cost_map=new_comp_cost_dict)
-
-            # restore the dependency relationship
-            # Redirect in-edges (predecessors of the nodes to merge)
-            for node in ops_to_be_merged:
-                for pred in self.predecessors(node):
-                    if pred not in ops_to_be_merged:  # Avoid self-loops
-                        self.add_edge(pred, new_id, **self.get_edge_data(pred, node))
-
-            # Redirect out-edges (successors of the nodes to merge)
-            for node in ops_to_be_merged:
-                for succ in self.successors(node):
-                    if succ not in ops_to_be_merged:  # Avoid self-loops
-                        self.add_edge(new_id, succ, **self.get_edge_data(node, succ))
-
-            # Remove the original nodes
-            self.remove_nodes_from(ops_to_be_merged)
-
-            print(ops_to_be_merged, "get merged into ", new_id)
-
-            if nx.is_directed_acyclic_graph(self):
-                print("no cycle detect")
-                self.save_to_file("graph_without_cycle.json")
-
-            # Double check if the graph after merge is still DAG
-            if not nx.is_directed_acyclic_graph(self):
-                cycle = nx.find_cycle(self, orientation='original')
-                print(cycle)
-                self.save_to_file("graph_with_cycle.json")
-                raise ValueError("Cycle detected")
-
-        subgraph = self.create_subgraph_of_multipath_components()
-        computing_cost_dict = self.getOpCompCostMapByDevice(self.getDeviceList()[0])
-        wcc_node_sets = list(nx.weakly_connected_components(subgraph))
-        for wcc_node_set in wcc_node_sets:
-            merge_multipath_wcc(wcc_node_set)
-        assert self.is_all_edge_mergable()
 
 
     def __str__(self):
