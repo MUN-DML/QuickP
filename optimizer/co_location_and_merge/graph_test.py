@@ -84,10 +84,4 @@ def merge_edge():
     print(G4.edges(data=True))
     print(G4.nodes(data=True))
 
-test_has_single_disjoint_path()
-test_node_merge()
-test_sub_graph()
-test_edge_selection()
-
-find_cycle()
-visualize_graph_comparison()
+merge_edge()

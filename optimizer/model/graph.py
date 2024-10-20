@@ -369,7 +369,7 @@ class CompGraph(DiGraph):
                 eligible_edges.append((source, destination))
         return self.edge_subgraph(eligible_edges)
 
-    def merge_edge(self, u, v):
+    def merge_edge(self, u, v) -> tuple[set, set]:
         """
         Merges node v into node u.
         All incoming edges to v will now point to u.
@@ -377,6 +377,10 @@ class CompGraph(DiGraph):
         """
         if not self.is_edge_mergable(u, v):
             return
+
+        # record newly recreated or deleted node
+        new_edges = set()
+        deleted_edges = set()
 
         # create attributes for the new node
         random_node_cost_dict = self.getCompCostMapByOp(u)
@@ -387,17 +391,43 @@ class CompGraph(DiGraph):
         # Add new edges that redirect connections to/from v to u
         for pred in list(self.predecessors(v)):  # Incoming edges to v
             if pred != u:  # Avoid self-loops (u -> u)
-                self.add_edge(pred, u)
+                self.add_edge(pred, u, **self.get_edge_data(pred, v))
+                new_edges.add((pred, u))
 
         for succ in list(self.successors(v)):  # Outgoing edges from v
             if succ != u:  # Avoid self-loops (u -> u)
-                self.add_edge(u, succ)
+                self.add_edge(u, succ, **self.get_edge_data(v, succ))
+                new_edges.add((u, succ))
 
         self.setMemorySize(u, new_memory)
         self.set_node_computing_cost_map(u, new_comp_cost_dict)
 
+        deleted_edges = set(self.out_edges(v)) | set(self.in_edges(v))
+
         # Now, remove node v from the graph
         self.remove_node(v)
+
+        print(f"{u, v} get merged, create edges {new_edges}, deleted edges {deleted_edges}")
+
+        return new_edges, deleted_edges
+
+
+    def traverse_and_merge_empty(self):
+        # set is implemented by hashtable, fast deletion and adding
+        edges_to_process = set(self.edges())
+        while edges_to_process:
+            u, v = edges_to_process.pop()
+            random_device = self.getDeviceList()[0]
+            # Check if the edge is marked with the attribute 'ismerge'
+            if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0):
+
+                # Merge nodes u and v, by default merge v into u
+                # This function only merge mergable edge
+                new_edges, deleted_edges = self.merge_edge(u, v)
+                edges_to_process -= deleted_edges
+                edges_to_process |= new_edges
+
+        assert nx.is_directed_acyclic_graph(self)
 
     def merge_wcc(self, ops_to_be_merged: set):
         # double check if those nodes are connected, forming one weakly connected component
