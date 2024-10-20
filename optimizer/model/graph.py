@@ -407,7 +407,7 @@ class CompGraph(DiGraph):
         # Now, remove node v from the graph
         self.remove_node(v)
 
-        print(f"{u, v} get merged, create edges {new_edges}, deleted edges {deleted_edges}")
+        # print(f"{u, v} get merged, create edges {new_edges}, deleted edges {deleted_edges}")
 
         return new_edges, deleted_edges
 
