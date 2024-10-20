@@ -369,6 +369,36 @@ class CompGraph(DiGraph):
                 eligible_edges.append((source, destination))
         return self.edge_subgraph(eligible_edges)
 
+    def merge_edge(self, u, v):
+        """
+        Merges node v into node u.
+        All incoming edges to v will now point to u.
+        All outgoing edges from v will now originate from u.
+        """
+        if not self.is_edge_mergable(u, v):
+            return
+
+        # create attributes for the new node
+        random_node_cost_dict = self.getCompCostMapByOp(u)
+        random_device = self.getDeviceList()[0]
+        new_computing_cost = sum(self.getOperatorCompCostByDevice(op, random_device) for op in [u, v])
+        new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
+        new_memory = sum(self.getMemorySize(op) for op in [u, v])
+        # Add new edges that redirect connections to/from v to u
+        for pred in list(self.predecessors(v)):  # Incoming edges to v
+            if pred != u:  # Avoid self-loops (u -> u)
+                self.add_edge(pred, u)
+
+        for succ in list(self.successors(v)):  # Outgoing edges from v
+            if succ != u:  # Avoid self-loops (u -> u)
+                self.add_edge(u, succ)
+
+        self.setMemorySize(u, new_memory)
+        self.set_node_computing_cost_map(u, new_comp_cost_dict)
+
+        # Now, remove node v from the graph
+        self.remove_node(v)
+
     def merge_wcc(self, ops_to_be_merged: set):
         # double check if those nodes are connected, forming one weakly connected component
         wcc = self.subgraph(ops_to_be_merged)
