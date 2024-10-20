@@ -369,7 +369,7 @@ class CompGraph(DiGraph):
                 eligible_edges.append((source, destination))
         return self.edge_subgraph(eligible_edges)
 
-    def merge_edge(self, u, v) -> tuple[set, set]:
+    def merge_edge(self, u, v) -> tuple[set, set] | None:
         """
         Merges node v into node u.
         All incoming edges to v will now point to u.
@@ -423,9 +423,11 @@ class CompGraph(DiGraph):
 
                 # Merge nodes u and v, by default merge v into u
                 # This function only merge mergable edge
-                new_edges, deleted_edges = self.merge_edge(u, v)
-                edges_to_process -= deleted_edges
-                edges_to_process |= new_edges
+                data = self.merge_edge(u, v)
+                if data is not None:
+                    new_edges, deleted_edges = data
+                    edges_to_process -= deleted_edges
+                    edges_to_process |= new_edges
 
         assert nx.is_directed_acyclic_graph(self)
 

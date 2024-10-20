@@ -80,8 +80,9 @@ def merge_edge():
     for node in G4.nodes():
         G4.set_node_computing_cost_map(node, {'d1': 1})
         G4.setMemorySize(node, 50)
-    G4.merge_edge("1", "2")
+    s1, s2 = G4.merge_edge("1", "2")
     print(G4.edges(data=True))
     print(G4.nodes(data=True))
+    print(s1, s2)
 
 merge_edge()
