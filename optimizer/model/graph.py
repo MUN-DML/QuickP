@@ -393,16 +393,18 @@ class CompGraph(DiGraph):
             if pred != u:  # Avoid self-loops (u -> u)
                 self.add_edge(pred, u, **self.get_edge_data(pred, v))
                 new_edges.add((pred, u))
+                self.remove_edge(pred, v)
+                deleted_edges.add((pred, v))
 
         for succ in list(self.successors(v)):  # Outgoing edges from v
             if succ != u:  # Avoid self-loops (u -> u)
                 self.add_edge(u, succ, **self.get_edge_data(v, succ))
                 new_edges.add((u, succ))
+                self.remove_edge(v, succ)
+                deleted_edges.add((v, succ))
 
         self.setMemorySize(u, new_memory)
         self.set_node_computing_cost_map(u, new_comp_cost_dict)
-
-        deleted_edges = set(self.out_edges(v)) | set(self.in_edges(v))
 
         # Now, remove node v from the graph
         self.remove_node(v)
@@ -419,8 +421,12 @@ class CompGraph(DiGraph):
             u, v = edges_to_process.pop()
             random_device = self.getDeviceList()[0]
             # Check if the edge is marked with the attribute 'ismerge'
-            if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0):
-
+            # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
+            if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) :
+                if self.getOperatorCompCostByDevice(v, random_device) == 0 and self.getOperatorCompCostByDevice(u, random_device) > 0 and self.in_degree(v) > 1:
+                    continue
+                if self.getOperatorCompCostByDevice(u, random_device) == 0 and self.getOperatorCompCostByDevice(v, random_device) > 0 and self.out_degree(u) > 1:
+                    continue
                 # Merge nodes u and v, by default merge v into u
                 # This function only merge mergable edge
                 data = self.merge_edge(u, v)
