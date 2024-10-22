@@ -162,6 +162,7 @@ def is_worth_merging(source, target, computation_graph: CompGraph, device_topo, 
 
 
 def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
+    data = None
     fast_link = device_topo.get_fastest_link()
     # set is implemented by hashtable, fast deletion and adding
     edges_to_process = set(comp_graph.edges())
