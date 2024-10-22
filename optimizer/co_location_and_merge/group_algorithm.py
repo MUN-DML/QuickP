@@ -157,3 +157,39 @@ def is_worth_merging(source, target, computation_graph: CompGraph, device_topo, 
         return True
     else:
         return False
+
+'traverse and merge function'
+
+
+def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
+    fast_link = device_topo.get_fastest_link()
+    # set is implemented by hashtable, fast deletion and adding
+    edges_to_process = set(comp_graph.edges())
+    while edges_to_process:
+        u, v = edges_to_process.pop()
+        random_device = comp_graph.getDeviceList()[0]
+        communication_cost = comp_graph.getEdgeTensorSize(u, v) * device_topo.calUnitCommCostInUS(
+            fast_link[0], fast_link[1])
+        # Check if the edge is marked with the attribute 'ismerge'
+        # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
+        if (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 or comp_graph.getOperatorCompCostByDevice(v,random_device) == 0):
+            if (comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(u,random_device) > 0 and comp_graph.in_degree(v) > 1):
+                continue
+            if (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(v,random_device) > 0 and comp_graph.out_degree(u) > 1):
+                continue
+            # Merge nodes u and v, by default merge v into u
+            # This function only merge mergable edge
+            data = comp_graph.merge_edge(u, v)
+        elif comp_graph.getOperatorCompCostByDevice(u, random_device) + communication_cost >= sum(
+                comp_graph.getOperatorCompCostByDevice(pre, random_device) for pre in comp_graph.predecessors(v)):
+            data = comp_graph.merge_edge(u, v)
+        elif comp_graph.getOperatorCompCostByDevice(v, random_device) + communication_cost >= sum(
+                comp_graph.getOperatorCompCostByDevice(succ, random_device) for succ in comp_graph.successors(u)):
+            data = comp_graph.merge_edge(u, v)
+
+        if data is not None:
+            new_edges, deleted_edges = data
+            edges_to_process -= deleted_edges
+            edges_to_process |= new_edges
+
+    assert nx.is_directed_acyclic_graph(comp_graph)
