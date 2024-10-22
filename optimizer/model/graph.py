@@ -375,9 +375,6 @@ class CompGraph(DiGraph):
         All incoming edges to v will now point to u.
         All outgoing edges from v will now originate from u.
         """
-        if not self.is_edge_mergable(u, v):
-            return
-
         # record newly recreated or deleted node
         new_edges = set()
         deleted_edges = set()
@@ -419,6 +416,8 @@ class CompGraph(DiGraph):
         edges_to_process = set(self.edges())
         while edges_to_process:
             u, v = edges_to_process.pop()
+            if not self.is_edge_mergable(u, v):
+                continue
             random_device = self.getDeviceList()[0]
             # Check if the edge is marked with the attribute 'ismerge'
             # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):

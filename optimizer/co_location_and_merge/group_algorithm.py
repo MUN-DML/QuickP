@@ -168,6 +168,8 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
     edges_to_process = set(comp_graph.edges())
     while edges_to_process:
         u, v = edges_to_process.pop()
+        if not comp_graph.is_edge_mergable(u, v):
+            continue
         random_device = comp_graph.getDeviceList()[0]
         communication_cost = comp_graph.getEdgeTensorSize(u, v) * device_topo.calUnitCommCostInUS(
             fast_link[0], fast_link[1])
