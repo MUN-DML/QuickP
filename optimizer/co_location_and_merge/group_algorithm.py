@@ -169,6 +169,7 @@ def traverse_merge_loop(comp_graph: CompGraph, device_topo: DeviceGraph):
 
 def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
     any_data_update = False
+    random_device = comp_graph.getDeviceList()[0]
     fast_link = device_topo.get_fastest_link()
     # set is implemented by hashtable, fast deletion and adding
     edges_to_process = set(comp_graph.edges())
@@ -176,7 +177,6 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
         u, v = edges_to_process.pop()
         if not comp_graph.is_edge_mergable(u, v):
             continue
-        random_device = comp_graph.getDeviceList()[0]
         # Check if the edge is marked with the attribute 'ismerge'
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
@@ -211,9 +211,32 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
     return any_data_update
 
 def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph):
+    all_node_set = set()
     for edge in comp_graph.edges():
         if not comp_graph.is_edge_mergable(edge[0], edge[1]) and len(nx.minimum_edge_cut(comp_graph, edge[0], edge[1], flow_func=shortest_augmenting_path)) == 2:
             all_paths = list(nx.node_disjoint_paths(comp_graph, edge[0], edge[1]))
+            flattened_set = set([element for sublist in all_paths for element in sublist])
+            all_node_set.update(flattened_set or [])
+
+    fast_link = device_topo.get_fastest_link()
+    random_device = comp_graph.getDeviceList()[0]
+    for node in list(nx.topological_sort(comp_graph)):
+        if comp_graph.in_degree(node) <= 1:
+            continue
+        incoming_edges = list(comp_graph.in_edges(node))
+
+        # Define a function to calculate the total cost (computing cost + communication cost) for an edge
+        def edge_cost(edge):
+            u, v = edge  # u is the source, v is the target (node)
+            comp_cost = comp_graph.getOperatorCompCostByDevice(u, random_device)
+            comm_cost = comp_graph.getEdgeTensorSize(u, v) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
+            return comp_cost + comm_cost
+
+        # Use max() to find the edge with the largest total cost
+        max_cost_edge = max(incoming_edges, key=edge_cost)
+        comp_graph.set_colocation_group()
+
+
 
 
 
