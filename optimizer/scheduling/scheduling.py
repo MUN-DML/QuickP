@@ -37,7 +37,9 @@ def add_topo_order_constraints_with_grouper(model, graph, x, device_ids, finish,
 
 def add_topo_order_constraint(model, graph, x, device_ids, finish, start, M):
     # Iterate over topologically sorted nodes
-    for a, b in find_non_connected_pairs(graph):
+    non_reachable_pairs = find_non_connected_pairs(graph)
+    print('numero de op', len(non_reachable_pairs))
+    for a, b in non_reachable_pairs:
         # For each consecutive pair of operators, add a constraint for each device
         for device_id in device_ids:
             # Ensure the correct order for each potential device assignment

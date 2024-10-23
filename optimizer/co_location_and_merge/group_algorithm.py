@@ -200,3 +200,4 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
             edges_to_process |= new_edges
 
     assert nx.is_directed_acyclic_graph(comp_graph)
+    print("current op number", comp_graph.number_of_nodes())
