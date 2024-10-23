@@ -5,7 +5,7 @@ import networkx as nx
 from networkx.algorithms.flow import shortest_augmenting_path
 
 from optimizer.co_location_and_merge.grouper_util import create_eligible_edge_subgraph, label_group, analyze_group
-from optimizer.model.graph import CompGraph, DeviceGraph
+from optimizer.model.graph import CompGraph, DeviceGraph, visualize_graph
 
 
 def group_and_fuse_op_incrementally(comp_graph, deviceTopo):
@@ -216,8 +216,17 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
         if not comp_graph.is_edge_mergable(edge[0], edge[1]) and len(nx.minimum_edge_cut(comp_graph, edge[0], edge[1], flow_func=shortest_augmenting_path)) == 2:
             all_paths = list(nx.node_disjoint_paths(comp_graph, edge[0], edge[1]))
             flattened_set = set([element for sublist in all_paths for element in sublist])
-            all_node_set.update(flattened_set or [])
+            all_node_set.update(flattened_set)
+    subgraph = comp_graph.subgraph(all_node_set)
+    visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
+    wcc_node_sets = list(nx.weakly_connected_components(subgraph))
+    for node_set in wcc_node_sets:
+        new_id = hashlib.md5("&".join(node_set).encode()).hexdigest()
+        for node in node_set:
+            comp_graph.set_colocation_group(node, new_id)
 
+
+    '''
     fast_link = device_topo.get_fastest_link()
     random_device = comp_graph.getDeviceList()[0]
     for node in list(nx.topological_sort(comp_graph)):
@@ -235,7 +244,7 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
         # Use max() to find the edge with the largest total cost
         max_cost_edge = max(incoming_edges, key=edge_cost)
         comp_graph.set_colocation_group()
-
+    '''
 
 
 
