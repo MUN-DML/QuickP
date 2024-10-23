@@ -160,8 +160,14 @@ def is_worth_merging(source, target, computation_graph: CompGraph, device_topo, 
 
 'traverse and merge function'
 
+def traverse_merge_loop(comp_graph: CompGraph, device_topo: DeviceGraph):
+    while True:
+        any_update = traverse_and_merge(comp_graph, device_topo)
+        if not any_update:
+            break
 
 def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
+    any_data_update = False
     fast_link = device_topo.get_fastest_link()
     # set is implemented by hashtable, fast deletion and adding
     edges_to_process = set(comp_graph.edges())
@@ -170,8 +176,6 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
         if not comp_graph.is_edge_mergable(u, v):
             continue
         random_device = comp_graph.getDeviceList()[0]
-        communication_cost = comp_graph.getEdgeTensorSize(u, v) * device_topo.calUnitCommCostInUS(
-            fast_link[0], fast_link[1])
         # Check if the edge is marked with the attribute 'ismerge'
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
@@ -198,6 +202,9 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
             new_edges, deleted_edges = data
             edges_to_process -= deleted_edges
             edges_to_process |= new_edges
+            if not any_data_update:
+                any_data_update = True
 
     assert nx.is_directed_acyclic_graph(comp_graph)
     print("current op number", comp_graph.number_of_nodes())
+    return any_data_update

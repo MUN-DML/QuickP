@@ -44,7 +44,7 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
 if __name__ == '__main__':
     graph_init = {
         "number_of_devices": 6,
-        "model_type": TFModelEnum.SMALL,
+        "model_type": TFModelEnum.ALEXNET,
         "node_weight_function": NodeWeightFunction.AVE_COMP_COST,
         "edge_weight_function": EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,
         "weight_norm_function": WeightNormalizationFunction.MIN_MAX,
