@@ -2,6 +2,7 @@ import hashlib
 from collections import deque
 
 import networkx as nx
+from networkx.algorithms.flow import shortest_augmenting_path
 
 from optimizer.co_location_and_merge.grouper_util import create_eligible_edge_subgraph, label_group, analyze_group
 from optimizer.model.graph import CompGraph, DeviceGraph
@@ -208,3 +209,11 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
     assert nx.is_directed_acyclic_graph(comp_graph)
     print("current op number", comp_graph.number_of_nodes())
     return any_data_update
+
+def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph):
+    for edge in comp_graph.edges():
+        if not comp_graph.is_edge_mergable(edge[0], edge[1]) and len(nx.minimum_edge_cut(comp_graph, edge[0], edge[1], flow_func=shortest_augmenting_path)) == 2:
+            all_paths = list(nx.node_disjoint_paths(comp_graph, edge[0], edge[1]))
+
+
+
