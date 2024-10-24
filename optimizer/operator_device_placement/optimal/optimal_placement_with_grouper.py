@@ -27,6 +27,7 @@ def get_optimize_placement_with_grouper(comp_graph: CompGraph, deviceTopo, M) ->
 
     # get co-location info
     group_ops_mapping = comp_graph.create_colocation_group_to_ops_map()
+    op_group_map = comp_graph.create_op_group_id_mapping()
 
     # Define variables
     x = model.addVars(comp_graph.getOperatorIDs(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
@@ -76,12 +77,9 @@ def get_optimize_placement_with_grouper(comp_graph: CompGraph, deviceTopo, M) ->
 
         # no communication cost for ops on the same device
         source_op_ID, dest_op_ID = edge_id_tuple
-        if "colocation_group" in comp_graph.nodes[source_op_ID] and "colocation_group" in comp_graph.nodes[dest_op_ID]:
-            if comp_graph.get_colocation_group(source_op_ID) == comp_graph.get_colocation_group(dest_op_ID):
-                # Ensures the communication duration covers the communication cost.
-                model.addConstr(finish[source_op_ID] <= start[dest_op_ID],
-                                f"data_dependency_{source_op_ID}_{dest_op_ID}")
-                continue
+        if source_op_ID in op_group_map and dest_op_ID in op_group_map and op_group_map[source_op_ID] == op_group_map[dest_op_ID]:
+            model.addConstr(finish[source_op_ID] <= start[dest_op_ID], f"data_dependency_{source_op_ID}_{dest_op_ID}")
+            continue
 
         # Aggregate communication cost
         comm_cost_expr = quicksum(
