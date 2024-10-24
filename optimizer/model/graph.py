@@ -237,7 +237,7 @@ class CompGraph(DiGraph):
             group_id = op_data.get('colocation_group')
             # every node should have colocation group
             if group_id:
-                op_group_map[group_id] = op_id
+                op_group_map[op_id] = group_id
 
         return op_group_map
 

@@ -4,25 +4,34 @@ from enum import Enum
 import networkx as nx
 from gurobipy import Model, GRB
 
-from optimizer.co_location_and_merge.grouper_util import get_op_group_map
 from optimizer.model.graph import find_non_connected_pairs, CompGraph, is_not_connected
 from optimizer.scheduling.FIFO import FIFO_scheduling
 from optimizer.scheduling.multi_stage_list_schedule import three_stage_list_schedule
 from optimizer.scheduling.optimal import optimal_scheduling
-from optimizer.scheduling.near_optimal_scheduling_simple import near_optimal_scheduling
-from optimizer.scheduling.near_optimal_scheduling_with_sampling import near_optimal_scheduling_with_sampling
 from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_heteroG
 from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_cost
 
 
-def add_topo_order_constraints_with_grouper(model, graph, x, device_ids, finish, start, group_ops_mapping: dict, M):
+def add_topo_order_constraints_with_grouper(model, graph: CompGraph, x, device_ids, finish, start, group_ops_mapping: dict, M):
+    '''
+    print("fuck", group_ops_mapping)
+    group_start = model.addVars(group_ops_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+                          name="start")  # start[node_id] represent the starting time of this node
+    group_finish = model.addVars(group_ops_mapping.keys(), vtype=GRB.CONTINUOUS, lb=0.0,
+                           name="finish")  # finish[node_id] represent the finish time of this node
+    '''
     op_group_mapping = graph.create_op_group_id_mapping()
     topological_order_mapping = {node: index for index, node in enumerate(list(nx.topological_sort(graph)))}
     non_reachable_pairs = find_non_connected_pairs(graph)
-    ungrouped_non_reachable_pairs = [(a,b) for (a,b) in non_reachable_pairs if a not in op_group_mapping and b not in op_group_mapping]
+    ungrouped_non_reachable_pairs = [(a,b) for (a,b) in non_reachable_pairs if a not in op_group_mapping or b not in op_group_mapping]
     print('sisi', len(non_reachable_pairs), len(ungrouped_non_reachable_pairs))
+
     for group_id, group in group_ops_mapping.items():
         group = sorted(group, key=lambda node: topological_order_mapping[node])
+        '''
+        model.addConstr(group_start[group_id] == start[group[0]])
+        model.addConstr(group_finish[group_id] == finish[group[-1]])
+        '''
         for a, b in zip(group, group[1:]):
             model.addConstr(finish[a] <= start[b])
 
