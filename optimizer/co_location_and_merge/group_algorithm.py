@@ -353,7 +353,8 @@ def apply_co_location_2(comp_graph: CompGraph, device_topo: DeviceGraph):
                                                                                                 random_device)
     edge_set = set()
     for node, best_succ in best_successor.items():
-        edge_set.add((node, best_succ))
+        if comp_graph.out_degree(node) > 1:
+            edge_set.add((node, best_succ))
     print("number of edges", len(edge_set))
     subgraph = comp_graph.edge_subgraph(edge_set)
     visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
