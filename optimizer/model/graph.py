@@ -616,6 +616,10 @@ class DeviceGraph(DiGraph):
         fastest_edge = max(self.edges.data(), key=lambda edge: edge[2].get('bandwidth', 0))
         return fastest_edge
 
+    def get_slowest_link(self) -> tuple[str, str, dict]:
+        fastest_edge = min(self.edges.data(), key=lambda edge: edge[2].get('bandwidth', 0))
+        return fastest_edge
+
     def __str__(self):
         return ""
 

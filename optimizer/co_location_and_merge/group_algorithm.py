@@ -237,9 +237,9 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
             comp_graph.set_colocation_group(node, new_id)
 
 
-def apply_co_location(comp_graph, device_topo):
+def apply_co_location(comp_graph, device_topo: DeviceGraph):
     random_device = comp_graph.getDeviceList()[0]
-    fast_link = device_topo.get_fastest_link()
+    slow_link = device_topo.get_slowest_link()
     global_rank = {}
     best_successor = {}  # To store the best successor of each node for path reconstruction
     topo_sorted = list(nx.topological_sort(comp_graph))
@@ -264,7 +264,7 @@ def apply_co_location(comp_graph, device_topo):
             '''
             best_successor[current_node], max_suc_total_cost = max(
                 ((succ_node, global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node, succ_node)
-                  * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])) for succ_node in successors),
+                  * device_topo.calUnitCommCostInUS(slow_link[0], slow_link[1])) for succ_node in successors),
                 key=lambda x: x[1]
             )
         else:  # If there are no predecessors, set the max computing cost to 0
