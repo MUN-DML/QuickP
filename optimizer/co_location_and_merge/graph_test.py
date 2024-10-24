@@ -4,7 +4,8 @@ from networkx.algorithms.flow import shortest_augmenting_path, edmonds_karp
 from networkx.classes import subgraph
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from optimizer.co_location_and_merge.group_algorithm import merge_node_pair, get_subgraph_of_eligible_edges
+from optimizer.co_location_and_merge.group_algorithm import merge_node_pair, get_subgraph_of_eligible_edges, \
+    apply_co_location
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.model.graph import CompGraph
 
@@ -85,4 +86,9 @@ def merge_edge():
     print(G4.nodes(data=True))
     print(s1, s2)
 
-merge_edge()
+def co_lo_con():
+    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
+    r = apply_co_location(comp_graph, deviceTopo)
+    print(r)
+
+co_lo_con()

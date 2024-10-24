@@ -285,8 +285,12 @@ def apply_co_location(comp_graph, device_topo: DeviceGraph):
         longest_path.append(current_node)
         current_node = best_successor[current_node]
 
-    # The path is constructed in reverse order, so reverse it to get the correct path
-    longest_path.reverse()
+    for node in longest_path:
+        new_id = hashlib.md5("&".join(node).encode()).hexdigest()
+        comp_graph.set_colocation_group(node, new_id)
+
+
+    return longest_path
 
     '''
     fast_link = device_topo.get_fastest_link()
