@@ -79,9 +79,11 @@ def graph_coarsen(computing_graph: CompGraph, sub_graph_of_wcc: CompGraph, compu
     for wcc_set in weakly_connected_components:
         merge_operators(wcc_set)
 
+
 '''
 The below is the latest algorithm
 '''
+
 
 def get_subgraph_of_eligible_edges(graph: CompGraph, device_topo: DeviceGraph, computing_cost_dict):
     fast_link = device_topo.get_fastest_link()
@@ -115,31 +117,31 @@ def coarsen_weakly_connected_component(wcc_set: set, computation_graph: CompGrap
             merge_node_pair(source, target, computation_graph, computing_cost_dict)
 
 
-def merge_node_pair(u ,v, computation_graph: CompGraph, computing_cost_dict):
+def merge_node_pair(u, v, computation_graph: CompGraph, computing_cost_dict):
     if not computation_graph.is_edge_mergable(u, v):
         return
     # create attributes for the new node
     random_node_cost_dict = computation_graph.getCompCostMapByOp(u)
-    new_computing_cost = sum(computing_cost_dict[op] for op in [u,v])
+    new_computing_cost = sum(computing_cost_dict[op] for op in [u, v])
     new_comp_cost_dict = {op: new_computing_cost for op in random_node_cost_dict.keys()}
-    new_memory = sum(computation_graph.getMemorySize(op) for op in [u,v])
+    new_memory = sum(computation_graph.getMemorySize(op) for op in [u, v])
     # new tensorsize should also be created
 
     # add the new node
-    new_id = hashlib.md5("&".join([u,v]).encode()).hexdigest()
+    new_id = hashlib.md5("&".join([u, v]).encode()).hexdigest()
     computation_graph.add_new_node(new_id, "merged",
-                                     memory=new_memory, comp_cost_map=new_comp_cost_dict)
+                                   memory=new_memory, comp_cost_map=new_comp_cost_dict)
 
     # Redirect in-edges (predecessors of the nodes to merge)
-    for node in [u ,v]:
+    for node in [u, v]:
         for pred in computation_graph.predecessors(node):
-            if pred not in [u,v]:  # Avoid self-loops
+            if pred not in [u, v]:  # Avoid self-loops
                 computation_graph.add_edge(pred, new_id, **computation_graph.get_edge_data(pred, node))
 
     # Redirect out-edges (successors of the nodes to merge)
-    for node in [u ,v]:
+    for node in [u, v]:
         for succ in computation_graph.successors(node):
-            if succ not in [u,v]:  # Avoid self-loops
+            if succ not in [u, v]:  # Avoid self-loops
                 computation_graph.add_edge(new_id, succ, **computation_graph.get_edge_data(node, succ))
 
     # Remove the original nodes
@@ -159,13 +161,16 @@ def is_worth_merging(source, target, computation_graph: CompGraph, device_topo, 
     else:
         return False
 
+
 'traverse and merge function'
+
 
 def traverse_merge_loop(comp_graph: CompGraph, device_topo: DeviceGraph):
     while True:
         any_update = traverse_and_merge(comp_graph, device_topo)
         if not any_update:
             break
+
 
 def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
     any_data_update = False
@@ -182,19 +187,25 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
             data = comp_graph.merge_edge(u, v)
         elif (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 or comp_graph.getOperatorCompCostByDevice(v,
-                                                                                                                    random_device) == 0):
-            if comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(u, random_device) > 0 and comp_graph.in_degree(v) > 1:
+                                                                                                                      random_device) == 0):
+            if comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(
+                    u, random_device) > 0 and comp_graph.in_degree(v) > 1:
                 continue
-            if comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(v, random_device) > 0 and comp_graph.out_degree(u) > 1:
+            if comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(
+                    v, random_device) > 0 and comp_graph.out_degree(u) > 1:
                 continue
             # Merge nodes u and v, by default merge v into u
             # This function only merge mergable edge
             data = comp_graph.merge_edge(u, v)
-        elif min(comp_graph.getOperatorCompCostByDevice(pre, random_device) + comp_graph.getEdgeTensorSize(pre, v) * device_topo.calUnitCommCostInUS(
-            fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(v)) >= sum(comp_graph.getOperatorCompCostByDevice(pre, random_device) for pre in comp_graph.predecessors(v)):
+        elif min(comp_graph.getOperatorCompCostByDevice(pre, random_device) + comp_graph.getEdgeTensorSize(pre,
+                                                                                                           v) * device_topo.calUnitCommCostInUS(
+            fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(v)) >= sum(
+            comp_graph.getOperatorCompCostByDevice(pre, random_device) for pre in comp_graph.predecessors(v)):
             data = comp_graph.merge_edge(u, v)
-        elif min(comp_graph.getOperatorCompCostByDevice(succ, random_device) + comp_graph.getEdgeTensorSize(u, succ) * device_topo.calUnitCommCostInUS(
-            fast_link[0], fast_link[1]) for succ in comp_graph.successors(u)) >= sum(comp_graph.getOperatorCompCostByDevice(succ, random_device) for succ in comp_graph.successors(u)):
+        elif min(comp_graph.getOperatorCompCostByDevice(succ, random_device) + comp_graph.getEdgeTensorSize(u,
+                                                                                                            succ) * device_topo.calUnitCommCostInUS(
+            fast_link[0], fast_link[1]) for succ in comp_graph.successors(u)) >= sum(
+            comp_graph.getOperatorCompCostByDevice(succ, random_device) for succ in comp_graph.successors(u)):
             data = comp_graph.merge_edge(u, v)
         else:
             data = None
@@ -210,10 +221,12 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
     print("current op number", comp_graph.number_of_nodes())
     return any_data_update
 
+
 def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph):
     all_node_set = set()
     for edge in comp_graph.edges():
-        if not comp_graph.is_edge_mergable(edge[0], edge[1]) and len(nx.minimum_edge_cut(comp_graph, edge[0], edge[1], flow_func=shortest_augmenting_path)) == 2:
+        if not comp_graph.is_edge_mergable(edge[0], edge[1]) and len(
+                nx.minimum_edge_cut(comp_graph, edge[0], edge[1], flow_func=shortest_augmenting_path)) == 2:
             all_paths = list(nx.node_disjoint_paths(comp_graph, edge[0], edge[1]))
             flattened_set = set([element for sublist in all_paths for element in sublist])
             all_node_set.update(flattened_set)
@@ -225,6 +238,57 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
         for node in node_set:
             comp_graph.set_colocation_group(node, new_id)
 
+
+def apply_co_location(comp_graph, device_topo):
+    random_device = comp_graph.getDeviceList()[0]
+    fast_link = device_topo.get_fastest_link()
+    global_rank = {}
+    best_successor = {}  # To store the best successor of each node for path reconstruction
+    topo_sorted = list(nx.topological_sort(comp_graph))
+
+    for current_node in reversed(topo_sorted):
+        # Check if the current node has any predecessors
+        successors = list(comp_graph.successors(current_node))
+
+        if successors:  # If there are predecessors, compute the max computing cost
+            '''
+            max_suc_total_cost = max(
+                global_rank[succ_node] +
+                comp_graph.getEdgeTensorSize(current_node,succ_node)
+                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ_node in successors
+            )
+            # Store the best successor for path reconstruction using max()
+            best_successor[current_node] = max(
+                successors, key=lambda succ_node: global_rank[succ_node] +
+                comp_graph.getEdgeTensorSize(current_node,succ_node)
+                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
+            )
+            '''
+            best_successor[current_node], max_suc_total_cost = max(
+                ((succ_node, global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node,succ_node)
+                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])) for succ_node in successors),
+                key=lambda x: x[1]
+            )
+        else:  # If there are no predecessors, set the max computing cost to 0
+            max_suc_total_cost = 0
+            best_successor[current_node] = None  # No successor for sink nodes
+
+        # Calculate the global rank for the current node
+        global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
+                                                                                                random_device)
+
+    max_rank_node = max(global_rank, key=global_rank.get)
+
+    # Reconstruct the longest path using the best_successor dictionary
+    longest_path = []
+    current_node = max_rank_node
+
+    while current_node is not None:
+        longest_path.append(current_node)
+        current_node = best_successor[current_node]
+
+    # The path is constructed in reverse order, so reverse it to get the correct path
+    longest_path.reverse()
 
     '''
     fast_link = device_topo.get_fastest_link()
@@ -245,7 +309,3 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
         max_cost_edge = max(incoming_edges, key=edge_cost)
         comp_graph.set_colocation_group()
     '''
-
-
-
-
