@@ -186,8 +186,7 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
             data = comp_graph.merge_edge(u, v)
-        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 or comp_graph.getOperatorCompCostByDevice(v,
-                                                                                                                      random_device) == 0):
+        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 or comp_graph.getOperatorCompCostByDevice(v,random_device) == 0):
             if comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(
                     u, random_device) > 0 and comp_graph.in_degree(v) > 1:
                 continue
@@ -197,10 +196,10 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
             # Merge nodes u and v, by default merge v into u
             # This function only merge mergable edge
             data = comp_graph.merge_edge(u, v)
-        elif (min(comp_graph.getOperatorCompCostByDevice(pre, random_device) + comp_graph.getEdgeTensorSize(pre, v) *
-                  device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(v)) >=
-              sum(comp_graph.getOperatorCompCostByDevice(pre, random_device) for pre in comp_graph.predecessors(v))):
-            data = comp_graph.merge_edge(u, v)
+        #elif (min(comp_graph.getOperatorCompCostByDevice(pre, random_device) + comp_graph.getEdgeTensorSize(pre, v) *
+                  #device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(v)) >=
+              #sum(comp_graph.getOperatorCompCostByDevice(pre, random_device) for pre in comp_graph.predecessors(v))):
+            #data = comp_graph.merge_edge(u, v)
         elif (min(comp_graph.getOperatorCompCostByDevice(succ, random_device) + comp_graph.getEdgeTensorSize(u, succ) *
                   device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(u)) >=
               sum(comp_graph.getOperatorCompCostByDevice(succ, random_device) for succ in comp_graph.successors(u))):
