@@ -285,8 +285,10 @@ def apply_co_location(comp_graph, device_topo: DeviceGraph):
         longest_path.append(current_node)
         current_node = best_successor[current_node]
 
+    print('fuck', longest_path)
+
+    new_id = hashlib.md5("&".join(longest_path).encode()).hexdigest()
     for node in longest_path:
-        new_id = hashlib.md5("&".join(node).encode()).hexdigest()
         comp_graph.set_colocation_group(node, new_id)
 
 
