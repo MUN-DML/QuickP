@@ -197,15 +197,13 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
             # Merge nodes u and v, by default merge v into u
             # This function only merge mergable edge
             data = comp_graph.merge_edge(u, v)
-        elif min(comp_graph.getOperatorCompCostByDevice(pre, random_device) + comp_graph.getEdgeTensorSize(pre,
-                                                                                                           v) * device_topo.calUnitCommCostInUS(
-            fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(v)) >= sum(
-            comp_graph.getOperatorCompCostByDevice(pre, random_device) for pre in comp_graph.predecessors(v)):
+        elif (min(comp_graph.getOperatorCompCostByDevice(pre, random_device) + comp_graph.getEdgeTensorSize(pre, v) *
+                  device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(v)) >=
+              sum(comp_graph.getOperatorCompCostByDevice(pre, random_device) for pre in comp_graph.predecessors(v))):
             data = comp_graph.merge_edge(u, v)
-        elif min(comp_graph.getOperatorCompCostByDevice(succ, random_device) + comp_graph.getEdgeTensorSize(u,
-                                                                                                            succ) * device_topo.calUnitCommCostInUS(
-            fast_link[0], fast_link[1]) for succ in comp_graph.successors(u)) >= sum(
-            comp_graph.getOperatorCompCostByDevice(succ, random_device) for succ in comp_graph.successors(u)):
+        elif (min(comp_graph.getOperatorCompCostByDevice(succ, random_device) + comp_graph.getEdgeTensorSize(u, succ) *
+                  device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(u)) >=
+              sum(comp_graph.getOperatorCompCostByDevice(succ, random_device) for succ in comp_graph.successors(u))):
             data = comp_graph.merge_edge(u, v)
         else:
             data = None
@@ -265,8 +263,8 @@ def apply_co_location(comp_graph, device_topo):
             )
             '''
             best_successor[current_node], max_suc_total_cost = max(
-                ((succ_node, global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node,succ_node)
-                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])) for succ_node in successors),
+                ((succ_node, global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node, succ_node)
+                  * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])) for succ_node in successors),
                 key=lambda x: x[1]
             )
         else:  # If there are no predecessors, set the max computing cost to 0
