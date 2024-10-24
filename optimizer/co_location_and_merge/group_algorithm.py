@@ -313,3 +313,52 @@ def apply_co_location(comp_graph, device_topo: DeviceGraph):
         max_cost_edge = max(incoming_edges, key=edge_cost)
         comp_graph.set_colocation_group()
     '''
+
+def apply_co_location_2(comp_graph: CompGraph, device_topo: DeviceGraph):
+    random_device = comp_graph.getDeviceList()[0]
+    slow_link = device_topo.get_slowest_link()
+    global_rank = {}
+    best_successor = {}  # To store the best successor of each node for path reconstruction
+    topo_sorted = list(nx.topological_sort(comp_graph))
+
+    for current_node in reversed(topo_sorted):
+        # Check if the current node has any predecessors
+        successors = list(comp_graph.successors(current_node))
+
+        if successors:  # If there are predecessors, compute the max computing cost
+            '''
+            max_suc_total_cost = max(
+                global_rank[succ_node] +
+                comp_graph.getEdgeTensorSize(current_node,succ_node)
+                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ_node in successors
+            )
+            # Store the best successor for path reconstruction using max()
+            best_successor[current_node] = max(
+                successors, key=lambda succ_node: global_rank[succ_node] +
+                comp_graph.getEdgeTensorSize(current_node,succ_node)
+                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
+            )
+            '''
+            best_successor[current_node], max_suc_total_cost = max(
+                ((succ_node, global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node, succ_node)
+                  * device_topo.calUnitCommCostInUS(slow_link[0], slow_link[1])) for succ_node in successors),
+                key=lambda x: x[1]
+            )
+        else:  # If there are no predecessors, set the max computing cost to 0
+            max_suc_total_cost = 0
+            best_successor[current_node] = None  # No successor for sink nodes
+
+        # Calculate the global rank for the current node
+        global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
+                                                                                                random_device)
+    edge_set = set()
+    for node, best_succ in best_successor.items():
+        edge_set.add((node, best_succ))
+    print("number of edges", len(edge_set))
+    subgraph = comp_graph.edge_subgraph(edge_set)
+    visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
+    wcc_node_sets = list(nx.weakly_connected_components(subgraph))
+    for node_set in wcc_node_sets:
+        new_id = hashlib.md5("&".join(node_set).encode()).hexdigest()
+        for node in node_set:
+            comp_graph.set_colocation_group(node, new_id)
