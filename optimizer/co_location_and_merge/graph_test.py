@@ -5,7 +5,7 @@ from networkx.classes import subgraph
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.co_location_and_merge.group_algorithm import merge_node_pair, get_subgraph_of_eligible_edges, \
-    apply_co_location
+    get_longest_path
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.model.graph import CompGraph
 
@@ -88,7 +88,7 @@ def merge_edge():
 
 def co_lo_con():
     deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
-    r = apply_co_location(comp_graph, deviceTopo)
+    r = get_longest_path(comp_graph, deviceTopo)
     print(r)
 
 co_lo_con()

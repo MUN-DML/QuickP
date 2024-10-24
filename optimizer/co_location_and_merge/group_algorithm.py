@@ -237,7 +237,7 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
             comp_graph.set_colocation_group(node, new_id)
 
 
-def apply_co_location(comp_graph, device_topo: DeviceGraph):
+def get_longest_path(comp_graph, device_topo: DeviceGraph):
     random_device = comp_graph.getDeviceList()[0]
     slow_link = device_topo.get_slowest_link()
     global_rank = {}
@@ -294,27 +294,7 @@ def apply_co_location(comp_graph, device_topo: DeviceGraph):
 
     return longest_path
 
-    '''
-    fast_link = device_topo.get_fastest_link()
-    random_device = comp_graph.getDeviceList()[0]
-    for node in list(nx.topological_sort(comp_graph)):
-        if comp_graph.in_degree(node) <= 1:
-            continue
-        incoming_edges = list(comp_graph.in_edges(node))
-
-        # Define a function to calculate the total cost (computing cost + communication cost) for an edge
-        def edge_cost(edge):
-            u, v = edge  # u is the source, v is the target (node)
-            comp_cost = comp_graph.getOperatorCompCostByDevice(u, random_device)
-            comm_cost = comp_graph.getEdgeTensorSize(u, v) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
-            return comp_cost + comm_cost
-
-        # Use max() to find the edge with the largest total cost
-        max_cost_edge = max(incoming_edges, key=edge_cost)
-        comp_graph.set_colocation_group()
-    '''
-
-def apply_co_location_2(comp_graph: CompGraph, device_topo: DeviceGraph):
+def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: DeviceGraph):
     random_device = comp_graph.getDeviceList()[0]
     slow_link = device_topo.get_slowest_link()
     global_rank = {}
