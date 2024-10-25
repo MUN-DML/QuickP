@@ -18,12 +18,12 @@ def add_topo_order_constraints_with_grouper(model, graph: CompGraph, x, device_i
     non_reachable_pairs = find_non_connected_pairs(graph)
     ungrouped_non_reachable_pairs = [(a,b) for (a,b) in non_reachable_pairs if a not in op_group_mapping or b not in op_group_mapping]
     print('sisi', len(non_reachable_pairs), len(ungrouped_non_reachable_pairs))
-
+    '''
     for group_id, group in group_ops_mapping.items():
         group = sorted(group, key=lambda node: topological_order_mapping[node])
         for a, b in zip(group, group[1:]):
             model.addConstr(finish[a] <= start[b])
-
+    '''
     # Iterate over topologically sorted nodes
     for a, b in ungrouped_non_reachable_pairs:
         # For each consecutive pair of operators, add a constraint for each device
