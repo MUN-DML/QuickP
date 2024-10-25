@@ -90,5 +90,13 @@ def co_lo_con():
     deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
     r = get_longest_path(comp_graph, deviceTopo)
     print(r)
-
+'''
+elif (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(v,
+                                                                                                               random_device) == 0):
+data = comp_graph.merge_edge(u, v)
+elif comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.out_degree(u) == 1:
+data = comp_graph.merge_edge(u, v)
+elif comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.in_degree(v) == 1:
+data = comp_graph.merge_edge(u, v)
+'''
 co_lo_con()
