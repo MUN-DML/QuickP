@@ -248,19 +248,6 @@ def get_longest_path(comp_graph, device_topo: DeviceGraph):
         successors = list(comp_graph.successors(current_node))
 
         if successors:  # If there are predecessors, compute the max computing cost
-            '''
-            max_suc_total_cost = max(
-                global_rank[succ_node] +
-                comp_graph.getEdgeTensorSize(current_node,succ_node)
-                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ_node in successors
-            )
-            # Store the best successor for path reconstruction using max()
-            best_successor[current_node] = max(
-                successors, key=lambda succ_node: global_rank[succ_node] +
-                comp_graph.getEdgeTensorSize(current_node,succ_node)
-                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
-            )
-            '''
             best_successor[current_node], max_suc_total_cost = max(
                 ((succ_node, global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node, succ_node)
                   * device_topo.calUnitCommCostInUS(slow_link[0], slow_link[1])) for succ_node in successors),
@@ -290,8 +277,8 @@ def get_longest_path(comp_graph, device_topo: DeviceGraph):
     for node in longest_path:
         comp_graph.set_colocation_group(node, new_id)
 
-
     return longest_path
+
 
 def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: DeviceGraph):
     random_device = comp_graph.getDeviceList()[0]
@@ -305,19 +292,6 @@ def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: De
         successors = list(comp_graph.successors(current_node))
 
         if successors:  # If there are predecessors, compute the max computing cost
-            '''
-            max_suc_total_cost = max(
-                global_rank[succ_node] +
-                comp_graph.getEdgeTensorSize(current_node,succ_node)
-                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ_node in successors
-            )
-            # Store the best successor for path reconstruction using max()
-            best_successor[current_node] = max(
-                successors, key=lambda succ_node: global_rank[succ_node] +
-                comp_graph.getEdgeTensorSize(current_node,succ_node)
-                * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
-            )
-            '''
             best_successor[current_node], max_suc_total_cost = max(
                 ((succ_node, global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node, succ_node)
                   * device_topo.calUnitCommCostInUS(slow_link[0], slow_link[1])) for succ_node in successors),
@@ -342,3 +316,32 @@ def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: De
         new_id = hashlib.md5("&".join(node_set).encode()).hexdigest()
         for node in node_set:
             comp_graph.set_colocation_group(node, new_id)
+
+
+def min_rank_calculation(comp_graph: CompGraph, device_topo: DeviceGraph):
+    random_device = comp_graph.getDeviceList()[0]
+    fast_link = device_topo.get_fastest_link()
+    global_rank = {}
+    topo_sorted = list(nx.topological_sort(comp_graph))
+
+    for current_node in reversed(topo_sorted):
+        # Check if the current node has any predecessors
+        successors = list(comp_graph.successors(current_node))
+
+        if successors:  # If there are predecessors, compute the max computing cost
+            min_suc_total_cost = min(global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node, succ_node)*
+                                     device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
+                                     for succ_node in successors)
+
+        else:  # If there are no predecessors, set the max computing cost to 0
+            min_suc_total_cost = 0
+
+        # Calculate the global rank for the current node
+        global_rank[current_node] = min_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
+                                                                                                random_device)
+        comp_graph.nodes[current_node]["shortest_path_cost"] = global_rank[current_node]
+
+        for node in comp_graph.nodes:
+            print(node, comp_graph.nodes[node]["shortest_path_cost"])
+
+
