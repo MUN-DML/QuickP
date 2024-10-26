@@ -5,7 +5,7 @@ from networkx.classes import subgraph
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.co_location_and_merge.group_algorithm import merge_node_pair, get_subgraph_of_eligible_edges, \
-    get_longest_path
+    get_longest_path, min_rank_calculation
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.model.graph import CompGraph
 
@@ -90,6 +90,11 @@ def co_lo_con():
     deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
     r = get_longest_path(comp_graph, deviceTopo)
     print(r)
+
+def sp_cal_():
+    deviceTopo, comp_graph = init_computing_and_device_graph(6, None, model_type=TFModelEnum.SMALL)
+
+    min_rank_calculation(comp_graph, deviceTopo)
 '''
 elif (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(v,
                                                                                                                random_device) == 0):
@@ -99,4 +104,4 @@ data = comp_graph.merge_edge(u, v)
 elif comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.in_degree(v) == 1:
 data = comp_graph.merge_edge(u, v)
 '''
-co_lo_con()
+sp_cal_()

@@ -215,6 +215,11 @@ class CompGraph(DiGraph):
             raise ValueError("node {0} does not exist".format(node_id))
         self.nodes[node_id]["colocation_group"] = colocation_group
 
+    def get_shortest_path_cost(self, node_id):
+        if node_id not in self.nodes:
+            raise ValueError("node {0} does not exist".format(node_id))
+        return self.nodes[node_id]["shortest_path_cost"]
+
     def create_colocation_group_to_ops_map(self) -> dict[any, list[str]]:
         """Generate a dict that maps a colocation group to its op id list."""
         colocation_group_map = defaultdict(list)

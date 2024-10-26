@@ -200,9 +200,9 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
                   #device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(v)) >=
               #sum(comp_graph.getOperatorCompCostByDevice(pre, random_device) for pre in comp_graph.predecessors(v))):
             #data = comp_graph.merge_edge(u, v)
-        elif (min(comp_graph.getOperatorCompCostByDevice(succ, random_device) + comp_graph.getEdgeTensorSize(u, succ) *
+        elif (min(comp_graph.get_shortest_path_cost(succ) + comp_graph.getEdgeTensorSize(u, succ) *
                   device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(u)) >=
-              sum(comp_graph.getOperatorCompCostByDevice(succ, random_device) for succ in comp_graph.successors(u))):
+              sum(comp_graph.get_shortest_path_cost(succ) for succ in comp_graph.successors(u))):
             data = comp_graph.merge_edge(u, v)
         else:
             data = None
@@ -340,8 +340,3 @@ def min_rank_calculation(comp_graph: CompGraph, device_topo: DeviceGraph):
         global_rank[current_node] = min_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
                                                                                                 random_device)
         comp_graph.nodes[current_node]["shortest_path_cost"] = global_rank[current_node]
-
-        for node in comp_graph.nodes:
-            print(node, comp_graph.nodes[node]["shortest_path_cost"])
-
-
