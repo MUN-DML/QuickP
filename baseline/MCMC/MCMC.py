@@ -16,7 +16,7 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
     M = get_proper_M(graph_init["model_type"])
     # Partition the computation graph
     operator_device_mapping, edge_cut_list, edge_cut_weight_sum = (
-        get_placement_info("RANDOM", comp_graph, deviceTopo, M))
+        get_placement_info("RANDOM", comp_graph, deviceTopo, M, graph_init["model_type"]))
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
