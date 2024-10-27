@@ -39,7 +39,7 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
                 continue
             data = comp_graph.merge_edge(u, v)
             update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
-        elif (comp_graph.get_shortest_path_cost(u) >=
+        elif (comp_graph.get_shortest_path_cost(u) - comp_graph.getOperatorCompCostByDevice(u,random_device) >=
               sum(comp_graph.get_shortest_path_cost(succ) for succ in comp_graph.successors(u))):
             data = comp_graph.merge_edge(u, v)
             update_shortest_path_cost(comp_graph, u, device_topo, fast_link)

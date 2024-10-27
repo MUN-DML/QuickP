@@ -96,12 +96,18 @@ def sp_cal_():
 
     min_rank_calculation(comp_graph, deviceTopo)
 '''
-elif (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(v,
-                                                                                                               random_device) == 0):
-data = comp_graph.merge_edge(u, v)
-elif comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.out_degree(u) == 1:
-data = comp_graph.merge_edge(u, v)
-elif comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.in_degree(v) == 1:
-data = comp_graph.merge_edge(u, v)
+        elif (comp_graph.getOperatorCompCostByDevice(u,random_device) == 0 and comp_graph.getOperatorCompCostByDevice(v,random_device) == 0):
+            data = comp_graph.merge_edge(u, v)
+            update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
+        elif comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.out_degree(u) == 1:
+            data = comp_graph.merge_edge(u, v)
+            update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
+        elif comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.in_degree(v) == 1:
+            data = comp_graph.merge_edge(u, v)
+            update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
+        elif (comp_graph.out_degree(u) > 1 and comp_graph.get_shortest_path_cost(u) >=
+              sum(comp_graph.get_shortest_path_cost(succ) for succ in comp_graph.successors(u))):
+            data = comp_graph.merge_edge(u, v)
+            update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
 '''
 sp_cal_()
