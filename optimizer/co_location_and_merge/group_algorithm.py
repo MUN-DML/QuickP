@@ -4,8 +4,50 @@ from collections import deque
 import networkx as nx
 from networkx.algorithms.flow import shortest_augmenting_path
 
-from optimizer.co_location_and_merge.grouper_util import create_eligible_edge_subgraph, label_group, analyze_group
 from optimizer.model.graph import CompGraph, DeviceGraph, visualize_graph
+
+
+def traverse_merge_loop_no_performance_degradation(comp_graph: CompGraph, device_topo: DeviceGraph):
+
+    def traverse_and_merge_no_performance_degradation(comp_graph: CompGraph, device_topo: DeviceGraph):
+        any_data_update = False
+        random_device = comp_graph.getDeviceList()[0]
+        # set is implemented by hashtable, fast deletion and adding
+        edges_to_process = set(comp_graph.edges())
+        while edges_to_process:
+            u, v = edges_to_process.pop()
+            if not comp_graph.is_edge_mergable(u, v):
+                continue
+            # Check if the edge is marked with the attribute 'ismerge'
+            # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
+            if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
+                data = comp_graph.merge_edge(u, v)
+            elif (comp_graph.getOperatorCompCostByDevice(u,random_device) == 0 and comp_graph.getOperatorCompCostByDevice(
+                    v, random_device) == 0):
+                data = comp_graph.merge_edge(u, v)
+            elif comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.out_degree(u) == 1:
+                data = comp_graph.merge_edge(u, v)
+            elif comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.in_degree(v) == 1:
+                data = comp_graph.merge_edge(u, v)
+            else:
+                data = None
+
+            if data:
+                new_edges, deleted_edges = data
+                edges_to_process -= deleted_edges
+                edges_to_process |= new_edges
+                if not any_data_update:
+                    any_data_update = True
+
+        assert nx.is_directed_acyclic_graph(comp_graph)
+        print("current op number", comp_graph.number_of_nodes())
+        return any_data_update
+
+
+    while True:
+        any_update = traverse_and_merge_no_performance_degradation(comp_graph, device_topo)
+        if not any_update:
+            break
 
 
 def traverse_merge_loop(comp_graph: CompGraph, device_topo: DeviceGraph):

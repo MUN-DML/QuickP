@@ -395,14 +395,12 @@ class CompGraph(DiGraph):
             if pred != u:  # Avoid self-loops (u -> u)
                 self.add_edge(pred, u, **self.get_edge_data(pred, v))
                 new_edges.add((pred, u))
-                self.remove_edge(pred, v)
                 deleted_edges.add((pred, v))
 
         for succ in list(self.successors(v)):  # Outgoing edges from v
             if succ != u:  # Avoid self-loops (u -> u)
                 self.add_edge(u, succ, **self.get_edge_data(v, succ))
                 new_edges.add((u, succ))
-                self.remove_edge(v, succ)
                 deleted_edges.add((v, succ))
 
         self.setMemorySize(u, new_memory)
