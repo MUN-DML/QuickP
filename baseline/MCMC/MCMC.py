@@ -21,24 +21,21 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
     device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
     # Execute the simulation
-    init_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list)
+    init_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list, 0)
 
     current_strategy = {"placement": operator_device_mapping, "latency": init_latency}
 
-
-    for i in range(0, 500):
+    for i in range(0, 1000000):
         random_node = random.choice(comp_graph.getOperatorIDs())
         random_device = random.choice(deviceTopo.getDeviceIDs())
         new_placement = copy.deepcopy(current_strategy["placement"])
         new_placement[random_node] = random_device
 
         # Swap the two nodes using multiple assignment
-        new_latency = evaluate_mcmc(comp_graph, deviceTopo, new_placement, edge_cut_list)
+        new_latency = evaluate_mcmc(comp_graph, deviceTopo, new_placement, edge_cut_list, i)
         if new_latency < current_strategy["latency"]:
             current_strategy["placement"] = new_placement
             current_strategy["latency"] = new_latency
-
-    print(current_strategy["latency"])
 
 
 if __name__ == '__main__':

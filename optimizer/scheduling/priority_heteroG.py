@@ -65,8 +65,6 @@ def priority_queue_max_rank_heteroG(model: Model, start, finish, comm_start, com
 
     # It is an SCHEDULING problem within each device.
     device_queues = initialize_queues(device_subgraph_mapping, comp_graph)
-    total_items = sum(queue.qsize() for queue in device_queues.values())
-    print("len of the init: ", total_items, 'The init device_queues is ', device_queues)
 
     # Initialize the set to track completed tasks
     completed_tasks = set()
