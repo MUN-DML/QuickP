@@ -2,7 +2,7 @@ import itertools
 from enum import Enum
 
 import networkx as nx
-from gurobipy import Model, GRB, quicksum
+from gurobipy import Model, GRB
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.model.graph import find_non_connected_pairs, CompGraph, is_not_connected
@@ -33,10 +33,11 @@ def add_topo_order_constraint(model, graph, x, device_ids, finish, start, M):
     print('numero de op', len(non_reachable_pairs))
     for a, b in non_reachable_pairs:
         # For each consecutive pair of operators, add a constraint for each device
-        model.addConstr(
-            finish[a] <= start[b] + M * (1 - quicksum(x[a, device_id] * x[b, device_id] for device_id in device_ids)),
-            name=f"bigM_topo_order_{a}_{b}"
-        )
+        for device_id in device_ids:
+            # Ensure the correct order for each potential device assignment
+            # This constraint will only apply if both a and b are assigned to the same device
+            model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]),
+                            name=f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
 
 
 class SchedulingAlgorithm(Enum):
