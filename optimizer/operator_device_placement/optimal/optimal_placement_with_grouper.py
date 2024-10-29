@@ -53,7 +53,8 @@ def get_optimize_placement_with_grouper(comp_graph: CompGraph, deviceTopo, M, mo
 
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
-        model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name="" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"one_device_{op}")
+        if op not in op_group_map:
+            model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name="" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"one_device_{op}")
 
     # Add constraints that each op's ending time = starting time + its computing time. Homogeneous device
     any_d = deviceTopo.getDeviceIDs()[0]
