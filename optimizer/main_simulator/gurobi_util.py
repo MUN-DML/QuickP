@@ -24,7 +24,7 @@ def gurobi_setup(name: str):
     model.setParam("MIPFocus", 1)
 
     # This is strictly related to the value of big M
-    model.setParam("IntFeasTol", 1e-9)
+    model.setParam("IntFeasTol", 1e-6)
 
     return model
 
@@ -394,12 +394,12 @@ def get_proper_M(model: TFModelEnum):
     if model==TFModelEnum.SMALL:
         return 300
     if model==TFModelEnum.ALEXNET:
-        return 350000
+        return 250000
     if model==TFModelEnum.VGG:
-        return 350000
+        return 250000
     if model==TFModelEnum.FNET:
-        return 250000
+        return 200000
     if model==TFModelEnum.BERT:
-        return 250000
+        return 200000
 
 
