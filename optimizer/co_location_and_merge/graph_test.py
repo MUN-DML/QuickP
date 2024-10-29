@@ -120,5 +120,17 @@ def sp_cal_():
             data = comp_graph.merge_edge(u, v)
         elif comp_graph.getEdgeTensorSize(u, v) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) >= sum(comp_graph.getOperatorCompCostByDevice(succ, random_device) for succ in comp_graph.successors(u)):
             data = comp_graph.merge_edge(u, v)
+            
+            
+        if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
+            data = comp_graph.merge_edge(u, v)
+            update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
+        elif (comp_graph.getOperatorCompCostByDevice(u,random_device) < 300 and comp_graph.getOperatorCompCostByDevice(
+                v, random_device) < 300):
+            data = comp_graph.merge_edge(u, v)
+        elif comp_graph.getOperatorCompCostByDevice(u, random_device) < 300 and comp_graph.out_degree(u) == 1:
+            data = comp_graph.merge_edge(u, v)
+        elif comp_graph.getOperatorCompCostByDevice(v, random_device) < 300 and comp_graph.in_degree(v) == 1:
+            data = comp_graph.merge_edge(u, v)
 '''
 sp_cal_()

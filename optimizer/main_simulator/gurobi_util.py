@@ -394,12 +394,12 @@ def get_proper_M(model: TFModelEnum):
     if model==TFModelEnum.SMALL:
         return 300
     if model==TFModelEnum.ALEXNET:
-        return 250000
+        return 150000
     if model==TFModelEnum.VGG:
-        return 250000
+        return 150000
     if model==TFModelEnum.FNET:
-        return 200000
+        return 120000
     if model==TFModelEnum.BERT:
-        return 200000
+        return 120000
 
 
