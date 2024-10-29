@@ -382,7 +382,6 @@ class CompGraph(DiGraph):
         """
         # record newly recreated or deleted node
         new_edges = set()
-        deleted_edges = set()
 
         # create attributes for the new node
         random_node_cost_dict = self.getCompCostMapByOp(u)
@@ -395,17 +394,15 @@ class CompGraph(DiGraph):
             if pred != u:  # Avoid self-loops (u -> u)
                 self.add_edge(pred, u, **self.get_edge_data(pred, v))
                 new_edges.add((pred, u))
-                deleted_edges.add((pred, v))
 
         for succ in list(self.successors(v)):  # Outgoing edges from v
             if succ != u:  # Avoid self-loops (u -> u)
                 self.add_edge(u, succ, **self.get_edge_data(v, succ))
                 new_edges.add((u, succ))
-                deleted_edges.add((v, succ))
 
         self.setMemorySize(u, new_memory)
         self.set_node_computing_cost_map(u, new_comp_cost_dict)
-
+        deleted_edges = set(self.in_edges(v)).union(set(self.out_edges(v)))
         # Now, remove node v from the graph
         self.remove_node(v)
 
