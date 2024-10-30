@@ -71,11 +71,11 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
             data = comp_graph.merge_edge(u, v)
-        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) < 300 and comp_graph.getOperatorCompCostByDevice(v, random_device) < 300):
+        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) < 200 and comp_graph.getOperatorCompCostByDevice(v, random_device) < 200):
             data = comp_graph.merge_edge(u, v)
-        elif comp_graph.getOperatorCompCostByDevice(u, random_device) < 300  and comp_graph.out_degree(u) == 1:
+        elif comp_graph.getOperatorCompCostByDevice(u, random_device) < 200  and comp_graph.out_degree(u) == 1:
             data = comp_graph.merge_edge(u, v)
-        elif comp_graph.getOperatorCompCostByDevice(v, random_device) < 300 and comp_graph.in_degree(v) == 1:
+        elif comp_graph.getOperatorCompCostByDevice(v, random_device) <200 and comp_graph.in_degree(v) == 1:
             data = comp_graph.merge_edge(u, v)
         else:
             data = None
@@ -183,10 +183,7 @@ def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: De
         if comp_graph.out_degree(node) > 1:
             edge_set.add((node, best_succ))
     flattened_set = set(element for tup in edge_set for element in tup)
-    for i,j in comp_graph.edges:
-        min_comm_cost = comp_graph.getEdgeTensorSize(i, j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
-        if comp_graph.out_degree(i) == 1 and min_comm_cost > comp_graph.getOperatorCompCostByDevice(j, random_device) + comp_graph.getOperatorCompCostByDevice(i, random_device):
-            edge_set.add((i, j))
+
     print("number of edges", len(edge_set))
     subgraph = comp_graph.edge_subgraph(edge_set)
     visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
