@@ -183,6 +183,11 @@ def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: De
         if comp_graph.out_degree(node) > 1:
             edge_set.add((node, best_succ))
     flattened_set = set(element for tup in edge_set for element in tup)
+    for i,j in comp_graph.edges:
+        if comp_graph.out_degree(i) <= 1 or (i,j) in edge_set:
+            continue
+        if min(comp_graph.getOperatorCompCostByDevice(succ,random_device) + comp_graph.getEdgeTensorSize(i, succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i))>= sum(comp_graph.getOperatorCompCostByDevice(succ,random_device) for succ in comp_graph.successors(i)):
+            edge_set.update(comp_graph.out_edges(i))
 
     print("number of edges", len(edge_set))
     subgraph = comp_graph.edge_subgraph(edge_set)
