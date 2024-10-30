@@ -71,20 +71,12 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
             data = comp_graph.merge_edge(u, v)
-            update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
-        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 or comp_graph.getOperatorCompCostByDevice(v,random_device) == 0):
-            if comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(
-                    u, random_device) > 0 and comp_graph.in_degree(v) > 1:
-                continue
-            if comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.getOperatorCompCostByDevice(
-                    v, random_device) > 0 and comp_graph.out_degree(u) > 1:
-                continue
+        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) < 300 and comp_graph.getOperatorCompCostByDevice(v, random_device) < 300):
             data = comp_graph.merge_edge(u, v)
-            update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
-        elif (comp_graph.get_shortest_path_cost(u) - comp_graph.getOperatorCompCostByDevice(u,random_device) >=
-              sum(comp_graph.get_shortest_path_cost(succ) for succ in comp_graph.successors(u))):
+        elif comp_graph.getOperatorCompCostByDevice(u, random_device) < 300  and comp_graph.out_degree(u) == 1:
             data = comp_graph.merge_edge(u, v)
-            update_shortest_path_cost(comp_graph, u, device_topo, fast_link)
+        elif comp_graph.getOperatorCompCostByDevice(v, random_device) < 300 and comp_graph.in_degree(v) == 1:
+            data = comp_graph.merge_edge(u, v)
         else:
             data = None
 
@@ -164,6 +156,7 @@ def get_longest_path(comp_graph, device_topo: DeviceGraph):
 def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: DeviceGraph):
     random_device = comp_graph.getDeviceList()[0]
     slow_link = device_topo.get_slowest_link()
+    fast_link = device_topo.get_fastest_link()
     global_rank = {}
     best_successor = {}  # To store the best successor of each node for path reconstruction
     topo_sorted = list(nx.topological_sort(comp_graph))
@@ -189,6 +182,11 @@ def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: De
     for node, best_succ in best_successor.items():
         if comp_graph.out_degree(node) > 1:
             edge_set.add((node, best_succ))
+    flattened_set = set(element for tup in edge_set for element in tup)
+    for i,j in comp_graph.edges:
+        min_comm_cost = comp_graph.getEdgeTensorSize(i, j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
+        if comp_graph.out_degree(i) == 1 and min_comm_cost > comp_graph.getOperatorCompCostByDevice(j, random_device) + comp_graph.getOperatorCompCostByDevice(i, random_device):
+            edge_set.add((i, j))
     print("number of edges", len(edge_set))
     subgraph = comp_graph.edge_subgraph(edge_set)
     visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
