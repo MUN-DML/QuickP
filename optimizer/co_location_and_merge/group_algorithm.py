@@ -187,20 +187,16 @@ def apply_critical_path_based_co_location(comp_graph: CompGraph, device_topo: De
     for i,j in comp_graph.edges:
         if comp_graph.out_degree(i) <= 1 or (i,j) in edge_set:
             continue
-        if min(comp_graph.getOperatorCompCostByDevice(succ,random_device) + comp_graph.getEdgeTensorSize(i, succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i))>= sum(comp_graph.getOperatorCompCostByDevice(succ,random_device) for succ in comp_graph.successors(i)):
+        if min(comp_graph.get_group_cost_by_node(succ,edge_set) + comp_graph.getEdgeTensorSize(i, succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i))>= sum(comp_graph.get_group_cost_by_node(succ,edge_set) for succ in comp_graph.successors(i)):
             edge_set.update(comp_graph.out_edges(i))
 
     for i,j in comp_graph.edges:
         if comp_graph.in_degree(j) <= 1 or (i,j) in edge_set:
             continue
-        in_edges = set(comp_graph.in_edges(j))
-        flattened_in_edges = set(element for tup in in_edges for element in tup)
-        flattened_in_edges.add(j)
-        flattened_set = set(element for tup in edge_set for element in tup)
-        if not flattened_in_edges.isdisjoint(flattened_set):
-            continue
-        if min(comp_graph.getOperatorCompCostByDevice(pre,random_device) + comp_graph.getEdgeTensorSize(pre, j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j))>= sum(comp_graph.getOperatorCompCostByDevice(pre,random_device) for pre in comp_graph.predecessors(j)):
+
+        if min(comp_graph.get_group_cost_by_node(pre,edge_set) + comp_graph.getEdgeTensorSize(pre, j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j))>= sum(comp_graph.get_group_cost_by_node(pre,edge_set) for pre in comp_graph.predecessors(j)):
             print("added fucker")
+            in_edges = set(comp_graph.in_edges(j))
             edge_set.update(in_edges)
 
     print("number of edges", len(edge_set))

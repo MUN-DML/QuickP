@@ -268,14 +268,6 @@ class CompGraph(DiGraph):
             all_node_set.update(local_node_set or [])
         return self.subgraph(all_node_set)
 
-    def label_colo_for_dual_path_wcc(self):
-        subgraph = self.create_subgraph_of_dual_path_components()
-        wcc_node_sets = list(nx.weakly_connected_components(subgraph))
-        for set in wcc_node_sets:
-            new_id = hashlib.md5("&".join(set).encode()).hexdigest()
-            for node in set:
-                self.set_colocation_group(node, new_id)
-
 
     def getAllOperators(self):
         return list(self.nodes(data=True))
@@ -327,42 +319,6 @@ class CompGraph(DiGraph):
         min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
         return min_cut_size <= 1
 
-    def is_multi_path(self, source, target):
-        if not self.has_edge(source, target):
-            raise ValueError(f"Edge {source}, {target} does not exist")
-        if self.out_degree(source) == 1 or self.in_degree(target) == 1:
-            return False
-        min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
-        return min_cut_size >= 2
-
-    def get_multipath_component_node_set_by_edge(self, source, target):
-        if self.is_multi_path(source, target):
-            # it will return a 2D list
-            all_paths = list(nx.node_disjoint_paths(self, source, target))
-            flattened_set = set([element for sublist in all_paths for element in sublist])
-            return flattened_set
-        else:
-            return None
-
-    def visualize_mp_subgraph_vs_original_graph(self):
-        subgraph = self.create_subgraph_of_dual_path_components()
-        red_nodes = set(subgraph.nodes)
-        blue_nodes = set(self.nodes) - red_nodes
-        # Create the layout for the nodes
-        pos = nx.spring_layout(self)  # Spring layout positions the nodes nicely
-
-        # Draw nodes
-        nx.draw_networkx_nodes(self, pos, nodelist=red_nodes, node_color='red', node_size=50)
-        # nx.draw_networkx_nodes(self, pos, nodelist=blue_nodes, node_color='blue', node_size=5)
-
-        # Draw edges
-        # nx.draw_networkx_edges(self, pos)
-        nx.draw_networkx_edges(subgraph, pos)
-
-        # Display the graph
-        plt.title("Subgraph with Selected Nodes in Red and Others in Blue")
-        plt.show()
-
     def get_wccs_of_straight_lines(self):
         eligible_edges = []
         for edge in self.edges:
@@ -410,31 +366,6 @@ class CompGraph(DiGraph):
 
         return new_edges, deleted_edges
 
-
-    def traverse_and_merge_empty(self):
-        # set is implemented by hashtable, fast deletion and adding
-        edges_to_process = set(self.edges())
-        while edges_to_process:
-            u, v = edges_to_process.pop()
-            if not self.is_edge_mergable(u, v):
-                continue
-            random_device = self.getDeviceList()[0]
-            # Check if the edge is marked with the attribute 'ismerge'
-            # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
-            if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) :
-                if self.getOperatorCompCostByDevice(v, random_device) == 0 and self.getOperatorCompCostByDevice(u, random_device) > 0 and self.in_degree(v) > 1:
-                    continue
-                if self.getOperatorCompCostByDevice(u, random_device) == 0 and self.getOperatorCompCostByDevice(v, random_device) > 0 and self.out_degree(u) > 1:
-                    continue
-                # Merge nodes u and v, by default merge v into u
-                # This function only merge mergable edge
-                data = self.merge_edge(u, v)
-                if data is not None:
-                    new_edges, deleted_edges = data
-                    edges_to_process -= deleted_edges
-                    edges_to_process |= new_edges
-
-        assert nx.is_directed_acyclic_graph(self)
 
     def merge_wcc(self, ops_to_be_merged: set):
         # double check if those nodes are connected, forming one weakly connected component
@@ -485,6 +416,20 @@ class CompGraph(DiGraph):
         for wcc_set in weakly_connected_components:
             self.merge_wcc(wcc_set)
         print("new node number: ", len(self.nodes))
+
+    def get_group_cost_by_node(self, node_id, edge_set):
+        flattened_nodes = set(element for tup in edge_set for element in tup)
+        random_device = self.getDeviceList()[0]
+        if node_id not in flattened_nodes:
+            return self.getOperatorCompCostByDevice(node_id, random_device)
+        subgraph = self.subgraph(flattened_nodes)
+        wcc_node_sets = list(nx.weakly_connected_components(subgraph))
+        for node_set in wcc_node_sets:
+            # if grouped, return the group cost sum
+            if node_id in node_set:
+                return sum(self.getOperatorCompCostByDevice(group_member, random_device) for group_member in node_set)
+        # if ungrouped
+        return self.getOperatorCompCostByDevice(node_id, random_device)
 
 
     def __str__(self):
