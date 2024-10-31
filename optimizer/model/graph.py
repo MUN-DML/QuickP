@@ -417,6 +417,8 @@ class CompGraph(DiGraph):
             self.merge_wcc(wcc_set)
         print("new node number: ", len(self.nodes))
 
+
+    # this method looks ugly but it is the core. Refine it later
     def get_group_cost_by_node(self, node_id, edge_set):
         flattened_nodes = set(element for tup in edge_set for element in tup)
         random_device = self.getDeviceList()[0]
