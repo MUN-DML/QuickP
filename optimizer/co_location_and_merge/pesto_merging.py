@@ -3,6 +3,10 @@ import copy
 import networkx as nx
 import random
 
+from DNN_model_tf.tf_model_enum import TFModelEnum
+from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
+from optimizer.model.graph import visualize_graph, CompGraph
+
 
 # Compute the level of each node in the dag
 def topo_level_v2(prec_list, node_size):
@@ -43,6 +47,10 @@ def get_pesto_merging_result(original_dag, para_config):
     new_dag = copy.deepcopy(original_dag)
     merge_result = []
     loop = 0
+    for dag_node1 in original_dag.nodes:
+        print("nei")
+        print(original_dag[dag_node1])
+        break
 
     while new_node_size > para_config[0]:
         prec_list = [[[], []] for _ in range(ori_node_size)]
@@ -68,14 +76,16 @@ def get_pesto_merging_result(original_dag, para_config):
         for new_node in new_dag.nodes:
             comp[new_node - 1] = new_dag.nodes[new_node]['weight']
         loop += 1
-        print("loop: ", loop, "merge: ", len(loop_result), "total_merge: ",
-              ori_node_size - new_node_size, "remain: ", new_node_size)
+        print("loop: ", loop, "edge_merge: ", len(loop_result), "edge_total_merge: ",
+              ori_node_size - new_node_size, "edge_remain: ", len(new_dag.edges), "nodes_remain: ", new_node_size)
         print("----------------------------------------------")
         if len(loop_result) == 0:
             break
 
-    print("result:", merge_result)
-    return merge_result
+    visualize_graph(new_dag, False, False)
+    # print("result:", merge_result)
+    # return merge_result
+    return new_dag.number_of_nodes()
 
 
 # Decide which nodes need to be merged in each iteration
@@ -153,27 +163,44 @@ def merge_nodes_in_dag(old_dag, merge_list):
 
     return new_dag
 
+def get_dag(i):
+    if i==1:
+        deviceTopo, comp_graph = init_computing_and_device_graph(8, None, model_type=TFModelEnum.ALEXNET)
+        visualize_graph(comp_graph, False, False)
+        name_to_id = {name: i + 1 for i, name in enumerate(comp_graph.nodes)}
+        comp_graph: CompGraph = nx.relabel_nodes(comp_graph, name_to_id)
+        for node in comp_graph.nodes:
+            comp_graph.nodes[node]['weight'] = comp_graph.getOperatorCompCostByDevice(node, 'mock_device_0')
+        for u, v, data in comp_graph.edges(data=True):
+            data['weight'] = data['tensor_size_in_bit']
+        return comp_graph
+    if i == 2:
+        dag = nx.DiGraph()
+        dag.add_weighted_edges_from(
+            [(1, 6, 99), (1, 3, 99), (1, 4, 99), (2, 5, 99), (3, 8, 99), (4, 10, 99), (6, 7, 99),
+             (6, 9, 99), (7, 9, 99), (7, 8, 99), (9, 10, 99)])
+        node_weights = [99, 99, 99, 99, 99, 99, 99, 99, 99, 99]
+        for node, weight in enumerate(node_weights, start=1): dag.add_node(
+            node, weight=weight)
+        return dag
+    if i==3:
+        dag = nx.DiGraph()
+        num_nodes = 1600
+        for i in range(num_nodes):
+            dag.add_node(i + 1, weight=99)
+        for _ in range(3000):
+            u = random.randint(1, num_nodes - 1)
+            v = random.randint(u + 1, num_nodes)
+            dag.add_edge(u, v, weight=99)
+        return dag
+
 
 if __name__ == "__main__":
     # Create a DAG for testing purposes
-    dag = nx.DiGraph()
 
-    dag.add_weighted_edges_from([(1, 6, 99), (1, 3, 99), (1, 4, 99), (2, 5, 99), (3, 8, 99), (4, 10, 99), (6, 7, 99),
-                                 (6, 9, 99), (7, 9, 99), (7, 8, 99), (9, 10, 99)])
-    node_weights = [99, 99, 99, 99, 99, 99, 99, 99, 99, 99]
-    for node, weight in enumerate(node_weights, start=1): dag.add_node(
-        node, weight=weight)
-
-    # num_nodes = 1600
-    # for i in range(num_nodes):
-    #     dag.add_node(i + 1, weight=99)
-    # for _ in range(3000):
-    #     u = random.randint(1, num_nodes - 1)
-    #     v = random.randint(u + 1, num_nodes)
-    #     dag.add_edge(u, v, weight=99)
-
+    dag=get_dag(1)
     # [0]:maximum node number, [1]:maximum weight after merge
-    config = [5, 300]
+    config = [300, 1500000]
     result = get_pesto_merging_result(dag, config)
 
     # dag1 = merge_nodes_in_dag(dag, [[1, 4], [7, 8]])
