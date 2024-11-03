@@ -1,4 +1,5 @@
 import copy
+import datetime
 import random
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
@@ -21,9 +22,11 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
     device_subgraph_mapping = construct_sub_graph(comp_graph, operator_device_mapping)
 
     # Execute the simulation
-    init_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list, 0)
+    init_latency = evaluate_mcmc(comp_graph, deviceTopo, operator_device_mapping, edge_cut_list)
 
     current_strategy = {"placement": operator_device_mapping, "latency": init_latency}
+
+    beginning_time = datetime.datetime.now()
 
     for i in range(0, 1000000):
         random_node = random.choice(comp_graph.getOperatorIDs())
@@ -32,15 +35,20 @@ def mcmc_search(comp_graph: CompGraph, deviceTopo):
         new_placement[random_node] = random_device
 
         # Swap the two nodes using multiple assignment
-        new_latency = evaluate_mcmc(comp_graph, deviceTopo, new_placement, edge_cut_list, i)
+        new_latency = evaluate_mcmc(comp_graph, deviceTopo, new_placement, edge_cut_list)
         if new_latency < current_strategy["latency"]:
             current_strategy["placement"] = new_placement
             current_strategy["latency"] = new_latency
+        if i % 100 == 0:
+            ending_time = datetime.datetime.now()
+            print("device number ", graph_init["number_of_devices"], "model",  graph_init["model_type"]
+                  ,"The latency is ", current_strategy["latency"], "Step number is ", i, "time lapsed in seconds",
+                  datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
 
 
 if __name__ == '__main__':
     graph_init = {
-        "number_of_devices": 6,
+        "number_of_devices": 4,
         "model_type": TFModelEnum.ALEXNET,
         "node_weight_function": NodeWeightFunction.AVE_COMP_COST,
         "edge_weight_function": EdgeWeightFunction.SOURCE_OUTPUT_TENSOR,

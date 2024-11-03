@@ -3,7 +3,7 @@ from gurobipy import *
 from optimizer.main_simulator.simulator_util import get_comp_cost_dict, get_comm_cost_dict
 from optimizer.model.graph import CompGraph, DeviceGraph
 from optimizer.scheduling.priority_heteroG import priority_queue_max_rank_heteroG
-
+import gurobipy as gp
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +15,7 @@ from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
     show_optimization_solution, show_graph_partition_info
 
 
-def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator_device_mapping, edge_cut_list, step_numebr):
+def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator_device_mapping, edge_cut_list):
 
     # Update the op_id-subgraph_id mapping dict to op_id-device_id mapping dict
     device_subgraph_mapping = construct_sub_graph(computing_graph, operator_device_mapping)
@@ -27,8 +27,12 @@ def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator
     # two_dime_node_list is to test whether the
     two_dime_node_list: list[list] = [list(subgraph.nodes.keys()) for subgraph in device_subgraph_mapping.values()]
 
+    env = gp.Env(empty=True)
+    env.setParam("OutputFlag", 0)
+    env.start()
+
     # Init solver
-    model = gurobi_setup("minimize_maxload")
+    model = gp.Model("minimize_maxload", env=env)
 
     # Define variables
 
@@ -94,8 +98,6 @@ def evaluate_mcmc(computing_graph: CompGraph, device_topo: DeviceGraph, operator
         print("Model is unbounded.")
     # this is the main process part after a solution is reached
     elif model.status == GRB.OPTIMAL:
-        if step_numebr % 100 == 0:
-            print("The latency is ", model.objVal, "Step number is ", step_numebr)
         # show_optimization_solution(model, operator_device_mapping, computing_graph, device_topo, start, finish, edge_cut_communication_cost_mapping, True, two_dime_node_list)
         optimal_value = model.ObjVal
         if model is not None:
