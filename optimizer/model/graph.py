@@ -419,12 +419,11 @@ class CompGraph(DiGraph):
 
 
     # this method looks ugly but it is the core. Refine it later
-    def get_group_cost_by_node(self, node_id, edge_set):
-        flattened_nodes = set(element for tup in edge_set for element in tup)
+    def get_group_cost_by_node(self, node_id, node_set):
         random_device = self.getDeviceList()[0]
-        if node_id not in flattened_nodes:
+        if node_id not in node_set:
             return self.getOperatorCompCostByDevice(node_id, random_device)
-        subgraph = self.subgraph(flattened_nodes)
+        subgraph = self.subgraph(node_set)
         wcc_node_sets = list(nx.weakly_connected_components(subgraph))
         for node_set in wcc_node_sets:
             # if grouped, return the group cost sum

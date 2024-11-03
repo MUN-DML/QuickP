@@ -178,28 +178,28 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         # Calculate the global rank for the current node
         global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
                                                                                                 random_device)
-    edge_set = set()
+    node_set = set()
     for node, best_succ in best_successor.items():
         if comp_graph.out_degree(node) > 1:
-            edge_set.add((node, best_succ))
+            node_set.update([node, best_succ])
 
     # find the correct way but need to update group computing cost
     for i,j in comp_graph.edges:
-        if comp_graph.out_degree(i) <= 1 or (i,j) in edge_set:
+        if comp_graph.out_degree(i) <= 1 or (i,j) in node_set:
             continue
-        if min(comp_graph.get_group_cost_by_node(succ,edge_set) + comp_graph.getEdgeTensorSize(i, succ) * device_topo.calUnitCommCostInUS(slow_link[0], slow_link[1]) for succ in comp_graph.successors(i))>= sum(comp_graph.get_group_cost_by_node(succ,edge_set) for succ in comp_graph.successors(i)):
+        if min(comp_graph.get_group_cost_by_node(succ,node_set) + comp_graph.getEdgeTensorSize(i, succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i))>= sum(comp_graph.get_group_cost_by_node(succ,node_set) for succ in comp_graph.successors(i)):
             print("added fucker1")
-            edge_set.update(comp_graph.out_edges(i))
+            node_set.update(comp_graph.out_edges(i))
 
     for i,j in comp_graph.edges:
-        if comp_graph.in_degree(j) <= 1 or (i,j) in edge_set:
+        if comp_graph.in_degree(j) <= 1 or (i,j) in node_set:
             continue
-        if min(comp_graph.get_group_cost_by_node(pre,edge_set) + comp_graph.getEdgeTensorSize(pre, j) * device_topo.calUnitCommCostInUS(slow_link[0], slow_link[1]) for pre in comp_graph.predecessors(j))>= sum(comp_graph.get_group_cost_by_node(pre,edge_set) for pre in comp_graph.predecessors(j)):
+        if min(comp_graph.get_group_cost_by_node(pre,node_set) + comp_graph.getEdgeTensorSize(pre, j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j))>= sum(comp_graph.get_group_cost_by_node(pre,node_set) for pre in comp_graph.predecessors(j)):
             print("added fucker2")
-            edge_set.update(comp_graph.in_edges(j))
+            node_set.update(comp_graph.in_edges(j))
 
-    print("number of edges", len(edge_set))
-    subgraph = comp_graph.edge_subgraph(edge_set)
+    print("number of edges", len(node_set))
+    subgraph = comp_graph.subgraph(node_set)
     visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
     wcc_node_sets = list(nx.weakly_connected_components(subgraph))
     for node_set in wcc_node_sets:
