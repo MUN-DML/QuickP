@@ -165,7 +165,7 @@ def show_optimization_solution(model, operator_device_placement: dict, comp_grap
                 f"  Communication from {source_op_ID} to {dest_op_ID} starts at {comm_start_time} and ends at {comm_end_time} with cost: {cost}")
 
     # Print Summary
-    print('Runtime = ', "%.2f" % model.Runtime, 's', sep='')
+    print('The placement runtime is shown above. Cost Model Runtime = ', "%.2f" % model.Runtime, 's', sep='')
     print('Expected Training time = ', model.ObjVal, 's', sep='')
     print("Device Utility Rate:", result['device_utility_rate'])
     print("Total Communication Time:", result['total_communication_time'], "No overlapping time", non_over_comm_cost)
