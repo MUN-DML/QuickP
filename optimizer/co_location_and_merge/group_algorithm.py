@@ -75,7 +75,7 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
             data = comp_graph.merge_edge(u, v)
         elif comp_graph.getOperatorCompCostByDevice(u, random_device) < 100  and comp_graph.out_degree(u) == 1:
             data = comp_graph.merge_edge(u, v)
-        elif comp_graph.getOperatorCompCostByDevice(v, random_device) <300 and comp_graph.in_degree(v) == 1:
+        elif comp_graph.getOperatorCompCostByDevice(v, random_device) <100 and comp_graph.in_degree(v) == 1:
             data = comp_graph.merge_edge(u, v)
         else:
             data = None
