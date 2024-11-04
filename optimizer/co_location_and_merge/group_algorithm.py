@@ -183,12 +183,24 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         if comp_graph.out_degree(node) > 1:
             node_set.update([node, best_succ])
 
-
-
-    print("number of edges", len(node_set))
     subgraph = comp_graph.subgraph(node_set)
+    print("number of nodes in subg", subgraph.number_of_nodes())
+
+    '''
+    edge_set = set()
+    for node, best_succ in best_successor.items():
+        if comp_graph.out_degree(node) > 1:
+            edge_set.add((node, best_succ))
+    edge_subgraph = comp_graph.edge_subgraph(edge_set)
+    print("number of nodes in edge-subg", edge_subgraph.number_of_nodes())
+    visualize_graph(edge_subgraph, show_edge_labels=False, show_node_labels=False)
+    wcc_node_sets2 = list(nx.weakly_connected_components(edge_subgraph))
+    print("number of wcc in edge_subg", len(wcc_node_sets2))
+    '''
+
     visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
     wcc_node_sets = list(nx.weakly_connected_components(subgraph))
+    print("number of wcc in node_subgraph", len(wcc_node_sets))
     for node_set in wcc_node_sets:
         new_id = hashlib.md5("&".join(node_set).encode()).hexdigest()
         for node in node_set:
