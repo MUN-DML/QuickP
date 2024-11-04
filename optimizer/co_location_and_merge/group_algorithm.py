@@ -71,9 +71,9 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
             data = comp_graph.merge_edge(u, v)
-        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) < 300 and comp_graph.getOperatorCompCostByDevice(v, random_device) < 300):
+        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) < 100 and comp_graph.getOperatorCompCostByDevice(v, random_device) < 100):
             data = comp_graph.merge_edge(u, v)
-        elif comp_graph.getOperatorCompCostByDevice(u, random_device) < 300  and comp_graph.out_degree(u) == 1:
+        elif comp_graph.getOperatorCompCostByDevice(u, random_device) < 100  and comp_graph.out_degree(u) == 1:
             data = comp_graph.merge_edge(u, v)
         elif comp_graph.getOperatorCompCostByDevice(v, random_device) <300 and comp_graph.in_degree(v) == 1:
             data = comp_graph.merge_edge(u, v)
@@ -183,20 +183,7 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         if comp_graph.out_degree(node) > 1:
             node_set.update([node, best_succ])
 
-    # find the correct way but need to update group computing cost
-    for i,j in comp_graph.edges:
-        if comp_graph.out_degree(i) <= 1 or (i,j) in node_set:
-            continue
-        if min(comp_graph.get_group_cost_by_node(succ,node_set) + comp_graph.getEdgeTensorSize(i, succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i))>= sum(comp_graph.get_group_cost_by_node(succ,node_set) for succ in comp_graph.successors(i)):
-            print("added fucker1")
-            node_set.update(comp_graph.out_edges(i))
 
-    for i,j in comp_graph.edges:
-        if comp_graph.in_degree(j) <= 1 or (i,j) in node_set:
-            continue
-        if min(comp_graph.get_group_cost_by_node(pre,node_set) + comp_graph.getEdgeTensorSize(pre, j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j))>= sum(comp_graph.get_group_cost_by_node(pre,node_set) for pre in comp_graph.predecessors(j)):
-            print("added fucker2")
-            node_set.update(comp_graph.in_edges(j))
 
     print("number of edges", len(node_set))
     subgraph = comp_graph.subgraph(node_set)
