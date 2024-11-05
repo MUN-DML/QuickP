@@ -179,7 +179,7 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
                                                                                                 random_device)
 
-    if number_of_device <=4:
+    if number_of_device <= 4:
         edge_set = set()
         for node, best_succ in best_successor.items():
             if comp_graph.out_degree(node) > 1:
@@ -211,7 +211,22 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         for node, best_succ in best_successor.items():
             if comp_graph.out_degree(node) > 1:
                 node_set.update([node, best_succ])
+        '''
+        # find the correct way but need to update group computing cost
+        for i, j in comp_graph.edges:
+            if comp_graph.out_degree(i) <= 1 or {i, j}.issubset(node_set):
+                continue
+            if min(comp_graph.get_group_cost_by_node_set(succ, node_set) + comp_graph.getEdgeTensorSize(i,succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i)) >= sum(comp_graph.get_group_cost_by_node_set(succ, node_set) for succ in comp_graph.successors(i)):
+                print("added fucker1")
+                node_set.update(comp_graph.successors(i))
 
+        for i, j in comp_graph.edges:
+            if comp_graph.in_degree(j) <= 1 or {i, j}.issubset(node_set):
+                continue
+            if min(comp_graph.get_group_cost_by_node_set(pre, node_set) + comp_graph.getEdgeTensorSize(pre,j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j)) >= sum(comp_graph.get_group_cost_by_node_set(pre, node_set) for pre in comp_graph.predecessors(j)):
+                print("added fucker2")
+                node_set.update(comp_graph.predecessors(j))
+        '''
         subgraph = comp_graph.subgraph(node_set)
         print("number of nodes in subg", subgraph.number_of_nodes())
 
@@ -224,23 +239,6 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         for node in node_set:
             comp_graph.set_colocation_group(node, new_id)
 
-    '''
-    should be no performance degradation, sometimes fasten the solver runtime sometimes make it slower
-    # find the correct way but need to update group computing cost
-    for i,j in comp_graph.edges:
-        if comp_graph.out_degree(i) <= 1 or (i,j) in node_set:
-            continue
-        if min(comp_graph.get_group_cost_by_node(succ,node_set) + comp_graph.getEdgeTensorSize(i, succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i))>= sum(comp_graph.get_group_cost_by_node(succ,node_set) for succ in comp_graph.successors(i)):
-            print("added fucker1")
-            node_set.update(comp_graph.out_edges(i))
-
-    for i,j in comp_graph.edges:
-        if comp_graph.in_degree(j) <= 1 or (i,j) in node_set:
-            continue
-        if min(comp_graph.get_group_cost_by_node(pre,node_set) + comp_graph.getEdgeTensorSize(pre, j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j))>= sum(comp_graph.get_group_cost_by_node(pre,node_set) for pre in comp_graph.predecessors(j)):
-            print("added fucker2")
-            node_set.update(comp_graph.in_edges(j))
-    '''
 
 def min_rank_calculation(comp_graph: CompGraph, device_topo: DeviceGraph):
     random_device = comp_graph.getDeviceList()[0]
