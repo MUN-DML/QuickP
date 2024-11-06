@@ -162,10 +162,13 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
         # show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, None)
         print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep='')
         print('Expected Training time = ', model.ObjVal, 's', sep='')
-        operator_device_mapping = get_operator_device_mapping_through_x(x)
+        print(f"This is the optimal solution of such configuration: \n"
+              f"model type: {model_type} \n"
+              f"number of operators: {comp_graph.number_of_nodes()} \n"
+              f"number of devices: {deviceTopo.number_of_nodes()} \n"
+              f"The environment is homogenous")
         del model
         disposeDefaultEnv()
-        return operator_device_mapping
     else:
         print(f"Optimization ended with status {model.status}")
 
