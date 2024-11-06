@@ -16,8 +16,21 @@ from optimizer.scheduling.priority_min_comp_cost import priority_queue_min_comp_
 def add_topo_order_constraints_with_grouper(model, graph: CompGraph, x, device_ids, finish, start, group_ops_mapping: dict, M, model_type):
     op_group_mapping = graph.create_op_group_id_mapping()
     non_reachable_pairs = find_non_connected_pairs(graph)
-    ungrouped_non_reachable_pairs = [(a,b) for (a,b) in non_reachable_pairs if a not in op_group_mapping or b not in op_group_mapping]
-    print('numero de node pair pasado', len(non_reachable_pairs), len(ungrouped_non_reachable_pairs))
+    ungrouped_non_reachable_pairs = []
+
+    for i,j in non_reachable_pairs:
+        if i in op_group_mapping and j in op_group_mapping and op_group_mapping[i] == op_group_mapping[j]:
+            continue
+        ungrouped_non_reachable_pairs.append((i,j))
+    topological_order = list(nx.topological_sort(graph))
+    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
+
+    #  scheduling inside each group follows topo sort since each node pair in non_reachable_pairs is calculated by this sort algorithm
+    for ops in group_ops_mapping.values():
+        ordered_list = sorted(ops, key=lambda node: topological_order_mapping[node])
+        for op_a, op_b in zip(ordered_list, ordered_list[1:]):
+            model.addConstr(finish[op_a] <= start[op_b])
+
     # Iterate over topologically sorted nodes
     for a, b in ungrouped_non_reachable_pairs:
         # For each consecutive pair of operators, add a constraint for each device
