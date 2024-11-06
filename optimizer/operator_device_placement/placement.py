@@ -18,7 +18,6 @@ from optimizer.operator_device_placement.random_placement import get_random_devi
 class PlacementGenerator(Enum):
     METIS = "METIS"
     RANDOM = "RANDOM"
-    TEST = "TEST"
     OPTIMIZED = "OPTIMIZED"
     OPTIMIZED_GROUPER = "OPTIMIZED_GROUPER"
     OPTIMIZED_HOMO = "OPTIMIZED_HOMO"
@@ -47,11 +46,6 @@ def get_placement_info(placement_type: str, comp_graph: CompGraph, device_topo: 
     elif placement_type == PlacementGenerator.OPTIMIZED_GROUPER.value:
         operator_device_mapping = get_optimize_placement_with_grouper(comp_graph, device_topo, M, model_type)
         edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
-
-    elif placement_type == PlacementGenerator.TEST.value:
-        operator_device_mapping = get_test_device_placement(comp_graph, device_topo)
-        edge_cut_list, edge_cut_weight_sum = identify_edges_cut(comp_graph, operator_device_mapping)
-        print("edge_cut_list", edge_cut_list)
 
     elif placement_type == PlacementGenerator.INCONTIGUOUS_METIS.value:
         operator_device_mapping = get_near_optimal_placement(comp_graph, device_topo)

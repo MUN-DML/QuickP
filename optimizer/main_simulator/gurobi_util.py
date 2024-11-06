@@ -31,12 +31,6 @@ def gurobi_setup(name: str):
 
 def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=TFModelEnum.SMALL) \
         -> Tuple[DeviceGraph, CompGraph]:
-    if model_type == TFModelEnum.TEST:
-        graph = get_test_graph_co_location()
-        deviceTopo = DeviceGraph()
-        deviceTopo.generata_fat_tree_topo(num_device, None, 20, 1)
-        return deviceTopo, graph
-
 
     # get the file path to retrieve and store
     name_mapper = {TFModelEnum.BERT: 'bert', TFModelEnum.ALEXNET: 'alexnet', TFModelEnum.VGG: 'vgg', TFModelEnum.SMALL: 'small', TFModelEnum.FNET: 'fnet'}
