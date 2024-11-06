@@ -7,49 +7,6 @@ from networkx.algorithms.flow import shortest_augmenting_path
 from optimizer.model.graph import CompGraph, DeviceGraph, visualize_graph
 
 
-def traverse_merge_loop_no_performance_degradation(comp_graph: CompGraph, device_topo: DeviceGraph):
-
-    def traverse_and_merge_no_performance_degradation(comp_graph: CompGraph, device_topo: DeviceGraph):
-        any_data_update = False
-        random_device = comp_graph.getDeviceList()[0]
-        # set is implemented by hashtable, fast deletion and adding
-        edges_to_process = set(comp_graph.edges())
-        while edges_to_process:
-            u, v = edges_to_process.pop()
-            if not comp_graph.is_edge_mergable(u, v):
-                continue
-            # Check if the edge is marked with the attribute 'ismerge'
-            # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
-            if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
-                data = comp_graph.merge_edge(u, v)
-            elif (comp_graph.getOperatorCompCostByDevice(u,random_device) == 0 and comp_graph.getOperatorCompCostByDevice(
-                    v, random_device) == 0):
-                data = comp_graph.merge_edge(u, v)
-            elif comp_graph.getOperatorCompCostByDevice(u, random_device) == 0 and comp_graph.out_degree(u) == 1:
-                data = comp_graph.merge_edge(u, v)
-            elif comp_graph.getOperatorCompCostByDevice(v, random_device) == 0 and comp_graph.in_degree(v) == 1:
-                data = comp_graph.merge_edge(u, v)
-            else:
-                data = None
-
-            if data:
-                new_edges, deleted_edges = data
-                edges_to_process -= deleted_edges
-                edges_to_process |= new_edges
-                if not any_data_update:
-                    any_data_update = True
-
-        assert nx.is_directed_acyclic_graph(comp_graph)
-        print("current op number", comp_graph.number_of_nodes())
-        return any_data_update
-
-
-    while True:
-        any_update = traverse_and_merge_no_performance_degradation(comp_graph, device_topo)
-        if not any_update:
-            break
-
-
 def traverse_merge_loop(comp_graph: CompGraph, device_topo: DeviceGraph):
     while True:
         any_update = traverse_and_merge(comp_graph, device_topo)
@@ -109,50 +66,6 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
             comp_graph.set_colocation_group(node, new_id)
 
 
-def get_longest_path(comp_graph, device_topo: DeviceGraph):
-    random_device = comp_graph.getDeviceList()[0]
-    slow_link = device_topo.get_slowest_link()
-    global_rank = {}
-    best_successor = {}  # To store the best successor of each node for path reconstruction
-    topo_sorted = list(nx.topological_sort(comp_graph))
-
-    for current_node in reversed(topo_sorted):
-        # Check if the current node has any predecessors
-        successors = list(comp_graph.successors(current_node))
-
-        if successors:  # If there are predecessors, compute the max computing cost
-            best_successor[current_node], max_suc_total_cost = max(
-                ((succ_node, global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node, succ_node)
-                  * device_topo.calUnitCommCostInUS(slow_link[0], slow_link[1])) for succ_node in successors),
-                key=lambda x: x[1]
-            )
-        else:  # If there are no predecessors, set the max computing cost to 0
-            max_suc_total_cost = 0
-            best_successor[current_node] = None  # No successor for sink nodes
-
-        # Calculate the global rank for the current node
-        global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
-                                                                                                random_device)
-
-    max_rank_node = max(global_rank, key=global_rank.get)
-
-    # Reconstruct the longest path using the best_successor dictionary
-    longest_path = []
-    current_node = max_rank_node
-
-    while current_node is not None:
-        longest_path.append(current_node)
-        current_node = best_successor[current_node]
-
-    print('fuck', longest_path)
-
-    new_id = hashlib.md5("&".join(longest_path).encode()).hexdigest()
-    for node in longest_path:
-        comp_graph.set_colocation_group(node, new_id)
-
-    return longest_path
-
-
 def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph, number_of_device):
     random_device = comp_graph.getDeviceList()[0]
     slow_link = device_topo.get_slowest_link()
@@ -178,7 +91,7 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         # Calculate the global rank for the current node
         global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
                                                                                                 random_device)
-
+    '''
     if False:
         edge_set = set()
         for node, best_succ in best_successor.items():
@@ -205,34 +118,34 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         visualize_graph(edge_subgraph, show_edge_labels=False, show_node_labels=False)
         wcc_node_sets = list(nx.weakly_connected_components(edge_subgraph))
         print("number of wcc in edge_subg", len(wcc_node_sets))
+    '''
 
-    else:
-        node_set = set()
-        for node, best_succ in best_successor.items():
-            if comp_graph.out_degree(node) > 1:
-                node_set.update([node, best_succ])
+    node_set = set()
+    for node, best_succ in best_successor.items():
+        if comp_graph.out_degree(node) > 1:
+            node_set.update([node, best_succ])
 
-        # find the correct way but need to update group computing cost
-        for i, j in comp_graph.edges:
-            if comp_graph.out_degree(i) <= 1 or {i, j}.issubset(node_set):
-                continue
-            if min(comp_graph.get_group_cost_by_node_set(succ, node_set) + comp_graph.getEdgeTensorSize(i,succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i)) >= sum(comp_graph.get_group_cost_by_node_set(succ, node_set) for succ in comp_graph.successors(i)):
-                print("added successors")
-                node_set.update(comp_graph.successors(i))
+    # find the correct way but need to update group computing cost
+    for i, j in comp_graph.edges:
+        if comp_graph.out_degree(i) <= 1 or {i, j}.issubset(node_set):
+            continue
+        if min(comp_graph.get_group_cost_by_node_set(succ, node_set) + comp_graph.getEdgeTensorSize(i,succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i)) >= sum(comp_graph.get_group_cost_by_node_set(succ, node_set) for succ in comp_graph.successors(i)):
+            print("added successors")
+            node_set.update(comp_graph.successors(i))
 
-        for i, j in comp_graph.edges:
-            if comp_graph.in_degree(j) <= 1 or {i, j}.issubset(node_set):
-                continue
-            if min(comp_graph.get_group_cost_by_node_set(pre, node_set) + comp_graph.getEdgeTensorSize(pre,j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j)) >= sum(comp_graph.get_group_cost_by_node_set(pre, node_set) for pre in comp_graph.predecessors(j)):
-                print("added predecessors")
-                node_set.update(comp_graph.predecessors(j))
+    for i, j in comp_graph.edges:
+        if comp_graph.in_degree(j) <= 1 or {i, j}.issubset(node_set):
+            continue
+        if min(comp_graph.get_group_cost_by_node_set(pre, node_set) + comp_graph.getEdgeTensorSize(pre,j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j)) >= sum(comp_graph.get_group_cost_by_node_set(pre, node_set) for pre in comp_graph.predecessors(j)):
+            print("added predecessors")
+            node_set.update(comp_graph.predecessors(j))
 
-        subgraph = comp_graph.subgraph(node_set)
-        print("number of nodes in subg", subgraph.number_of_nodes())
+    subgraph = comp_graph.subgraph(node_set)
+    print("number of nodes in subg", subgraph.number_of_nodes())
 
-        visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
-        wcc_node_sets = list(nx.weakly_connected_components(subgraph))
-        print("number of wcc in node_subgraph", len(wcc_node_sets))
+    visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
+    wcc_node_sets = list(nx.weakly_connected_components(subgraph))
+    print("number of wcc in node_subgraph", len(wcc_node_sets))
 
     for node_set in wcc_node_sets:
         new_id = hashlib.md5("&".join(node_set).encode()).hexdigest()

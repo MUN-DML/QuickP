@@ -13,7 +13,6 @@ from optimizer.main_simulator.gurobi_util import get_subgraph_op_num_weight_sum_
 from optimizer.operator_device_placement.optimal_homo.optimal_placement_with_grouper_homo import \
     get_optimize_placement_with_grouper_homo
 from optimizer.operator_device_placement.random_placement import get_random_device_placement
-from optimizer.operator_device_placement.test.test_placement import get_test_device_placement
 
 
 class PlacementGenerator(Enum):
