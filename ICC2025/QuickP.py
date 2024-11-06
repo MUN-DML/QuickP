@@ -1,11 +1,12 @@
 import argparse
 
+import networkx as nx
 from gurobipy import *
 from networkx import topological_sort
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, apply_all_co_location_constraint
-from optimizer.model.graph import CompGraph, visualize_graph
+from optimizer.model.graph import CompGraph, visualize_graph, find_non_connected_pairs
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight
 from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
 from optimizer.scheduling.scheduling import add_topo_order_constraints_with_grouper
@@ -100,8 +101,36 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
         model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID],
                         "" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"data_dependency_{source_op_ID}_{dest_op_ID}")
 
-    add_topo_order_constraints_with_grouper(model, comp_graph, x, deviceTopo.getDeviceIDs(), finish, start,
-                                            group_ops_mapping, M, model_type)
+
+    '''
+    Scheduling Part
+    '''
+    op_group_mapping = comp_graph.create_op_group_id_mapping()
+    non_reachable_pairs = find_non_connected_pairs(comp_graph)
+    ungrouped_non_reachable_pairs = []
+
+    for i, j in non_reachable_pairs:
+        if i in op_group_mapping and j in op_group_mapping and op_group_mapping[i] == op_group_mapping[j]:
+            continue
+        ungrouped_non_reachable_pairs.append((i, j))
+    topological_order = list(nx.topological_sort(comp_graph))
+    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
+
+    #  scheduling inside each group follows topo sort since each node pair in non_reachable_pairs is calculated by this sort algorithm
+    for ops in group_ops_mapping.values():
+        ordered_list = sorted(ops, key=lambda node: topological_order_mapping[node])
+        for op_a, op_b in zip(ordered_list, ordered_list[1:]):
+            model.addConstr(finish[op_a] <= start[op_b])
+
+    # Iterate over topologically sorted nodes
+    for a, b in ungrouped_non_reachable_pairs:
+        # For each consecutive pair of operators, add a constraint for each device
+        for device_id in deviceTopo.getDeviceIDs():
+            # Ensure the correct order for each potential device assignment
+            # This constraint will only apply if both a and b are assigned to the same device
+            model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]),
+                            name="" if model_type in [TFModelEnum.BERT,
+                                                      TFModelEnum.FNET] else f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -158,23 +187,16 @@ if __name__ == '__main__':
     # Dynamically access attributes using getattr
     model_type = getattr(TFModelEnum, args.model, None)
     weight_norm_function = getattr(WeightNormalizationFunction, args.normalization_function.upper(), None)
-    # sample_function = getattr(SamplingFunction, args.sampling.upper(), None)
 
     # init fake data
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=model_type)
     # init graph node/edge weight
     if model_type is not TFModelEnum.TEST:
         init_graph_weight(comp_graph, NodeWeightFunction.AVE_COMP_COST, EdgeWeightFunction.SOURCE_OUTPUT_TENSOR, weight_norm_function)
+    # op-fusion
+    traverse_merge_loop(comp_graph, deviceTopo)
     # apply co-location grouper
-    # the merge will should incremental
-    if args.placement == 'OPTIMIZED':
-        traverse_merge_loop(comp_graph, deviceTopo)
-    if args.placement in ['OPTIMIZED_GROUPER', 'OPTIMIZED_GROUPER_HOMO']:
-        traverse_merge_loop(comp_graph, deviceTopo)
-        apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
-        visualize_graph(comp_graph, False, False)
+    apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
+    visualize_graph(comp_graph, False, False)
 
     QuickP(comp_graph, deviceTopo, )
-    simulate(comp_graph, deviceTopo,
-             scheduling_function=args.scheduling,
-             placement = args.placement)
