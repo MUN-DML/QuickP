@@ -17,7 +17,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
 from optimizer.main_simulator.gurobi_util import gurobi_setup, show_optimization_solution, \
-    init_computing_and_device_graph
+    init_computing_and_device_graph, get_proper_M
 
 
 def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
@@ -159,7 +159,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, None)
+        # show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, None)
         print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep='')
         print('Expected Training time = ', model.ObjVal, 's', sep='')
         operator_device_mapping = get_operator_device_mapping_through_x(x)
@@ -191,4 +191,4 @@ if __name__ == '__main__':
     apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
     visualize_graph(comp_graph, False, False)
 
-    QuickP(comp_graph, deviceTopo, )
+    QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
