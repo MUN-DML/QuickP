@@ -175,12 +175,6 @@ if __name__ == '__main__':
     # TEST SMALL
     parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
-    # NEAR_OPTIMAL OPTIMIZED METIS TEST OPTIMIZED_HOMO OPTIMIZED_GROUPER
-    # IN homo env and the scheduling is set to optimized, OPTIMIZED should behave the same as OPTIMIZED_HOMO
-    parser.add_argument('--placement', default='OPTIMIZED_GROUPER', type=str, help='')
-    # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL SAMPLING_NEAR_OPTIMAL THREE_STAGE
-    # DOOOOOOOOO NOT USE ANY SCHEDULING EXCEPT FOR "OPTIMIZED" WITHIN OPTIMIZED/OPTIMIZED_GROUPER PLACEMENT SINCE IT WILL ONLY MAKE THE PERFORMANCE WORSE
-    parser.add_argument('--scheduling', default='PRIORITY_HETEROG', type=str, help='')
 
     args = parser.parse_args()
 
@@ -188,11 +182,9 @@ if __name__ == '__main__':
     model_type = getattr(TFModelEnum, args.model, None)
     weight_norm_function = getattr(WeightNormalizationFunction, args.normalization_function.upper(), None)
 
-    # init fake data
+    # init deviceTopo and comp_graph
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=model_type)
-    # init graph node/edge weight
-    if model_type is not TFModelEnum.TEST:
-        init_graph_weight(comp_graph, NodeWeightFunction.AVE_COMP_COST, EdgeWeightFunction.SOURCE_OUTPUT_TENSOR, weight_norm_function)
+
     # op-fusion
     traverse_merge_loop(comp_graph, deviceTopo)
     # apply co-location grouper
