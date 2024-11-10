@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 from typing import Any
@@ -65,11 +66,13 @@ def metis_partition(graph: CompGraph, num_partitions: int, visualization=False,
 
     # Convert the DiGraph to an undirected graph for partitioning
     G_undirected = graph_copy.to_undirected()
-
+    beginning_time = datetime.datetime.now()
     metis_graph = metis.networkx_to_metis(G_undirected)
 
     # Perform graph partitioning using METIS
     edgecuts, parts = metis.part_graph(metis_graph, nparts=num_partitions, tpwgts=sub_graph_weight_sum_ratio)
+    ending_time = datetime.datetime.now()
+    print("metis run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     # Assign partition labels to the original DiGraph nodes {node_id: placement_index}
     partition_dict = {node: part for node, part in zip(graph_copy.nodes(), parts)}
 
