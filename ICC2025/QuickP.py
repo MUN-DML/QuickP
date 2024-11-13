@@ -178,6 +178,7 @@ if __name__ == '__main__':
     # TEST SMALL
     parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
+    parser.add_argument('--alpha', type=int, default=200)
 
     args = parser.parse_args()
 
@@ -189,7 +190,7 @@ if __name__ == '__main__':
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=model_type)
 
     # op-fusion
-    traverse_merge_loop(comp_graph, deviceTopo)
+    traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
     # apply co-location grouper
     apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
     visualize_graph(comp_graph, False, False)
