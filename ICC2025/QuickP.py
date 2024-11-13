@@ -1,4 +1,5 @@
 import argparse
+import datetime
 
 import networkx as nx
 from gurobipy import *
@@ -190,7 +191,10 @@ if __name__ == '__main__':
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=model_type)
 
     # op-fusion
+    beginning_time = datetime.datetime.now()
     traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
+    ending_time = datetime.datetime.now()
+    print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     # apply co-location grouper
     apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
     visualize_graph(comp_graph, False, False)
