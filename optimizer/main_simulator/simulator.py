@@ -155,7 +155,7 @@ if __name__ == '__main__':
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL SAMPLING_NEAR_OPTIMAL THREE_STAGE
     # DOOOOOOOOO NOT USE ANY SCHEDULING EXCEPT FOR "OPTIMIZED" WITHIN OPTIMIZED/OPTIMIZED_GROUPER PLACEMENT SINCE IT WILL ONLY MAKE THE PERFORMANCE WORSE
     parser.add_argument('--scheduling', default='PRIORITY_HETEROG', type=str, help='')
-    parser.add_argument('--alpha', type=int, default=300)
+    parser.add_argument('--alpha', type=int, default=200)
 
     args = parser.parse_args()
 
