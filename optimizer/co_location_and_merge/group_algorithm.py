@@ -7,14 +7,14 @@ from networkx.algorithms.flow import shortest_augmenting_path
 from optimizer.model.graph import CompGraph, DeviceGraph, visualize_graph
 
 
-def traverse_merge_loop(comp_graph: CompGraph, device_topo: DeviceGraph):
+def traverse_merge_loop(comp_graph: CompGraph, device_topo: DeviceGraph, alpha: int):
     while True:
-        any_update = traverse_and_merge(comp_graph, device_topo)
+        any_update = traverse_and_merge(comp_graph, device_topo, alpha)
         if not any_update:
             break
 
 
-def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
+def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph, alpha: int):
     any_data_update = False
     random_device = comp_graph.getDeviceList()[0]
     fast_link = device_topo.get_fastest_link()
@@ -28,11 +28,11 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph):
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
             data = comp_graph.merge_edge(u, v)
-        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) < 200 and comp_graph.getOperatorCompCostByDevice(v, random_device) < 200):
+        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) < alpha and comp_graph.getOperatorCompCostByDevice(v, random_device) < alpha):
             data = comp_graph.merge_edge(u, v)
-        elif comp_graph.getOperatorCompCostByDevice(u, random_device) < 200  and comp_graph.out_degree(u) == 1:
+        elif comp_graph.getOperatorCompCostByDevice(u, random_device) < alpha  and comp_graph.out_degree(u) == 1:
             data = comp_graph.merge_edge(u, v)
-        elif comp_graph.getOperatorCompCostByDevice(v, random_device) <200 and comp_graph.in_degree(v) == 1:
+        elif comp_graph.getOperatorCompCostByDevice(v, random_device) < alpha and comp_graph.in_degree(v) == 1:
             data = comp_graph.merge_edge(u, v)
         else:
             data = None

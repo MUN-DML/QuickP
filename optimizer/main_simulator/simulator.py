@@ -149,12 +149,13 @@ if __name__ == '__main__':
     # ALEXNET VGG BERT FNET
     parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
-    # NEAR_OPTIMAL OPTIMIZED METIS TEST OPTIMIZED_HOMO OPTIMIZED_GROUPER
+    # OPTIMIZED METIS OPTIMIZED_HOMO OPTIMIZED_GROUPER
     # IN homo env and the scheduling is set to optimized, OPTIMIZED should behave the same as OPTIMIZED_HOMO
     parser.add_argument('--placement', default='OPTIMIZED_GROUPER', type=str, help='')
     # PRIORITY_HETEROG  PRIORITY_MIN_COMP OPTIMIZED FIFO NEAR_OPTIMAL SAMPLING_NEAR_OPTIMAL THREE_STAGE
     # DOOOOOOOOO NOT USE ANY SCHEDULING EXCEPT FOR "OPTIMIZED" WITHIN OPTIMIZED/OPTIMIZED_GROUPER PLACEMENT SINCE IT WILL ONLY MAKE THE PERFORMANCE WORSE
     parser.add_argument('--scheduling', default='PRIORITY_HETEROG', type=str, help='')
+    parser.add_argument('--alpha', type=int, default=300)
 
     args = parser.parse_args()
 
@@ -169,10 +170,8 @@ if __name__ == '__main__':
     init_graph_weight(comp_graph, NodeWeightFunction.AVE_COMP_COST, EdgeWeightFunction.SOURCE_OUTPUT_TENSOR, weight_norm_function)
     # apply co-location grouper
     # the merge will should incremental
-    if args.placement == 'OPTIMIZED':
-        traverse_merge_loop(comp_graph, deviceTopo)
     if args.placement in ['OPTIMIZED_GROUPER', 'OPTIMIZED_GROUPER_HOMO']:
-        traverse_merge_loop(comp_graph, deviceTopo)
+        traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
         apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
         visualize_graph(comp_graph, False, False)
     simulate(comp_graph, deviceTopo,
