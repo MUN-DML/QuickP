@@ -447,6 +447,17 @@ class CompGraph(DiGraph):
         # if ungrouped
         return self.getOperatorCompCostByDevice(node_id, random_device)
 
+    def visualize_sparse_graph(self):
+        # sudo apt-get install graphviz graphviz-dev
+        # pip install pygraphviz
+        H = nx.convert_node_labels_to_integers(self, label_attribute="node_label")
+        H_layout = nx.nx_agraph.pygraphviz_layout(H, prog="dot")
+        G_layout = {H.nodes[n]["node_label"]: p for n, p in H_layout.items()}
+        # Draw the graph using a hierarchical layout
+        # pos = nx.nx_agraph.graphviz_layout(comp_graph, prog='dot')  # Horizontal layout
+        plt.figure(figsize=(20, 10))  # Adjust size for readability
+        nx.draw(self, G_layout, with_labels=False, node_size=10, arrowsize=5)
+        plt.show()
 
     def __str__(self):
         nodes_str = "\n".join(
