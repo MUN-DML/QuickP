@@ -470,7 +470,9 @@ class CompGraph(DiGraph):
         # Draw the graph using a hierarchical layout
         # pos = nx.nx_agraph.graphviz_layout(comp_graph, prog='dot')  # Horizontal layout
         plt.figure(figsize=(20, 10))  # Adjust size for readability
-        nx.draw(self, G_layout, with_labels=False, node_size=100, arrowsize=5)
+        # Define a color map (repeat if necessary for larger graphs)
+        node_colors = ['skyblue' if node.startswith("gradient_tape") else 'purple' for node in self.nodes]
+        nx.draw(self, G_layout, with_labels=False, node_size=100, arrowsize=5, node_color=node_colors)
         plt.show()
 
 
