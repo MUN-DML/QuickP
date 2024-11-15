@@ -447,7 +447,7 @@ class CompGraph(DiGraph):
         # if ungrouped
         return self.getOperatorCompCostByDevice(node_id, random_device)
 
-    def visualize_sparse_graph(self):
+    def visualize_graphviz(self):
         # sudo apt-get install graphviz graphviz-dev
         # pip install pygraphviz
         H = nx.convert_node_labels_to_integers(self, label_attribute="node_label")
@@ -457,6 +457,16 @@ class CompGraph(DiGraph):
         # pos = nx.nx_agraph.graphviz_layout(comp_graph, prog='dot')  # Horizontal layout
         plt.figure(figsize=(20, 10))  # Adjust size for readability
         nx.draw(self, G_layout, with_labels=False, node_size=10, arrowsize=5)
+        plt.show()
+
+
+    def visualize_kamada_kawai(self):
+        pos = nx.kamada_kawai_layout(self)
+
+        # Draw the graph
+        plt.figure(figsize=(10, 10))
+        nx.draw(self, pos, with_labels=False, node_size=100, node_color="skyblue", edge_color="gray")
+        plt.title("Kamada-Kawai Layout")
         plt.show()
 
     def __str__(self):
