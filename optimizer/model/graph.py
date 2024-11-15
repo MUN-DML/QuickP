@@ -451,12 +451,18 @@ class CompGraph(DiGraph):
         # sudo apt-get install graphviz graphviz-dev
         # pip install pygraphviz
         H = nx.convert_node_labels_to_integers(self, label_attribute="node_label")
-        H_layout = nx.nx_agraph.pygraphviz_layout(H, prog="dot")
+        '''
+        -Grankdir=LR: Sets the layout direction to left-to-right (horizontal).
+        -Gnodesep=0.5: Increases the minimum space between nodes horizontally.
+        -Granksep=1.0: Adds more space between ranks (vertically in top-to-bottom, or horizontally in left-to-right layouts).
+        -Goverlap=false: Attempts to automatically adjust node positions to avoid overlaps.
+        '''
+        H_layout = nx.nx_agraph.pygraphviz_layout(H, prog="dot", args="-Grankdir=LR -Gnodesep=0.5 -Granksep=1.0 -Goverlap=false -Gmindist=1")
         G_layout = {H.nodes[n]["node_label"]: p for n, p in H_layout.items()}
         # Draw the graph using a hierarchical layout
         # pos = nx.nx_agraph.graphviz_layout(comp_graph, prog='dot')  # Horizontal layout
         plt.figure(figsize=(20, 10))  # Adjust size for readability
-        nx.draw(self, G_layout, with_labels=False, node_size=10, arrowsize=5)
+        nx.draw(self, G_layout, with_labels=False, node_size=100, arrowsize=5)
         plt.show()
 
 
