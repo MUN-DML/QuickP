@@ -452,12 +452,20 @@ class CompGraph(DiGraph):
         # pip install pygraphviz
         H = nx.convert_node_labels_to_integers(self, label_attribute="node_label")
         '''
+        prog
+        dot: Best for directed, hierarchical graphs (e.g., DAGs). Produces a layered layout and is ideal for showing a flow with ranks.
+        neato: For undirected graphs. Uses a spring-model layout, suitable for general-purpose layouts.
+        fdp: Similar to neato, but for larger undirected graphs. Uses a force-directed placement.
+        sfdp: A multiscale version of fdp for very large undirected graphs, good for visualizing large graphs quickly.
+        twopi: Produces a radial layout, with a specified root node at the center.
+        circo: Creates a circular layout, arranging nodes in a circle.
+        args
         -Grankdir=LR: Sets the layout direction to left-to-right (horizontal).
         -Gnodesep=0.5: Increases the minimum space between nodes horizontally.
         -Granksep=1.0: Adds more space between ranks (vertically in top-to-bottom, or horizontally in left-to-right layouts).
         -Goverlap=false: Attempts to automatically adjust node positions to avoid overlaps.
         '''
-        H_layout = nx.nx_agraph.pygraphviz_layout(H, prog="dot", args="-Grankdir=LR -Gnodesep=0.5 -Granksep=1.0 -Goverlap=false -Gmindist=1")
+        H_layout = nx.nx_agraph.pygraphviz_layout(H, prog="sfdp", args="-Grankdir=LR -Gnodesep=0.5 -Granksep=1.0 -Goverlap=false -Gmindist=1")
         G_layout = {H.nodes[n]["node_label"]: p for n, p in H_layout.items()}
         # Draw the graph using a hierarchical layout
         # pos = nx.nx_agraph.graphviz_layout(comp_graph, prog='dot')  # Horizontal layout
