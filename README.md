@@ -10,3 +10,22 @@ co-location schemes to reduce the search space while minimizing subsequent perfo
 enabling efficient device placement. We evaluate the performance of our design with real-world DNN benchmarks, and the 
 results show that, compared to state-of-the-art approaches, our design achieves up to a 32\% reduction in DNN training 
 latency and an order-of-magnitude improvement in placement search latency.
+
+## Hardware dependency
+
+## Installation
+
+### Install Gurobi certificate. 
+This solution requires the solver Gurobi to be installed and have an active license that students can apply for free
+
+### Run steps
+First, clone the HeteroG project and the submodule of it from repo:
+
+Then, step into the ICC2025 folder:
+`cd ICC2025`
+
+Then, enter QuickP.py and adjust input parameters:
+number_of_device (integer): number of GPUs,
+model (string): DNN model name,
+alpha (integer): merging threshold for operator fusion,
+
