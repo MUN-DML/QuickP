@@ -753,6 +753,7 @@ def find_non_connected_pairs(G):
 
     # Generate all unique pairs of nodes
     all_nodes = list(nx.topological_sort(G))
+    topological_order_mapping = {node: index for index, node in enumerate(all_nodes)}
     pairs = combinations(all_nodes, 2)
 
     # Filter pairs to find non-connected pairs
@@ -761,7 +762,7 @@ def find_non_connected_pairs(G):
         if not TC.has_edge(node1, node2) and not TC.has_edge(node2, node1)
     ]
 
-    return non_connected_pairs
+    return non_connected_pairs, topological_order_mapping
 
 
 # Function to check if two nodes are not connected
