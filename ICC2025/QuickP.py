@@ -175,7 +175,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=6)
+    parser.add_argument('--number_of_device', type=int, default=2)
     # TEST SMALL
     parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
@@ -197,6 +197,6 @@ if __name__ == '__main__':
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     # apply co-location grouper
     apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
-    visualize_graph(comp_graph, False, False)
+    comp_graph.visualize_graphviz()
 
     QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
