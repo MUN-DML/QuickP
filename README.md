@@ -20,16 +20,14 @@ This solution requires the solver Gurobi to be installed and have an active lice
 
 ### Run steps
 First, clone this project and the submodule of it from repo using SSH:
+
 `git clone git@github.com:MUN-DML/QuickP.git`
 
 Then, step into the ICC2025 folder:
+
 `cd ICC2025`
 
 Then, enter QuickP.py and adjust input parameters:
 * `number_of_device` (integer): number of GPUs,
-* `model` (string): DNN model name:
-  * `ALEXNET`,
-  * `VGG`,
-  * `FNET`,
-  * `BERT`
+* `model` (string): DNN model name: `ALEXNET`, `VGG`, `FNET`, `BERT`
 * `alpha` (integer): merging threshold for operator fusion,
