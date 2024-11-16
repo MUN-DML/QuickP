@@ -143,7 +143,7 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
     subgraph = comp_graph.subgraph(node_set)
     print("number of nodes in subg", subgraph.number_of_nodes())
 
-    visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
+    subgraph.visualize_graphviz()
     wcc_node_sets = list(nx.weakly_connected_components(subgraph))
     print("number of wcc in node_subgraph", len(wcc_node_sets))
 
