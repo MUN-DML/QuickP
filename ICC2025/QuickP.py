@@ -4,16 +4,16 @@ import datetime
 from gurobipy import *
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
+from ICC2025.util_quickp import show_quick_p_result
 from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, apply_all_co_location_constraint
-from optimizer.model.graph import CompGraph, visualize_graph, find_non_connected_pairs
+from optimizer.model.graph import CompGraph, find_non_connected_pairs
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, '..', '..'))
 sys.path.append(project_root)
-from optimizer.main_simulator.gurobi_util import gurobi_setup, show_optimization_solution, \
-    init_computing_and_device_graph, get_proper_M
+from optimizer.main_simulator.gurobi_util import gurobi_setup, init_computing_and_device_graph, get_proper_M
 
 
 def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
@@ -153,7 +153,8 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        # show_optimization_solution(model, x, comp_graph, deviceTopo, start, finish, None)
+        placement = get_operator_device_mapping_through_x(x)
+        show_quick_p_result(model, placement, start, finish, homo_op_cost_dict)
         print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep='')
         print('Expected Training time = ', model.ObjVal, 's', sep='')
         print(f"This is the optimal solution of such configuration: \n"
