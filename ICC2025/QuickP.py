@@ -1,16 +1,11 @@
 import argparse
 import datetime
 
-import networkx as nx
 from gurobipy import *
-from networkx import topological_sort
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, apply_all_co_location_constraint
 from optimizer.model.graph import CompGraph, visualize_graph, find_non_connected_pairs
-from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight
-from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
-from optimizer.scheduling.scheduling import add_topo_order_constraints_with_grouper
 
 os.environ['GRB_LICENSE_FILE'] = '/home/hola/solverLicense/gurobi.lic'
 
@@ -173,17 +168,15 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=2)
+    parser.add_argument('--number_of_device', type=int, default=6)
     # TEST SMALL
     parser.add_argument('--model', type=str, default='ALEXNET')
-    parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
     parser.add_argument('--alpha', type=int, default=200)
 
     args = parser.parse_args()
 
     # Dynamically access attributes using getattr
     model_type = getattr(TFModelEnum, args.model, None)
-    weight_norm_function = getattr(WeightNormalizationFunction, args.normalization_function.upper(), None)
 
     # init deviceTopo and comp_graph
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=model_type)
