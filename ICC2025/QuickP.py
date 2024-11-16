@@ -107,15 +107,13 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     Scheduling Part
     '''
     op_group_mapping = comp_graph.create_op_group_id_mapping()
-    non_reachable_pairs = find_non_connected_pairs(comp_graph)
+    non_reachable_pairs, topological_order_mapping = find_non_connected_pairs(comp_graph)
     ungrouped_non_reachable_pairs = []
 
     for i, j in non_reachable_pairs:
         if i in op_group_mapping and j in op_group_mapping and op_group_mapping[i] == op_group_mapping[j]:
             continue
         ungrouped_non_reachable_pairs.append((i, j))
-    topological_order = list(nx.topological_sort(comp_graph))
-    topological_order_mapping = {node: index for index, node in enumerate(topological_order)}
 
     #  scheduling inside each group follows topo sort since each node pair in non_reachable_pairs is calculated by this sort algorithm
     for ops in group_ops_mapping.values():
