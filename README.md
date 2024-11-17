@@ -35,3 +35,7 @@ Then, enter QuickP.py and adjust input parameters:
 * `number_of_device` (integer): number of GPUs,
 * `model` (string): DNN model name: `ALEXNET`, `VGG`, `FNET`, `BERT`
 * `alpha` (integer): merging threshold for operator fusion,
+
+Finally, make sure your current working directory is ICC2025 and run QuickP.py
+
+`python QuickP.py`
