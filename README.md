@@ -27,6 +27,10 @@ Then, step into the ICC2025 folder:
 
 `cd ICC2025`
 
+Configure the environment variable for Gurobi license
+
+`os.environ['GRB_LICENSE_FILE'] = 'your_path/gurobi.lic'`
+
 Then, enter QuickP.py and adjust input parameters:
 * `number_of_device` (integer): number of GPUs,
 * `model` (string): DNN model name: `ALEXNET`, `VGG`, `FNET`, `BERT`
