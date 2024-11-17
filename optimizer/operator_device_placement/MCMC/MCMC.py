@@ -3,9 +3,9 @@ import datetime
 import random
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from baseline.MCMC.cost_model import evaluate_mcmc
+from optimizer.operator_device_placement.MCMC.cost_model import evaluate_mcmc
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph, get_proper_M
-from optimizer.model.graph import CompGraph, find_non_connected_pairs
+from optimizer.model.graph import CompGraph
 from optimizer.operator_device_placement.metis.subgraph_util import WeightNormalizationFunction, init_graph_weight, \
     construct_sub_graph
 from optimizer.operator_device_placement.metis.weight_functions import NodeWeightFunction, EdgeWeightFunction
