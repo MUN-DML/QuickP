@@ -18,14 +18,6 @@ from optimizer.main_simulator.gurobi_util import gurobi_setup, init_computing_an
 
 def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
 
-    def get_operator_device_mapping_through_x(x):
-        mapping = {}
-        for (operator_id, device_id), var in x.items():
-            # Check if the variable has a value of 1 (operator is assigned to device)
-            if var.X > 0.5:  # Since the variable is binary, this checks if it is assigned
-                mapping[operator_id] = device_id
-        return mapping
-
     # Init solver
     model = gurobi_setup("minimize_maxload")
 
@@ -153,15 +145,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        placement = get_operator_device_mapping_through_x(x)
-        show_quick_p_result(model, placement, start, finish, homo_op_cost_dict)
-        print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep='')
-        print('Expected Training time = ', model.ObjVal, 's', sep='')
-        print(f"This is the optimal solution of such configuration: \n"
-              f"model type: {model_type} \n"
-              f"number of operators: {comp_graph.number_of_nodes()} \n"
-              f"number of devices: {deviceTopo.number_of_nodes()} \n"
-              f"The environment is homogenous")
+        show_quick_p_result(model, x, start, finish, homo_op_cost_dict, model_type, comp_graph, deviceTopo)
         del model
         disposeDefaultEnv()
     else:
