@@ -13,4 +13,3 @@ class TFModelEnum(Enum):
     ALEXNET = alexnet
     BERT = bert
     FNET = fnet
-    TEST = "TEST"
