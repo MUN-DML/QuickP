@@ -22,13 +22,13 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph, alpha: i
     edges_to_process = set(comp_graph.edges())
     while edges_to_process:
         u, v = edges_to_process.pop()
+        if comp_graph.out_degree(u) >= 2 and comp_graph.in_degree(v) >= 2:
+            continue
         if not comp_graph.is_edge_mergable(u, v):
             continue
         # Check if the edge is marked with the attribute 'ismerge'
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
-            data = comp_graph.merge_edge(u, v)
-        elif (comp_graph.getOperatorCompCostByDevice(u, random_device) < alpha and comp_graph.getOperatorCompCostByDevice(v, random_device) < alpha):
             data = comp_graph.merge_edge(u, v)
         elif comp_graph.getOperatorCompCostByDevice(u, random_device) < alpha  and comp_graph.out_degree(u) == 1:
             data = comp_graph.merge_edge(u, v)
@@ -118,27 +118,13 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         print("number of wcc in edge_subg", len(wcc_node_sets))
     '''
 
-    node_set = set()
+    edge_set = set()
     for node, best_succ in best_successor.items():
         if comp_graph.out_degree(node) > 1:
-            node_set.update([node, best_succ])
+            edge_set.add((node, best_succ))
 
-    # find the correct way but need to update group computing cost
-    for i, j in comp_graph.edges:
-        if comp_graph.out_degree(i) <= 1 or {i, j}.issubset(node_set):
-            continue
-        if min(comp_graph.get_group_cost_by_node_set(succ, node_set) + comp_graph.getEdgeTensorSize(i,succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i)) >= sum(comp_graph.get_group_cost_by_node_set(succ, node_set) for succ in comp_graph.successors(i)):
-            print("added successors")
-            node_set.update(comp_graph.successors(i))
 
-    for i, j in comp_graph.edges:
-        if comp_graph.in_degree(j) <= 1 or {i, j}.issubset(node_set):
-            continue
-        if min(comp_graph.get_group_cost_by_node_set(pre, node_set) + comp_graph.getEdgeTensorSize(pre,j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j)) >= sum(comp_graph.get_group_cost_by_node_set(pre, node_set) for pre in comp_graph.predecessors(j)):
-            print("added predecessors")
-            node_set.update(comp_graph.predecessors(j))
-
-    subgraph = comp_graph.subgraph(node_set)
+    subgraph = comp_graph.edge_subgraph(edge_set)
     print("number of nodes in subg", subgraph.number_of_nodes())
 
     # subgraph.visualize_graphviz()
