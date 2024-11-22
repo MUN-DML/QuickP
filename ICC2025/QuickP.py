@@ -11,7 +11,8 @@ sys.path.append(project_root)
 from optimizer.main_simulator.gurobi_util import gurobi_setup, init_computing_and_device_graph, get_proper_M
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from ICC2025.util_quickp import show_quick_p_result
-from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, apply_all_co_location_constraint
+from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, apply_all_co_location_constraint, \
+    fuse_weakly_connected_components
 from optimizer.model.graph import CompGraph, find_non_connected_pairs
 
 
@@ -171,7 +172,9 @@ if __name__ == '__main__':
     ending_time = datetime.datetime.now()
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     # apply co-location grouper
-    apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
+    wcc_node_set = apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
+    # fuse weakly connected component
+    fuse_weakly_connected_components(comp_graph, wcc_node_set)
     # comp_graph.visualize_graphviz()
 
     QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)

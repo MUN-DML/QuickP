@@ -136,26 +136,8 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
         for node in node_set:
             comp_graph.set_colocation_group(node, new_id)
 
+    return wcc_node_sets
 
-def min_rank_calculation(comp_graph: CompGraph, device_topo: DeviceGraph):
-    random_device = comp_graph.getDeviceList()[0]
-    fast_link = device_topo.get_fastest_link()
-    global_rank = {}
-    topo_sorted = list(nx.topological_sort(comp_graph))
-
-    for current_node in reversed(topo_sorted):
-        # Check if the current node has any predecessors
-        successors = list(comp_graph.successors(current_node))
-
-        if successors:  # If there are predecessors, compute the max computing cost
-            min_suc_total_cost = min(global_rank[succ_node] + comp_graph.getEdgeTensorSize(current_node, succ_node)*
-                                     device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1])
-                                     for succ_node in successors)
-
-        else:  # If there are no predecessors, set the max computing cost to 0
-            min_suc_total_cost = 0
-
-        # Calculate the global rank for the current node
-        global_rank[current_node] = min_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
-                                                                                                random_device)
-        comp_graph.nodes[current_node]["shortest_path_cost"] = global_rank[current_node]
+def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):
+    for set in node_sets:
+        wcc_graph = computation_graph.subgraph(set)
