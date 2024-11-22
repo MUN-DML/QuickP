@@ -24,8 +24,6 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph, alpha: i
         u, v = edges_to_process.pop()
         if comp_graph.out_degree(u) >= 2 and comp_graph.in_degree(v) >= 2:
             continue
-        if not comp_graph.is_edge_mergable(u, v):
-            continue
         # Check if the edge is marked with the attribute 'ismerge'
         # if (self.getOperatorCompCostByDevice(u, random_device) == 0 or self.getOperatorCompCostByDevice(v, random_device) == 0) and (self.out_degree(u) == 1 ):
         if comp_graph.out_degree(u) + comp_graph.in_degree(v) == 2:
@@ -89,40 +87,11 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
             best_successor[current_node] = None  # No successor for sink nodes
 
         # Calculate the global rank for the current node
-        global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node,
-                                                                                                random_device)
-    '''
-    if False:
-        edge_set = set()
-        for node, best_succ in best_successor.items():
-            if comp_graph.out_degree(node) > 1:
-                edge_set.add((node, best_succ))
-
-        # find the correct way but need to update group computing cost
-        for i, j in comp_graph.edges:
-            if comp_graph.out_degree(i) <= 1 or (i, j) in edge_set:
-                continue
-            if min(comp_graph.get_group_cost_by_edge_set(succ, edge_set) + comp_graph.getEdgeTensorSize(i,succ) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for succ in comp_graph.successors(i)) >= sum(comp_graph.get_group_cost_by_edge_set(succ, edge_set) for succ in comp_graph.successors(i)):
-                edge_set.update(comp_graph.out_edges(i))
-
-        for i, j in comp_graph.edges:
-            if comp_graph.in_degree(j) <= 1 or (i, j) in edge_set:
-                continue
-            if min(comp_graph.get_group_cost_by_edge_set(pre, edge_set) + comp_graph.getEdgeTensorSize(pre,j) * device_topo.calUnitCommCostInUS(fast_link[0], fast_link[1]) for pre in comp_graph.predecessors(j)) >= sum(comp_graph.get_group_cost_by_edge_set(pre, edge_set) for pre in comp_graph.predecessors(j)):
-                edge_set.update(comp_graph.in_edges(j))
-
-        edge_subgraph = comp_graph.edge_subgraph(edge_set)
-        print("number of nodes in edge-subg", edge_subgraph.number_of_nodes())
-        visualize_graph(edge_subgraph, show_edge_labels=False, show_node_labels=False)
-        wcc_node_sets = list(nx.weakly_connected_components(edge_subgraph))
-        print("number of wcc in edge_subg", len(wcc_node_sets))
-    '''
-
+        global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node, random_device)
     edge_set = set()
     for node, best_succ in best_successor.items():
         if comp_graph.out_degree(node) > 1:
             edge_set.add((node, best_succ))
-
 
     subgraph = comp_graph.edge_subgraph(edge_set)
     print("number of nodes in subg", subgraph.number_of_nodes())
@@ -140,4 +109,8 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
 
 def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):
     for set in node_sets:
-        wcc_graph = computation_graph.subgraph(set)
+        wcc_graph: CompGraph = computation_graph.subgraph(set)
+        # wcc_graph.visualize_graphviz()
+        for edge in wcc_graph.edges():
+            pass
+

@@ -155,7 +155,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=2)
     # TEST SMALL
-    parser.add_argument('--model', type=str, default='FNET')
+    parser.add_argument('--model', type=str, default='ALEXNET')
     parser.add_argument('--alpha', type=int, default=200)
 
     args = parser.parse_args()
