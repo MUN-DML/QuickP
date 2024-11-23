@@ -88,6 +88,7 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
 
         # Calculate the global rank for the current node
         global_rank[current_node] = max_suc_total_cost + comp_graph.getOperatorCompCostByDevice(current_node, random_device)
+
     edge_set = set()
     for node, best_succ in best_successor.items():
         if comp_graph.out_degree(node) > 1:
@@ -108,9 +109,15 @@ def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceG
     return wcc_node_sets
 
 def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):
-    for set in node_sets:
-        wcc_graph: CompGraph = computation_graph.subgraph(set)
-        # wcc_graph.visualize_graphviz()
-        for edge in wcc_graph.edges():
-            pass
+    for node_set in node_sets:
+        wcc_graph: CompGraph = computation_graph.subgraph(node_set)
+        edges_to_process = set(wcc_graph.edges())
+        while edges_to_process:
+            u, v = edges_to_process.pop()
+            if computation_graph.is_edge_mergable(u, v):
+                data = computation_graph.merge_edge(u, v)
+                if data:
+                    new_edges, deleted_edges = data
+                    edges_to_process -= deleted_edges
+
 
