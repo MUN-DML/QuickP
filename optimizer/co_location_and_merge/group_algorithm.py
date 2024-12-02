@@ -118,6 +118,10 @@ def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):
                 data = computation_graph.merge_edge(u, v)
                 if data:
                     new_edges, deleted_edges = data
+                    for a, b in new_edges:
+                        if all("colocation_group" in computation_graph.nodes[node] for node in (a, b)):
+                            if computation_graph.get_colocation_group(a) == computation_graph.get_colocation_group(b):
+                                edges_to_process.add((a, b))
                     edges_to_process -= deleted_edges
-
+    print("current op number", computation_graph.number_of_nodes())
 
