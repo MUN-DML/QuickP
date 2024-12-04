@@ -231,7 +231,7 @@ class CompGraph(DiGraph):
             if group_id:
                 colocation_group_map[group_id].append(op_id)
         colocation_group_map = {key: value for key, value in colocation_group_map.items() if len(value) > 1}
-        return dict(colocation_group_map)
+        return colocation_group_map
 
     def create_op_group_id_mapping(self):
         map = self.create_colocation_group_to_ops_map()
