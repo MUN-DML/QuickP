@@ -230,18 +230,15 @@ class CompGraph(DiGraph):
             # every node should have colocation group
             if group_id:
                 colocation_group_map[group_id].append(op_id)
-        # {'':list(op_graph.nodes)[0:40], '1': list(op_graph.nodes)[41:80], '2': list(op_graph.nodes)[80:121]}
-        # {'':list(op_graph.nodes)[0:600], '1': list(op_graph.nodes)[601:1200], '2': list(op_graph.nodes)[1201:1600]}
+        colocation_group_map = {key: value for key, value in colocation_group_map.items() if len(value) > 1}
         return dict(colocation_group_map)
 
     def create_op_group_id_mapping(self):
+        map = self.create_colocation_group_to_ops_map()
         op_group_map = {}
 
-        for op_id, op_data in self.nodes(data=True):
-            # Check if the node has a 'colocation_group' attribute
-            group_id = op_data.get('colocation_group')
-            # every node should have colocation group
-            if group_id:
+        for group_id, op_ids in map.items():
+            for op_id in op_ids:
                 op_group_map[op_id] = group_id
 
         return op_group_map

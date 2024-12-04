@@ -155,7 +155,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=2)
     # TEST SMALL
-    parser.add_argument('--model', type=str, default='ALEXNET')
+    parser.add_argument('--model', type=str, default='FNET')
     parser.add_argument('--alpha', type=int, default=200)
 
     args = parser.parse_args()
@@ -169,12 +169,11 @@ if __name__ == '__main__':
     # op-fusion
     beginning_time = datetime.datetime.now()
     traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
-    ending_time = datetime.datetime.now()
-    print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     # apply co-location grouper
     wcc_node_set = apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
     # fuse weakly connected component
     fuse_weakly_connected_components(comp_graph, wcc_node_set)
     # comp_graph.visualize_graphviz()
-
+    ending_time = datetime.datetime.now()
+    print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
