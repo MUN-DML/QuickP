@@ -1,7 +1,5 @@
 # Efficient Device Placement for Distributed DNN Training
 
-## Hardware dependency
-
 ## Installation
 
 ### Install Gurobi certificate. 

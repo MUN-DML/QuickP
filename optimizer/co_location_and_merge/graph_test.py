@@ -1,7 +1,6 @@
 import networkx as nx
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from optimizer.co_location_and_merge.group_algorithm import get_longest_path, min_rank_calculation
 from optimizer.main_simulator.gurobi_util import init_computing_and_device_graph
 from optimizer.model.graph import CompGraph
 
