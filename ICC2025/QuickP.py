@@ -11,7 +11,7 @@ sys.path.append(project_root)
 from optimizer.main_simulator.gurobi_util import gurobi_setup, init_computing_and_device_graph, get_proper_M
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from ICC2025.util_quickp import show_quick_p_result
-from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, apply_all_co_location_constraint, \
+from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, group_longest_path, \
     fuse_weakly_connected_components
 from optimizer.model.graph import CompGraph, find_non_connected_pairs
 
@@ -78,6 +78,12 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
             model.addConstr(finish[source_op_ID] <= start[dest_op_ID], "" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"data_dependency_{source_op_ID}_{dest_op_ID}")
             continue
 
+        # if tensor size is 0, even if two ops are on different device, no communication cost will exist
+        if tensor_sizes[source_op_ID, dest_op_ID] == 0:
+            model.addConstr(finish[source_op_ID] <= start[dest_op_ID], "" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET]
+            else f"data_dependency_{source_op_ID}_{dest_op_ID}")
+            continue
+
         # Aggregate communication cost
         comm_cost_expr = quicksum(
             unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
@@ -110,6 +116,8 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
 
     # Iterate over topologically sorted nodes
     for a, b in ungrouped_non_reachable_pairs:
+        if homo_op_cost_dict[a] == 0 or homo_op_cost_dict[b] == 0:
+            continue
         # For each consecutive pair of operators, add a constraint for each device
         for device_id in deviceTopo.getDeviceIDs():
             # Ensure the correct order for each potential device assignment
@@ -153,9 +161,10 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=2)
-    # TEST SMALL
-    parser.add_argument('--model', type=str, default='ALEXNET')
+    parser.add_argument('--number_of_device', type=int, default=2,
+                        help="Number of devices (must be >= 2 and divisible by 2)")
+    parser.add_argument('--model', type=str, default='BERT', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
+                        help="Model name")
     parser.add_argument('--alpha', type=int, default=200)
 
     args = parser.parse_args()
@@ -170,9 +179,11 @@ if __name__ == '__main__':
     beginning_time = datetime.datetime.now()
     traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
     # apply co-location grouper
-    wcc_node_set = apply_all_co_location_constraint(comp_graph, deviceTopo, args.number_of_device)
+    wcc_node_set = group_longest_path(comp_graph, deviceTopo, args.number_of_device)
     # fuse weakly connected component
     fuse_weakly_connected_components(comp_graph, wcc_node_set)
+    # reduce size again
+    traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
     # comp_graph.visualize_graphviz()
     ending_time = datetime.datetime.now()
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))

@@ -64,7 +64,7 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
             comp_graph.set_colocation_group(node, new_id)
 
 
-def apply_all_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph, number_of_device):
+def group_longest_path(comp_graph: CompGraph, device_topo: DeviceGraph, number_of_device):
     random_device = comp_graph.getDeviceList()[0]
     slow_link = device_topo.get_slowest_link()
     fast_link = device_topo.get_fastest_link()
