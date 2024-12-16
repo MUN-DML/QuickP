@@ -10,7 +10,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
 from optimizer.main_simulator.gurobi_util import gurobi_setup, init_computing_and_device_graph, get_proper_M
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from ICC2025.util_quickp import show_quick_p_result
+from ICC2025.util_quickp import show_quick_p_result, get_proper_alpha
 from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, group_longest_path, \
     fuse_weakly_connected_components
 from optimizer.model.graph import CompGraph, find_non_connected_pairs
@@ -163,9 +163,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=2,
                         help="Number of devices (must be >= 2 and divisible by 2)")
-    parser.add_argument('--model', type=str, default='BERT', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
+    parser.add_argument('--model', type=str, default='VGG', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
                         help="Model name")
-    parser.add_argument('--alpha', type=int, default=200)
 
     args = parser.parse_args()
 
@@ -174,16 +173,17 @@ if __name__ == '__main__':
 
     # init deviceTopo and comp_graph
     deviceTopo, comp_graph = init_computing_and_device_graph(args.number_of_device, None, model_type=model_type)
-
+    alpha = get_proper_alpha(comp_graph, deviceTopo, if_visualize=False)
+    print("alpha", alpha)
     # op-fusion
     beginning_time = datetime.datetime.now()
-    traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
+    traverse_merge_loop(comp_graph, deviceTopo, alpha)
     # apply co-location grouper
     wcc_node_set = group_longest_path(comp_graph, deviceTopo, args.number_of_device)
     # fuse weakly connected component
     fuse_weakly_connected_components(comp_graph, wcc_node_set)
     # reduce size again
-    traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
+    traverse_merge_loop(comp_graph, deviceTopo, alpha)
     # comp_graph.visualize_graphviz()
     ending_time = datetime.datetime.now()
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
