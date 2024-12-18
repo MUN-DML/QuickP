@@ -163,7 +163,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=2,
                         help="Number of devices (must be >= 2 and divisible by 2)")
-    parser.add_argument('--model', type=str, default='VGG', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
+    parser.add_argument('--model', type=str, default='FNET', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
                         help="Model name")
 
     args = parser.parse_args()
