@@ -316,6 +316,22 @@ class CompGraph(DiGraph):
         min_cut_size = len(nx.minimum_edge_cut(self, source, target, flow_func=shortest_augmenting_path))
         return min_cut_size <= 1
 
+    def setEdgeTensorSize(self, source, target, new_size):
+        if not self.has_edge(source, target):
+            raise ValueError(f"Edge {source}, {target} does not exist")
+        if "tensor_size_in_bit" not in self.edges[source, target]:
+            raise ValueError(f"Edge {source}, {target} does not have tensor_size_in_bit attribute")
+        self.edges[source, target]["tensor_size_in_bit"] = new_size
+
+    def updateNodeFusionHis(self, node_id, fused_node):
+        if node_id not in self.nodes:
+            raise ValueError("node {0} does not exist".format(node_id))
+
+        if 'fusion_his' not in self.nodes[node_id]:
+            self.nodes[node_id]["fusion_his"] = []
+        else:
+            self.nodes[node_id]["fusion_his"].append(fused_node)
+
     def get_wccs_of_straight_lines(self):
         eligible_edges = []
         for edge in self.edges:
@@ -356,7 +372,8 @@ class CompGraph(DiGraph):
         self.setMemorySize(u, new_memory)
         self.set_node_computing_cost_map(u, new_comp_cost_dict)
         deleted_edges = set(self.in_edges(v)).union(set(self.out_edges(v)))
-        # Now, remove node v from the graph
+        # Now, update fusion history abd remove node v from the graph
+        self.updateNodeFusionHis(u, v)
         self.remove_node(v)
 
         # print(f"{u, v} get merged, create edges {new_edges}, deleted edges {deleted_edges}")
