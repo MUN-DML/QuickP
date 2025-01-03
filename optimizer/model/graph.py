@@ -361,12 +361,20 @@ class CompGraph(DiGraph):
         # Add new edges that redirect connections to/from v to u
         for pred in list(self.predecessors(v)):  # Incoming edges to v
             if pred != u:  # Avoid self-loops (u -> u)
-                self.add_edge(pred, u, **self.get_edge_data(pred, v))
+                # update the transmission tensor size if having mutual pred
+                if self.has_edge(pred, u):
+                    self.setEdgeTensorSize(pred, u, max(self.edges[pred, u]["tensor_size_in_bit"], self.edges[pred, v]["tensor_size_in_bit"]))
+                else:
+                    self.add_edge(pred, u, **self.get_edge_data(pred, v))
                 new_edges.add((pred, u))
 
         for succ in list(self.successors(v)):  # Outgoing edges from v
             if succ != u:  # Avoid self-loops (u -> u)
-                self.add_edge(u, succ, **self.get_edge_data(v, succ))
+                # update the transmission tensor size if having mutual succ
+                if self.has_edge(u, succ):
+                    self.setEdgeTensorSize(u, succ, max(self.edges[u, succ]["tensor_size_in_bit"], self.edges[v, succ]["tensor_size_in_bit"]))
+                else:
+                    self.add_edge(u, succ, **self.get_edge_data(v, succ))
                 new_edges.add((u, succ))
 
         self.setMemorySize(u, new_memory)
