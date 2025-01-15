@@ -1,9 +1,15 @@
+import itertools
 from collections import defaultdict
+
+import networkx as nx
 
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from scipy.optimize import curve_fit
 import numpy as np
 from matplotlib import pyplot as plt
+
+from optimizer.model.graph import CompGraph
+
 
 def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFModelEnum, comp_graph, deviceTopo):
 
@@ -52,6 +58,7 @@ def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFMo
           f"number of operators: {comp_graph.number_of_nodes()} \n"
           f"number of devices: {deviceTopo.number_of_nodes()} \n"
           f"The environment is homogenous")
+    return operator_device_placement
 
 
 def get_proper_alpha(comp_graph, deviceTopo, if_visualize=True):
@@ -129,3 +136,48 @@ def get_proper_alpha(comp_graph, deviceTopo, if_visualize=True):
         plt.show()
 
     return x_midpoint
+
+def visualize_placement(computation_graph: CompGraph, partial_placement):
+    print('hhh', partial_placement)
+    # sudo apt-get install graphviz graphviz-dev
+    # pip install pygraphviz
+    H = nx.convert_node_labels_to_integers(computation_graph, label_attribute="node_label")
+    '''
+    prog
+    dot: Best for directed, hierarchical graphs (e.g., DAGs). Produces a layered layout and is ideal for showing a flow with ranks.
+    neato: For undirected graphs. Uses a spring-model layout, suitable for general-purpose layouts.
+    fdp: Similar to neato, but for larger undirected graphs. Uses a force-directed placement.
+    sfdp: A multiscale version of fdp for very large undirected graphs, good for visualizing large graphs quickly.
+    twopi: Produces a radial layout, with a specified root node at the center.
+    circo: Creates a circular layout, arranging nodes in a circle.
+    args
+    -Grankdir=LR: Sets the layout direction to left-to-right (horizontal).
+    -Gnodesep=0.5: Increases the minimum space between nodes horizontally.
+    -Granksep=1.0: Adds more space between ranks (vertically in top-to-bottom, or horizontally in left-to-right layouts).
+    -Goverlap=false: Attempts to automatically adjust node positions to avoid overlaps.
+    '''
+    H_layout = nx.nx_agraph.pygraphviz_layout(H, prog="sfdp",
+                                              args="-Grankdir=LR -Gnodesep=0.5 -Granksep=1.0 -Goverlap=false -Gmindist=1")
+    G_layout = {H.nodes[n]["node_label"]: p for n, p in H_layout.items()}
+
+    plt.figure(figsize=(20, 10))  # Adjust size for readability
+
+    full_placement = {}
+
+
+    # Step 3: Assign a unique color to each node
+    colors = itertools.cycle(['red', 'blue', 'green', 'orange', 'purple', 'pink', 'cyan', 'yellow'])  # Color cycle
+
+    # Step 2: Map each device to a unique color
+    device_color_map = {}  # Dictionary to map devices to colors
+    for device in set(partial_placement.values()):
+        device_color_map[device] = next(colors)
+
+    # Step 3: Create node_color_map by assigning each node the color of its device
+    node_color_map = {node: device_color_map[device] for node, device in partial_placement.items()}
+
+    # Step 4: Generate node colors for visualization
+    node_colors = [node_color_map.get(node, 'gray') for node in computation_graph.nodes()]
+    nx.draw(computation_graph, G_layout, with_labels=False, node_size=100, arrowsize=5, node_color=node_colors)
+
+    plt.show()

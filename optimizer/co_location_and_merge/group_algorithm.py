@@ -110,6 +110,7 @@ def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):
     for node_set in node_sets:
         wcc_graph: CompGraph = computation_graph.subgraph(node_set)
         edges_to_process = set(wcc_graph.edges())
+        # while len(edges_to_process) > 1:
         while edges_to_process:
             u, v = edges_to_process.pop()
             if computation_graph.is_edge_mergable(u, v):

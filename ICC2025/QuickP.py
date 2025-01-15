@@ -10,7 +10,7 @@ project_root = os.path.abspath(os.path.join(script_dir, '..'))
 sys.path.append(project_root)
 from optimizer.main_simulator.gurobi_util import gurobi_setup, init_computing_and_device_graph, get_proper_M
 from DNN_model_tf.tf_model_enum import TFModelEnum
-from ICC2025.util_quickp import show_quick_p_result, get_proper_alpha
+from ICC2025.util_quickp import show_quick_p_result, get_proper_alpha, visualize_placement
 from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, group_longest_path, \
     fuse_weakly_connected_components
 from optimizer.model.graph import CompGraph, find_non_connected_pairs
@@ -153,9 +153,10 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        show_quick_p_result(model, x, start, finish, homo_op_cost_dict, model_type, comp_graph, deviceTopo)
+        place = show_quick_p_result(model, x, start, finish, homo_op_cost_dict, model_type, comp_graph, deviceTopo)
         del model
         disposeDefaultEnv()
+        return place
     else:
         print(f"Optimization ended with status {model.status}")
 
@@ -187,4 +188,5 @@ if __name__ == '__main__':
     # comp_graph.visualize_graphviz()
     ending_time = datetime.datetime.now()
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
-    QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
+    placement = QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
+    # visualize_placement(comp_graph, placement)
