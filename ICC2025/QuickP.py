@@ -81,6 +81,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
             model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
             continue
 
+        # Since it is a Binary, its range will be either 0 or 1
         place_indicator = model.addVars(device_pairs, vtype=GRB.BINARY)
         model.addConstrs(
             (place_indicator[device_id_src, device_id_dest] >= x[source_op_ID, device_id_src] + x[
