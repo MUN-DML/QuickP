@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from optimizer.model.graph import CompGraph
 
 
-def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFModelEnum, comp_graph, deviceTopo, unit_comm_costs, tensor_sizes):
+def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFModelEnum, comp_graph, deviceTopo, unit_comm_costs, tensor_sizes, show_placement=True, show_communication=False):
 
     def get_operator_device_mapping_through_x(x):
         mapping = {}
@@ -50,23 +50,25 @@ def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFMo
             sum_comp += comp_cost
             if comp_cost == 0:
                 continue
-            print(f"  Operator: {op_tuple[0]}, Start: {op_tuple[1]}, Finish: {op_tuple[2]}, Comp Cost: {comp_cost}")
+            if show_placement:
+                print(f"  Operator: {op_tuple[0]}, Start: {op_tuple[1]}, Finish: {op_tuple[2]}, Comp Cost: {comp_cost}")
         device_utility_rate = sum_comp / model.ObjVal
         device_total_cost_map[device] = sum_comp
         device_util_rate_map[device] = device_utility_rate
 
     # print comm cost
-    for i, j in comp_graph.getEdgeIDs():
-        print(
-            f"  : Edge {i, j}, source_placement: {operator_device_placement[i]}, end_placement: {operator_device_placement[j]}, "
-            f"bandwidth: {0 if operator_device_placement[i] == operator_device_placement[j] else deviceTopo.get_link_bandwidth(operator_device_placement[i], operator_device_placement[j])} "
-            f" Tensor Size: {tensor_sizes[i, j]}, Comm Cost: {comm_cost_dict[i, j]}")
+    if show_communication:
+        for i, j in comp_graph.getEdgeIDs():
+            print(
+                f"  : Edge {i, j}, source_placement: {operator_device_placement[i]}, end_placement: {operator_device_placement[j]}, "
+                f"bandwidth: {0 if operator_device_placement[i] == operator_device_placement[j] else deviceTopo.get_link_bandwidth(operator_device_placement[i], operator_device_placement[j])} "
+                f" Tensor Size: {tensor_sizes[i, j]}, Comm Cost: {comm_cost_dict[i, j]}")
 
     print('Expected Training time = ', model.ObjVal, 's', sep='')
     print("Device Utility Rate:", device_util_rate_map)
     print("total_computing_time_per_device:", device_total_cost_map)
     print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep='')
-    print('Communication Cost Sum = ', sum(comm_cost_dict.values()))
+    print('ALL Cross Device Communication Cost Sum = ', sum(comm_cost_dict.values()))
     print(f"This is the near-optimal solution of such configuration: \n"
           f"model type: {model_type} \n"
           f"number of operators: {comp_graph.number_of_nodes()} \n"

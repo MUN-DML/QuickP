@@ -153,7 +153,11 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        place = show_quick_p_result(model, x, start, finish, homo_op_cost_dict, model_type, comp_graph, deviceTopo, unit_comm_costs, tensor_sizes)
+        '''
+        show_quick_p_result will show a lot of logging. Normally, it 
+        '''
+        place = show_quick_p_result(model, x, start, finish, homo_op_cost_dict, model_type, comp_graph, deviceTopo,
+                                    unit_comm_costs, tensor_sizes, show_placement=True, show_communication=False)
         del model
         disposeDefaultEnv()
         return place
@@ -164,7 +168,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=6,
                         help="Number of devices (must be >= 2 and divisible by 2)")
-    parser.add_argument('--model', type=str, default='BERT', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
+    parser.add_argument('--model', type=str, default='VGG', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
                         help="Model name")
 
     args = parser.parse_args()
