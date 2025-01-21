@@ -153,7 +153,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        place = show_quick_p_result(model, x, start, finish, homo_op_cost_dict, model_type, comp_graph, deviceTopo)
+        place = show_quick_p_result(model, x, start, finish, homo_op_cost_dict, model_type, comp_graph, deviceTopo, unit_comm_costs, tensor_sizes)
         del model
         disposeDefaultEnv()
         return place
@@ -162,9 +162,9 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=2,
+    parser.add_argument('--number_of_device', type=int, default=6,
                         help="Number of devices (must be >= 2 and divisible by 2)")
-    parser.add_argument('--model', type=str, default='FNET', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
+    parser.add_argument('--model', type=str, default='BERT', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
                         help="Model name")
 
     args = parser.parse_args()
@@ -181,12 +181,16 @@ if __name__ == '__main__':
     traverse_merge_loop(comp_graph, deviceTopo, alpha)
     # apply co-location grouper
     wcc_node_set = group_longest_path(comp_graph, deviceTopo, args.number_of_device)
-    # fuse weakly connected component
+    '''
+    # Uncomment the following section to further reduce the solver's search latency.
+    # Note: This optimization may result in a minor additional performance trade-off and increase the fusion runtime.
+
+    # - Fuse weakly connected components in the computation graph.
+    # - Further reduce the graph size.
     fuse_weakly_connected_components(comp_graph, wcc_node_set)
-    # reduce size again
     traverse_merge_loop(comp_graph, deviceTopo, alpha)
-    # comp_graph.visualize_graphviz()
+    '''
     ending_time = datetime.datetime.now()
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     placement = QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
-    # visualize_placement(comp_graph, placement)
+    # visualize_placement(comp_graph, placement) # uncomment to show a rough placement visualization

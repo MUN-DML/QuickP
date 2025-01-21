@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from optimizer.model.graph import CompGraph
 
 
-def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFModelEnum, comp_graph, deviceTopo):
+def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFModelEnum, comp_graph, deviceTopo, unit_comm_costs, tensor_sizes):
 
     def get_operator_device_mapping_through_x(x):
         mapping = {}
@@ -23,6 +23,7 @@ def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFMo
 
     operator_device_placement = get_operator_device_mapping_through_x(x)
     assignment_dict = defaultdict(list)
+    comm_cost_dict = defaultdict(float)
     device_total_cost_map = defaultdict(int)
     device_util_rate_map = defaultdict(int)
     # populate assignment_dict
@@ -32,6 +33,12 @@ def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFMo
     # Sort operators by their start times for each device
     for device, ops in assignment_dict.items():
         assignment_dict[device] = sorted(ops, key=lambda x: x[1])
+
+    for i, j in comp_graph.getEdgeIDs():
+        if operator_device_placement[i] == operator_device_placement[j]:
+            comm_cost_dict[i,j] = 0
+        else:
+            comm_cost_dict[i,j] = unit_comm_costs[operator_device_placement[i],operator_device_placement[j]] * tensor_sizes[i,j]
 
     # Print operator placement
     for device, op_info_tuples in assignment_dict.items():
@@ -48,11 +55,18 @@ def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFMo
         device_total_cost_map[device] = sum_comp
         device_util_rate_map[device] = device_utility_rate
 
+    # print comm cost
+    for i, j in comp_graph.getEdgeIDs():
+        print(
+            f"  : Edge {i, j}, source_placement: {operator_device_placement[i]}, end_placement: {operator_device_placement[j]}, "
+            f"bandwidth: {0 if operator_device_placement[i] == operator_device_placement[j] else deviceTopo.get_link_bandwidth(operator_device_placement[i], operator_device_placement[j])} "
+            f" Tensor Size: {tensor_sizes[i, j]}, Comm Cost: {comm_cost_dict[i, j]}")
+
     print('Expected Training time = ', model.ObjVal, 's', sep='')
     print("Device Utility Rate:", device_util_rate_map)
     print("total_computing_time_per_device:", device_total_cost_map)
     print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep='')
-    print('Expected Training time = ', model.ObjVal, 's', sep='')
+    print('Communication Cost Sum = ', sum(comm_cost_dict.values()))
     print(f"This is the near-optimal solution of such configuration: \n"
           f"model type: {model_type} \n"
           f"number of operators: {comp_graph.number_of_nodes()} \n"
@@ -106,7 +120,7 @@ def get_proper_alpha(comp_graph, deviceTopo, if_visualize=True):
 
     # Calculate the midpoint of max and min slopes
 
-    mid_slope = (max_slope + min_slope) / 3.2
+    mid_slope = (max_slope + min_slope) / 4
 
     # Find the point where the slope is closest to the midpoint slope
 
