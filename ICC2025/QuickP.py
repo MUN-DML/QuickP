@@ -38,8 +38,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     # Co-location constraint
     # Ensure each group is assigned to exactly one device
     for group in group_ops_mapping.keys():
-        model.addConstr(quicksum(group_device_mapping[group, device] for device in deviceTopo.getDeviceIDs()) == 1,
-                        name="" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"assign_group_{group}_to_one_device")
+        model.addConstr(quicksum(group_device_mapping[group, device] for device in deviceTopo.getDeviceIDs()) == 1)
 
     for group_id, group in group_ops_mapping.items():
         for device in deviceTopo.getDeviceIDs():
@@ -49,14 +48,13 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     # Add constraints that schedule every node on exactly one machine
     for op in comp_graph.getOperatorIDs():
         if op not in op_group_map:
-            model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1, name="" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"one_device_{op}")
+            model.addConstr(quicksum(x[op, device] for device in deviceTopo.getDeviceIDs()) == 1)
 
     # Add constraints that each op's ending time = starting time + its computing time. Homogeneous device
     any_d = deviceTopo.getDeviceIDs()[0]
     homo_op_cost_dict = comp_graph.getOpCompCostMapByDevice(any_d)
     for node_id in comp_graph.getOperatorIDs():
-        model.addConstr(finish[node_id] == start[node_id] + homo_op_cost_dict[node_id],
-                            name="" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"finish_start_{node_id}")
+        model.addConstr(finish[node_id] == start[node_id] + homo_op_cost_dict[node_id])
 
     # Add constraint that if op2 depends on op1, the starting time of op2 will be the ending time of op1 + communication delay if these two ops are not placed on the same device
     device_pairs = {(src, dest) for src in deviceTopo.getDeviceIDs() for dest in deviceTopo.getDeviceIDs() if
@@ -80,20 +78,26 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
 
         # if tensor size is 0, even if two ops are on different device, no communication cost will exist
         if tensor_sizes[source_op_ID, dest_op_ID] == 0:
-            model.addConstr(finish[source_op_ID] <= start[dest_op_ID], "" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET]
-            else f"data_dependency_{source_op_ID}_{dest_op_ID}")
+            model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
             continue
 
-        # Aggregate communication cost
+        place_indicator = model.addVars(device_pairs, vtype=GRB.BINARY)
+        model.addConstrs(
+            (place_indicator[device_id_src, device_id_dest] >= x[source_op_ID, device_id_src] + x[
+                dest_op_ID, device_id_dest] - 1
+             for device_id_src, device_id_dest in device_pairs)
+        )
+
+        # Step 3: Use auxiliary variables in the comm_cost_expr
         comm_cost_expr = quicksum(
-            unit_comm_costs[device_id_src, device_id_dest] * tensor_sizes[source_op_ID, dest_op_ID] *
-            x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
+            tensor_sizes[source_op_ID, dest_op_ID] *
+            unit_comm_costs[device_id_src, device_id_dest] *
+            place_indicator[device_id_src, device_id_dest]
             for device_id_src, device_id_dest in device_pairs
         )
 
         # Ensures the communication duration covers the communication cost.
-        model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID],
-                        "" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"data_dependency_{source_op_ID}_{dest_op_ID}")
+        model.addConstr(finish[source_op_ID] + comm_cost_expr <= start[dest_op_ID])
 
 
     '''
@@ -122,9 +126,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
         for device_id in deviceTopo.getDeviceIDs():
             # Ensure the correct order for each potential device assignment
             # This constraint will only apply if both a and b are assigned to the same device
-            model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]),
-                            name="" if model_type in [TFModelEnum.BERT,
-                                                      TFModelEnum.FNET] else f"bigM_topo_order_{a}_{b}_on_device_{device_id}")
+            model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]))
 
     # TotalLatency that we are minimizing
     TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
@@ -168,7 +170,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=6,
                         help="Number of devices (must be >= 2 and divisible by 2)")
-    parser.add_argument('--model', type=str, default='FNET', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
+    parser.add_argument('--model', type=str, default='BERT', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
                         help="Model name")
 
     args = parser.parse_args()
