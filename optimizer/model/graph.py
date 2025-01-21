@@ -243,29 +243,6 @@ class CompGraph(DiGraph):
 
         return op_group_map
 
-    def get_dual_path_component_nodes_by_edge(self, source, target):
-        if self.is_multi_path(source, target):
-            # it will return a 2D list
-            all_paths = list(nx.node_disjoint_paths(self, source, target))
-            if len(all_paths) > 2:
-                min_len_list = min(all_paths, key=len)
-                # the list with the lowest
-                assert min_len_list == [source, target]
-                max_len_list = max(all_paths, key=len)
-                all_paths = [[min_len_list, max_len_list]]
-            flattened_set = set([element for sublist in all_paths for element in sublist])
-            return flattened_set
-        else:
-            return None
-
-    def create_subgraph_of_dual_path_components(self):
-        all_node_set = set()
-        for source, target in self.edges:
-            local_node_set = self.get_dual_path_component_nodes_by_edge(source, target)
-            all_node_set.update(local_node_set or [])
-        return self.subgraph(all_node_set)
-
-
     def getAllOperators(self):
         return list(self.nodes(data=True))
 
@@ -331,17 +308,6 @@ class CompGraph(DiGraph):
             self.nodes[node_id]["fusion_his"] = []
         else:
             self.nodes[node_id]["fusion_his"].append(fused_node)
-
-    def get_wccs_of_straight_lines(self):
-        eligible_edges = []
-        for edge in self.edges:
-            source, destination = edge
-            # the source only has one outgoing edge and communication cost if on different device is higher than
-            # and graph.in_degree(destination) == 1 will minimize the performance loss
-            if self.out_degree(source) == 1 and self.in_degree(destination) == 1:
-                # label both end the group of source node. One node will probably have more than one group. Waiting to merge groups
-                eligible_edges.append((source, destination))
-        return self.edge_subgraph(eligible_edges)
 
     def merge_edge(self, u, v) -> tuple[set, set] | None:
         """
@@ -431,13 +397,6 @@ class CompGraph(DiGraph):
 
         # Double check if the graph after merge is still DAG
         assert nx.is_directed_acyclic_graph(self)
-
-    def fuse_straight_lines(self):
-        subgraph = self.get_wccs_of_straight_lines()
-        weakly_connected_components = list(nx.weakly_connected_components(subgraph))
-        for wcc_set in weakly_connected_components:
-            self.merge_wcc(wcc_set)
-        print("new node number: ", len(self.nodes))
 
 
     # this method looks ugly but it is the core. Refine it later
