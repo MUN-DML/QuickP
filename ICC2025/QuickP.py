@@ -72,20 +72,40 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
 
         # no communication cost for ops on the same device
         source_op_ID, dest_op_ID = edge_id_tuple
-        if source_op_ID in op_group_map and dest_op_ID in op_group_map and op_group_map[source_op_ID] == op_group_map[dest_op_ID]:
-            model.addConstr(finish[source_op_ID] <= start[dest_op_ID], "" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else f"data_dependency_{source_op_ID}_{dest_op_ID}")
-            continue
 
         # if tensor size is 0, even if two ops are on different device, no communication cost will exist
         if tensor_sizes[source_op_ID, dest_op_ID] == 0:
             model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
             continue
 
+        # no comm cost if on the same co-lo group
+        if source_op_ID in op_group_map and dest_op_ID in op_group_map and op_group_map[source_op_ID] == op_group_map[dest_op_ID]:
+            model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+            continue
+
+        # Since it is a Binary, its range will be either 0 or 1
+        place_indicator = model.addVars(device_pairs, vtype=GRB.BINARY)
+        model.addConstrs(
+            (place_indicator[device_id_src, device_id_dest] >= x[source_op_ID, device_id_src] + x[
+                dest_op_ID, device_id_dest] - 1
+             for device_id_src, device_id_dest in device_pairs)
+        )
+
+        model.addConstrs(
+            (place_indicator[device_id_src, device_id_dest] <= x[source_op_ID, device_id_src]
+             for device_id_src, device_id_dest in device_pairs)
+        )
+
+        model.addConstrs(
+            (place_indicator[device_id_src, device_id_dest] <= x[dest_op_ID, device_id_dest]
+             for device_id_src, device_id_dest in device_pairs)
+        )
+
         # Calculate the comm cost of on different devices
         comm_cost_expr = quicksum(
             tensor_sizes[source_op_ID, dest_op_ID] *
             unit_comm_costs[device_id_src, device_id_dest] *
-            x[source_op_ID, device_id_src] * x[dest_op_ID, device_id_dest]
+            place_indicator[device_id_src, device_id_dest]
             for device_id_src, device_id_dest in device_pairs
         )
 
