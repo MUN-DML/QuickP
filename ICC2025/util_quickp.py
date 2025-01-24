@@ -56,11 +56,11 @@ def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFMo
         device_total_cost_map[device] = sum_comp
         device_util_rate_map[device] = device_utility_rate
 
-    print('Expected Training time = ', model.ObjVal, 's', sep='')
+    print('Expected Training time = ', model.ObjVal, 'us', sep=' ')
     print("Device Utility Rate:", device_util_rate_map)
     print("total_computing_time_per_device:", device_total_cost_map)
-    print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep='')
-    print('ALL Cross Device Communication Cost Sum = ', sum(comm_cost_dict.values()))
+    print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep=' ')
+    print('ALL Cross Device Communication Cost Sum =', sum(comm_cost_dict.values()))
     print(f"This is the near-optimal solution of such configuration: \n"
           f"model type: {model_type} \n"
           f"number of operators: {comp_graph.number_of_nodes()} \n"

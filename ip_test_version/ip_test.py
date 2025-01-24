@@ -71,11 +71,11 @@ def show_icc_logging(model, x, start, finish, comp_cost_map, model_type: TFModel
                 f"bandwidth: {0 if operator_device_placement[i] == operator_device_placement[j] else deviceTopo.get_link_bandwidth(operator_device_placement[i], operator_device_placement[j])} "
                 f" Tensor Size: {tensor_sizes[i, j]}, Comm Cost: {comm_cost_dict[i, j]}")
 
-    print('Expected Training time = ', model.ObjVal, 's', sep='')
+    print('Expected Training time = ', model.ObjVal, 'us', sep=' ')
     print("Device Utility Rate:", device_util_rate_map)
     print("total_computing_time_per_device:", device_total_cost_map)
-    print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep='')
-    print('ALL Cross Device Communication Cost Sum = ', sum(comm_cost_dict.values()))
+    print('The Placement Searching Runtime = ', "%.2f" % model.Runtime, 's', sep=' ')
+    print('ALL Cross Device Communication Cost Sum =', sum(comm_cost_dict.values()))
     print(f"This is the near-optimal solution of such configuration: \n"
           f"model type: {model_type} \n"
           f"number of operators: {comp_graph.number_of_nodes()} \n"
