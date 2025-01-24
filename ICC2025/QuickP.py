@@ -13,10 +13,10 @@ from DNN_model_tf.tf_model_enum import TFModelEnum
 from ICC2025.util_quickp import show_quick_p_result, get_proper_alpha, visualize_placement
 from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, group_longest_path, \
     fuse_weakly_connected_components
-from optimizer.model.graph import CompGraph, find_non_connected_pairs
+from optimizer.model.graph import CompGraph, find_non_connected_pairs, DeviceGraph
 
 
-def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
+def QuickP(comp_graph: CompGraph, deviceTopo: DeviceGraph, M, model_type) -> dict:
 
     # Init solver
     model = gurobi_setup("minimize_maxload")
@@ -30,9 +30,9 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
                       name="x")  # [operator_id, device_id] == 1 means this operator is assigned to this device
     group_device_mapping = model.addVars(group_ops_mapping.keys(), deviceTopo.getDeviceIDs(), vtype=GRB.BINARY,
                                          name="" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else "y_group")
-    start = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+    start = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0, ub=100000.0,
                           name="" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else "start")  # start[node_id] represent the starting time of this node
-    finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0,
+    finish = model.addVars(comp_graph.getOperatorIDs(), vtype=GRB.CONTINUOUS, lb=0.0, ub=100000.0,
                            name="" if model_type in [TFModelEnum.BERT, TFModelEnum.FNET] else "finish")  # finish[node_id] represent the finish time of this node
 
     # Co-location constraint
@@ -142,9 +142,9 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
             model.addConstr(finish[a] <= start[b] + M * (2 - x[a, device_id] - x[b, device_id]))
 
     # TotalLatency that we are minimizing
-    TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=0.0)
+    TotalLatency = model.addVar(vtype=GRB.CONTINUOUS, lb=60000.0, ub=100000.0)
     for op_end in finish.values():
-        model.addConstr(TotalLatency >= op_end, "satisfy each deice's latency")
+        model.addConstr(TotalLatency >= op_end, "satisfy each op's latency")
 
     # Set the target of solver
     model.setObjective(TotalLatency, GRB.MINIMIZE)
@@ -168,11 +168,8 @@ def QuickP(comp_graph: CompGraph, deviceTopo, M, model_type) -> dict:
     elif model.status == GRB.UNBOUNDED:
         print("Model is unbounded.")
     elif model.status == GRB.OPTIMAL:
-        '''
-        show_quick_p_result will show a lot of logging. Normally, the communication part logging is hidden
-        '''
         place = show_quick_p_result(model, x, start, finish, homo_op_cost_dict, model_type, comp_graph, deviceTopo,
-                                    unit_comm_costs, tensor_sizes, show_placement=True, show_communication=False)
+                                    unit_comm_costs, tensor_sizes, show_placement=True)
         del model
         disposeDefaultEnv()
         return place

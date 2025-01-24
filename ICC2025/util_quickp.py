@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from optimizer.model.graph import CompGraph
 
 
-def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFModelEnum, comp_graph, deviceTopo, unit_comm_costs, tensor_sizes, show_placement=True, show_communication=False):
+def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFModelEnum, comp_graph, deviceTopo, unit_comm_costs, tensor_sizes, show_placement=True):
 
     def get_operator_device_mapping_through_x(x):
         mapping = {}
@@ -55,14 +55,6 @@ def show_quick_p_result(model, x, start, finish, comp_cost_map, model_type: TFMo
         device_utility_rate = sum_comp / model.ObjVal
         device_total_cost_map[device] = sum_comp
         device_util_rate_map[device] = device_utility_rate
-
-    # print comm cost
-    if show_communication:
-        for i, j in comp_graph.getEdgeIDs():
-            print(
-                f"  : Edge {i, j}, source_placement: {operator_device_placement[i]}, end_placement: {operator_device_placement[j]}, "
-                f"bandwidth: {0 if operator_device_placement[i] == operator_device_placement[j] else deviceTopo.get_link_bandwidth(operator_device_placement[i], operator_device_placement[j])} "
-                f" Tensor Size: {tensor_sizes[i, j]}, Comm Cost: {comm_cost_dict[i, j]}")
 
     print('Expected Training time = ', model.ObjVal, 's', sep='')
     print("Device Utility Rate:", device_util_rate_map)
