@@ -10,6 +10,3 @@ def fnet():
         activation="softmax" # make from_logits=False in the loss function
     )
     return classifier
-
-model = fnet()
-print(type(model))
