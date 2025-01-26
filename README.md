@@ -1,7 +1,7 @@
-# Efficient Device Placement for Distributed DNN Training
+# Efficient Device Placement for Distributed DNN Training (ICC 2025)
 
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14624671.svg)](https://doi.org/10.5281/zenodo.14624671)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14511161.svg)](https://doi.org/10.5281/zenodo.14511161)
 
 
 ## Installation
@@ -25,7 +25,6 @@ Configure the environment variable for Gurobi license
 Then, enter QuickP.py and adjust input parameters:
 * `number_of_device` (integer): number of GPUs,
 * `model` (string): DNN model name: `ALEXNET`, `VGG`, `FNET`, `BERT`
-* `alpha` (integer): merging threshold for operator fusion,
 
 Finally, make sure your current working directory is ICC2025 and run QuickP.py
 

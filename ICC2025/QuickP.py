@@ -178,7 +178,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo: DeviceGraph, M, model_type) -> dic
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=6,
+    parser.add_argument('--number_of_device', type=int, default=4,
                         help="Number of devices (must be >= 2 and divisible by 2)")
     parser.add_argument('--model', type=str, default='BERT', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
                         help="Model name")

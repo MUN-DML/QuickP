@@ -65,7 +65,6 @@ def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph
 def group_longest_path(comp_graph: CompGraph, device_topo: DeviceGraph, number_of_device):
     random_device = comp_graph.getDeviceList()[0]
     slow_link = device_topo.get_slowest_link()
-    fast_link = device_topo.get_fastest_link()
     global_rank = {}
     best_successor = {}  # To store the best successor of each node for path reconstruction
     topo_sorted = list(nx.topological_sort(comp_graph))
@@ -95,7 +94,6 @@ def group_longest_path(comp_graph: CompGraph, device_topo: DeviceGraph, number_o
     subgraph = comp_graph.edge_subgraph(edge_set)
     print("number of nodes in subg", subgraph.number_of_nodes())
 
-    # subgraph.visualize_graphviz()
     wcc_node_sets = list(nx.weakly_connected_components(subgraph))
     print("number of wcc in node_subgraph", len(wcc_node_sets))
 
