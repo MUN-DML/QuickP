@@ -13,7 +13,7 @@ from optimizer.main_simulator.gurobi_util import gurobi_setup, init_computing_an
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from ICC2025.util_quickp import show_quick_p_result, get_proper_alpha, visualize_placement
 from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, group_longest_path, \
-    fuse_weakly_connected_components
+    fuse_weakly_connected_components, iteratively_expand_wcc
 from optimizer.model.graph import CompGraph, find_non_connected_pairs
 
 '''
@@ -255,7 +255,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
     parser.add_argument('--number_of_device', type=int, default=6,
                         help="Number of devices (must be >= 2 and divisible by 2)")
-    parser.add_argument('--model', type=str, default='VGG', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
+    parser.add_argument('--model', type=str, default='ALEXNET', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
                         help="Model name")
 
     args = parser.parse_args()
@@ -272,6 +272,7 @@ if __name__ == '__main__':
     traverse_merge_loop(comp_graph, deviceTopo, alpha)
     # apply co-location grouper
     wcc_node_set = group_longest_path(comp_graph, deviceTopo, args.number_of_device)
+    iteratively_expand_wcc(comp_graph, deviceTopo)
     '''
     # Uncomment the following section to further reduce the solver's search latency.
     # Note: This optimization may result in a minor additional performance trade-off and increase the fusion runtime.

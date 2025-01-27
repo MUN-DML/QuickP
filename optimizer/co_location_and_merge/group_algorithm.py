@@ -89,15 +89,14 @@ def group_longest_path(comp_graph: CompGraph, device_topo: DeviceGraph, number_o
     return wcc_node_sets
 
 
-def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=20):
+def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=30):
     any_d = deviceTopo.getDeviceIDs()[0]
-    eligible_nodes = set()
-    # find nodes that do not belong to any group and has a computing cost lower than beta
-    for node in comp_graph.nodes():
-        if 'colocation_group' not in comp_graph.nodes[node] and comp_graph.getOperatorCompCostByDevice(node, any_d) < beta:
-            eligible_nodes.add(node)
     while True:
         any_update = False
+        eligible_nodes = {
+            node for node in comp_graph.nodes()
+            if 'colocation_group' not in comp_graph.nodes[node] and comp_graph.getOperatorCompCostByDevice(node, any_d) < beta
+        }
         while eligible_nodes:
             node = eligible_nodes.pop()
             grouped_neighbour = {
@@ -105,7 +104,7 @@ def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=
                 if 'colocation_group' in comp_graph.nodes[n] and comp_graph.nodes[n]['colocation_group'] is not None
             }
             # no grouped neighbour
-            if len(grouped_neighbour) == 0:
+            if not grouped_neighbour:
                 continue
             random_neighbour = random.choice(list(grouped_neighbour))
             comp_graph.set_colocation_group(node, comp_graph.get_colocation_group(random_neighbour))
@@ -113,7 +112,7 @@ def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=
         if not any_update:
             break
 
-
+# deprecated
 def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):
     for node_set in node_sets:
         wcc_graph: CompGraph = computation_graph.subgraph(node_set)
