@@ -1,4 +1,5 @@
 import hashlib
+import random
 from collections import deque
 
 import networkx as nx
@@ -45,23 +46,6 @@ def traverse_and_merge(comp_graph: CompGraph, device_topo: DeviceGraph, alpha: i
     return any_data_update
 
 
-def apply_co_location_constraint(comp_graph: CompGraph, device_topo: DeviceGraph):
-    all_node_set = set()
-    for edge in comp_graph.edges():
-        if not comp_graph.is_edge_mergable(edge[0], edge[1]) and len(
-                nx.minimum_edge_cut(comp_graph, edge[0], edge[1], flow_func=shortest_augmenting_path)) == 2:
-            all_paths = list(nx.node_disjoint_paths(comp_graph, edge[0], edge[1]))
-            flattened_set = set([element for sublist in all_paths for element in sublist])
-            all_node_set.update(flattened_set)
-    subgraph = comp_graph.subgraph(all_node_set)
-    visualize_graph(subgraph, show_edge_labels=False, show_node_labels=False)
-    wcc_node_sets = list(nx.weakly_connected_components(subgraph))
-    for node_set in wcc_node_sets:
-        new_id = hashlib.md5("&".join(node_set).encode()).hexdigest()
-        for node in node_set:
-            comp_graph.set_colocation_group(node, new_id)
-
-
 def group_longest_path(comp_graph: CompGraph, device_topo: DeviceGraph, number_of_device):
     random_device = comp_graph.getDeviceList()[0]
     slow_link = device_topo.get_slowest_link()
@@ -103,6 +87,32 @@ def group_longest_path(comp_graph: CompGraph, device_topo: DeviceGraph, number_o
             comp_graph.set_colocation_group(node, new_id)
 
     return wcc_node_sets
+
+
+def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=20):
+    any_d = deviceTopo.getDeviceIDs()[0]
+    eligible_nodes = set()
+    # find nodes that do not belong to any group and has a computing cost lower than beta
+    for node in comp_graph.nodes():
+        if 'colocation_group' not in comp_graph.nodes[node] and comp_graph.getOperatorCompCostByDevice(node, any_d) < beta:
+            eligible_nodes.add(node)
+    while True:
+        any_update = False
+        while eligible_nodes:
+            node = eligible_nodes.pop()
+            grouped_neighbour = {
+                n for n in set(comp_graph.predecessors(node)).union(comp_graph.successors(node))
+                if 'colocation_group' in comp_graph.nodes[n] and comp_graph.nodes[n]['colocation_group'] is not None
+            }
+            # no grouped neighbour
+            if len(grouped_neighbour) == 0:
+                continue
+            random_neighbour = random.choice(list(grouped_neighbour))
+            comp_graph.set_colocation_group(node, comp_graph.get_colocation_group(random_neighbour))
+            any_update = True
+        if not any_update:
+            break
+
 
 def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):
     for node_set in node_sets:
