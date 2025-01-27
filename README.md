@@ -24,7 +24,9 @@ Configure the environment variable for Gurobi license
 
 Then, enter QuickP.py and adjust input parameters:
 * `number_of_device` (integer): number of GPUs,
-* `model` (string): DNN model name: `ALEXNET`, `VGG`, `FNET`, `BERT`
+* `model` (string): DNN model name: `ALEXNET`, `VGG`, `FNET`, `BERT`,
+* `beta` (integer): WCC expanding threshold,
+* `alpha` (integer): merging threshold for operator fusion. Find the line "alpha = get_proper_alpha(comp_graph, deviceTopo, if_visualize=False)" and replace the function with your self-defined value,
 
 Finally, make sure your current working directory is ICC2025 and run QuickP.py
 

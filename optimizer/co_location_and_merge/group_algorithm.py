@@ -89,7 +89,9 @@ def group_longest_path(comp_graph: CompGraph, device_topo: DeviceGraph, number_o
     return wcc_node_sets
 
 
-def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=30):
+def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=10):
+    q = set(op for op in comp_graph.nodes if 'colocation_group' in comp_graph.nodes[op])
+    print("number of nodes in all wcc before expanding", len(q))
     any_d = deviceTopo.getDeviceIDs()[0]
     while True:
         any_update = False
@@ -111,6 +113,8 @@ def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=
             any_update = True
         if not any_update:
             break
+        q = set(op for op in comp_graph.nodes if 'colocation_group' in comp_graph.nodes[op])
+        print("number of nodes in all wcc after expanding", len(q))
 
 # deprecated
 def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):

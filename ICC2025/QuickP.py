@@ -178,10 +178,11 @@ def QuickP(comp_graph: CompGraph, deviceTopo: DeviceGraph, M, model_type) -> dic
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arguments for optimization problem after graph partitioning')
-    parser.add_argument('--number_of_device', type=int, default=6,
+    parser.add_argument('--number_of_device', type=int, default=4,
                         help="Number of devices (must be >= 2 and divisible by 2)")
-    parser.add_argument('--model', type=str, default='ALEXNET', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
+    parser.add_argument('--model', type=str, default='BERT', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'],
                         help="Model name")
+    parser.add_argument('--beta', type=int, default=10, help="co-location-expanding-threshold")
 
     args = parser.parse_args()
 
@@ -197,7 +198,7 @@ if __name__ == '__main__':
     traverse_merge_loop(comp_graph, deviceTopo, alpha)
     # apply co-location grouper
     wcc_node_set = group_longest_path(comp_graph, deviceTopo, args.number_of_device)
-    iteratively_expand_wcc(comp_graph, deviceTopo)
+    iteratively_expand_wcc(comp_graph, deviceTopo, args.beta)
     ending_time = datetime.datetime.now()
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     placement = QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
