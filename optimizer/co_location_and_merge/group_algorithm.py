@@ -86,8 +86,6 @@ def group_longest_path(comp_graph: CompGraph, device_topo: DeviceGraph, number_o
         for node in node_set:
             comp_graph.set_colocation_group(node, new_id)
 
-    return wcc_node_sets
-
 
 def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=10):
     q = set(op for op in comp_graph.nodes if 'colocation_group' in comp_graph.nodes[op])
@@ -117,18 +115,20 @@ def iteratively_expand_wcc(comp_graph: CompGraph, deviceTopo: DeviceGraph, beta=
         print("number of nodes in all wcc after expanding", len(q))
 
 # deprecated
-def fuse_weakly_connected_components(computation_graph: CompGraph, node_sets):
-    for node_set in node_sets:
+def fuse_weakly_connected_components(computation_graph: CompGraph):
+    group_ops_mapping = computation_graph.create_colocation_group_to_ops_map()
+    for node_set in group_ops_mapping.values():
         wcc_graph: CompGraph = computation_graph.subgraph(node_set)
         edges_to_process = set(wcc_graph.edges())
-        # while len(edges_to_process) > 1:
-        while edges_to_process:
+        while len(edges_to_process) > 1:
             u, v = edges_to_process.pop()
+            # if computation_graph.out_degree(u) == 1 or computation_graph.in_degree(v) == 1:
             if computation_graph.is_edge_mergable(u, v):
                 data = computation_graph.merge_edge(u, v)
                 if data:
                     new_edges, deleted_edges = data
                     for a, b in new_edges:
+                        # if two ends of a newly created edge also have a co-location relationship
                         if all("colocation_group" in computation_graph.nodes[node] for node in (a, b)):
                             if computation_graph.get_colocation_group(a) == computation_graph.get_colocation_group(b):
                                 edges_to_process.add((a, b))

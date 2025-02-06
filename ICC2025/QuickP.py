@@ -12,7 +12,7 @@ from optimizer.main_simulator.gurobi_util import gurobi_setup, init_computing_an
 from DNN_model_tf.tf_model_enum import TFModelEnum
 from ICC2025.util_quickp import show_quick_p_result, get_proper_alpha, visualize_placement
 from optimizer.co_location_and_merge.group_algorithm import traverse_merge_loop, group_longest_path, \
-    iteratively_expand_wcc
+    iteratively_expand_wcc, fuse_weakly_connected_components
 from optimizer.model.graph import CompGraph, find_non_connected_pairs, DeviceGraph
 
 
@@ -186,6 +186,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Enable this for a much faster solver runtime but will bring a longer fusion runtime. The performance loss is around 3 percent
+    f_inside_WCC = False
+
     # Dynamically access attributes using getattr
     model_type = getattr(TFModelEnum, args.model, None)
 
@@ -197,8 +200,11 @@ if __name__ == '__main__':
     beginning_time = datetime.datetime.now()
     traverse_merge_loop(comp_graph, deviceTopo, alpha)
     # apply co-location grouper
-    wcc_node_set = group_longest_path(comp_graph, deviceTopo, args.number_of_device)
+    group_longest_path(comp_graph, deviceTopo, args.number_of_device)
     iteratively_expand_wcc(comp_graph, deviceTopo, args.beta)
+    if f_inside_WCC:
+        fuse_weakly_connected_components(comp_graph)
+        traverse_merge_loop(comp_graph, deviceTopo, alpha)
     ending_time = datetime.datetime.now()
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     placement = QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
