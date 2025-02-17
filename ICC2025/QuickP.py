@@ -201,10 +201,10 @@ if __name__ == '__main__':
     traverse_merge_loop(comp_graph, deviceTopo, alpha)
     # apply co-location grouper
     group_longest_path(comp_graph, deviceTopo, args.number_of_device)
-    iteratively_expand_wcc(comp_graph, deviceTopo, args.beta)
     if f_inside_WCC:
         fuse_weakly_connected_components(comp_graph)
         traverse_merge_loop(comp_graph, deviceTopo, alpha)
+    iteratively_expand_wcc(comp_graph, deviceTopo, args.beta)
     ending_time = datetime.datetime.now()
     print("op fusion run time", datetime.timedelta(seconds=ending_time.timestamp() - beginning_time.timestamp()))
     placement = QuickP(comp_graph, deviceTopo, M=get_proper_M(model_type), model_type=model_type)
