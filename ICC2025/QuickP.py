@@ -73,13 +73,16 @@ def QuickP(comp_graph: CompGraph, deviceTopo: DeviceGraph, M, model_type) -> dic
         # no communication cost for ops on the same device
         source_op_ID, dest_op_ID = edge_id_tuple
 
-        # if tensor size is 0, even if two ops are on different device, no communication cost will exist
-        if tensor_sizes[source_op_ID, dest_op_ID] == 0:
-            model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+        # no comm cost if on the same co-lo group.
+        if source_op_ID in op_group_map and dest_op_ID in op_group_map and op_group_map[source_op_ID] == op_group_map[
+            dest_op_ID]:
+            # Also, since the operator execution order in each WCC is predetermined, as specified in the Scheduling Part
+            # , no constraint need to be applied
+            # model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
             continue
 
-        # no comm cost if on the same co-lo group
-        if source_op_ID in op_group_map and dest_op_ID in op_group_map and op_group_map[source_op_ID] == op_group_map[dest_op_ID]:
+        # if tensor size is 0, even if two ops are on different device, no communication cost will exist
+        if tensor_sizes[source_op_ID, dest_op_ID] == 0:
             model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
             continue
 
