@@ -121,12 +121,12 @@ def QuickP(comp_graph: CompGraph, deviceTopo: DeviceGraph, M, model_type) -> dic
     '''
     op_group_mapping = comp_graph.create_op_group_id_mapping()
     non_reachable_pairs, topological_order_mapping = find_non_connected_pairs(comp_graph)
-    ungrouped_non_reachable_pairs = []
+    parallizable_pairs = []
 
     for i, j in non_reachable_pairs:
         if i in op_group_mapping and j in op_group_mapping and op_group_mapping[i] == op_group_mapping[j]:
             continue
-        ungrouped_non_reachable_pairs.append((i, j))
+        parallizable_pairs.append((i, j))
 
     #  scheduling inside each group follows topo sort since each node pair in non_reachable_pairs is calculated by this sort algorithm
     for ops in group_ops_mapping.values():
@@ -135,7 +135,7 @@ def QuickP(comp_graph: CompGraph, deviceTopo: DeviceGraph, M, model_type) -> dic
             model.addConstr(finish[op_a] <= start[op_b])
 
     # Iterate over topologically sorted nodes
-    for a, b in ungrouped_non_reachable_pairs:
+    for a, b in parallizable_pairs:
         if homo_op_cost_dict[a] == 0 or homo_op_cost_dict[b] == 0:
             continue
         # For each consecutive pair of operators, add a constraint for each device
