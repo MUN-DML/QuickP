@@ -68,6 +68,7 @@ def get_cifar_data_loader(batch_size, train=True) -> tf.data.Dataset:
         image = tf.image.random_flip_left_right(image)
         image = tf.image.random_brightness(image, max_delta=0.1)  # Random brightness
         image = tf.image.random_contrast(image, lower=0.8, upper=1.2)
+        label = tf.squeeze(label)
         return image, label
 
     (x_train, y_train), (x_test, y_test) = getCifar()

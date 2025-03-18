@@ -6,10 +6,11 @@ from keras_nlp.src.models.bert.bert_text_classifier import BertTextClassifier
 from keras_nlp.src.models.f_net.f_net_text_classifier import FNetTextClassifier
 
 
+# Since the loss function is always SparseCategoricalCrossentropy, make the y_label shape [batch_size, ]
 class InputSpec(Enum):
     CIFAR10 = lambda batch_size: [
         tf.TensorSpec(shape=[batch_size, 32, 32, 3], dtype=tf.float32, name="input"),
-        tf.TensorSpec(shape=[batch_size, 1], dtype=tf.uint8, name="target")
+        tf.TensorSpec(shape=[batch_size, ], dtype=tf.uint8, name="target")
     ]
     IMDB_BERT = lambda batch_size, max_len: [
         tf.TensorSpec(shape=[batch_size, max_len], dtype=tf.int32, name="token_ids"),
