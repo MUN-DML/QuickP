@@ -148,9 +148,9 @@ if __name__ == '__main__':
     # ALEXNET VGG BERT FNET
     parser.add_argument('--model', type=str, default='ALEXNET', choices=['ALEXNET', 'VGG', 'FNET', 'BERT'])
     parser.add_argument('--normalization_function', default='MIN_MAX', type=str, help='')
-    # IN homo env and the scheduling is set to optimized, OPTIMIZED should behave the same as OPTIMIZED_HOMO
     # Baseline is evaluated using PRIORITY_HETEROG. For example, METIS + PRIORITY_HETEROG
-    parser.add_argument('--placement', default='OPTIMIZED_GROUPER', type=str, help='', choices=['OPTIMIZED_GROUPER', 'OPTIMIZED_HOMO', 'OPTIMIZED', 'METIS'])
+    parser.add_argument('--placement', default='OPTIMIZED_GROUPER', type=str, help='', choices=['OPTIMIZED_GROUPER', 'METIS'])
+    # By default, the simulator use optimal scheduling. We don't actually need that in our solution.
     parser.add_argument('--scheduling', default='OPTIMIZED', type=str, help='', choices=['PRIORITY_HETEROG', 'PRIORITY_MIN_COMP', 'OPTIMIZED', 'FIFO'])
     parser.add_argument('--alpha', type=int, default=700)
 
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     init_graph_weight(comp_graph, NodeWeightFunction.AVE_COMP_COST, EdgeWeightFunction.SOURCE_OUTPUT_TENSOR, weight_norm_function)
     # apply co-location grouper
     # the merge will should incremental
-    if args.placement in ['OPTIMIZED_GROUPER', 'OPTIMIZED_GROUPER_HOMO']:
+    if args.placement in ['OPTIMIZED_GROUPER']:
         traverse_merge_loop(comp_graph, deviceTopo, args.alpha)
         group_longest_path(comp_graph, deviceTopo, args.number_of_device)
         # visualize_graph(comp_graph, False, False)

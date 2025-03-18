@@ -87,7 +87,7 @@ def get_optimize_placement_with_grouper(comp_graph: CompGraph, deviceTopo, M, mo
 
         # no comm cost if on the same co-lo group
         if source_op_ID in op_group_map and dest_op_ID in op_group_map and op_group_map[source_op_ID] == op_group_map[dest_op_ID]:
-            model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
+            # model.addConstr(finish[source_op_ID] <= start[dest_op_ID])
             continue
 
         # Since it is a Binary, its range will be either 0 or 1
