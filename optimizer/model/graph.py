@@ -73,7 +73,7 @@ class CompGraph(DiGraph):
         with open(file_path, 'w') as f:
             f.write(json_data)
 
-    def generata_random_cost(self, device_number: int, adjustment_percent: int = None):
+    def format_profiling_cost(self, device_number: int):
         if len(self.getOperatorIDs()) == 0:
             raise ValueError("need to profile the real DNN first")
 
@@ -87,27 +87,14 @@ class CompGraph(DiGraph):
         for i in range(device_number):
             device_name = f"mock_device_{i}"
 
-            # Select a random adjustment percent within [-adjustment_percent, adjustment_percent]
-            if adjustment_percent:
-                random_adjustment_percent = random.uniform(-adjustment_percent, adjustment_percent)
-                # Calculate the adjustment factor
-                adjustment_factor = 1 + random_adjustment_percent / 100
-            else:
-                adjustment_factor = 1
-
             # Apply the adjustment factor to all operators for this device
             for node in self.getOperatorObjs():
                 assert node["comp_cost"] is not None
 
-                # Calculate base using only the original real device data
-                base = [node["comp_cost"][key] for key in original_real_devices]
-                base_num = sum(base) / len(base)
-
                 # Apply the adjustment factor to the base number
-                adjusted_number = base_num * adjustment_factor
-                node["comp_cost"][device_name] = adjusted_number
+                node["comp_cost"][device_name] = node["comp_cost"][original_real_devices[0]]
 
-        # After processing all devices, remove the real devices' costs
+        # remove the real devices' costs after replicating real profiling data to mock devices
         for node in self.getOperatorObjs():
             existing_real_device = list(node["comp_cost"].keys())
             for key in existing_real_device:

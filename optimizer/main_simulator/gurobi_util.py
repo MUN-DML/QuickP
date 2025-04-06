@@ -29,7 +29,7 @@ def gurobi_setup(name: str):
     return model
 
 
-def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=TFModelEnum.SMALL) \
+def init_computing_and_device_graph(num_device, hetero_adjust_rate=None, model_type=TFModelEnum.SMALL) \
         -> Tuple[DeviceGraph, CompGraph]:
 
     # get the file path to retrieve and store
@@ -44,7 +44,7 @@ def init_computing_and_device_graph(num_device, hetero_adjust_rate, model_type=T
     if not os.path.exists(json_file_path):
         model = model_type()
         comp_graph = get_computation_graph(model=model)
-        comp_graph.generata_random_cost(num_device, hetero_adjust_rate)
+        comp_graph.format_profiling_cost(num_device)
         comp_graph.save_to_file(json_file_path)
 
     comp_graph = CompGraph.load_from_file(json_file_path)
